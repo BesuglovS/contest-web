@@ -1,0 +1,26 @@
+# Database
+data/contest.db
+data/contest.db-wal
+data/contest.db-shm
+
+# Sandbox temporary files
+sandbox/*.py
+sandbox/*.txt
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Log files
+*.log
+
+# PHP error log
+php_errors.log
