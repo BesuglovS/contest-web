@@ -60,6 +60,8 @@ class Router
             'admin-submissions' => require BASE_PATH . '/admin/submissions.php',
             'admin-submission-detail' => require BASE_PATH . '/admin/submission_detail.php',
             'admin-generate-tasks' => require BASE_PATH . '/admin/generate_tasks.php',
+            'admin-import-tasks' => require BASE_PATH . '/admin/import_tasks.php',
+            'admin-import-format' => require BASE_PATH . '/admin/import_format.php',
             default => $this->render404(),
         };
     }

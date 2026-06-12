@@ -24,6 +24,7 @@ ob_start();
     <a href="<?= BASE_URL ?>/index.php?page=admin-task-groups">Группы задач</a>
     <a href="<?= BASE_URL ?>/index.php?page=admin-contests">Контесты</a>
     <a href="<?= BASE_URL ?>/index.php?page=admin-submissions">Решения</a>
+    <a href="<?= BASE_URL ?>/index.php?page=admin-import-tasks">Импорт задач</a>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">

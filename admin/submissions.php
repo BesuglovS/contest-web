@@ -85,6 +85,7 @@ ob_start();
     <a href="?page=admin-task-groups">Группы задач</a>
     <a href="?page=admin-contests">Контесты</a>
     <a href="?page=admin-submissions" class="active">Решения</a>
+    <a href="?page=admin-import-tasks">Импорт задач</a>
 </div>
 
 <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>

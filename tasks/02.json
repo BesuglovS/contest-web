@@ -1,0 +1,202 @@
+[
+    {
+        "title": "Вычитание 8 из положительного числа",
+        "given": "<p>Дано целое число. Если оно является <strong>положительным</strong>, то вычесть из него 8; в противном случае не изменять его. Вывести полученное число.</p>",
+        "input_format": "<p>Дано одно целое число (в диапазоне \\(-10^9 \\le x \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — результат обработки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10",  "output": "2",   "is_public": 1 },
+            { "input": "-5",  "output": "-5",  "is_public": 1 },
+            { "input": "0",   "output": "0",   "is_public": 1 },
+            { "input": "1",   "output": "-7",  "is_public": 0 },
+            { "input": "100", "output": "92",  "is_public": 0 },
+            { "input": "-1",  "output": "-1",  "is_public": 0 },
+            { "input": "-100","output": "-100","is_public": 0 },
+            { "input": "8",   "output": "0",   "is_public": 0 },
+            { "input": "20",  "output": "12",  "is_public": 0 },
+            { "input": "-10", "output": "-10", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Изменение числа по знаку",
+        "given": "<p>Дано целое число. Если оно является <strong>положительным</strong>, то вычесть из него 8; в противном случае прибавить к нему 6. Вывести полученное число.</p>",
+        "input_format": "<p>Дано одно целое число (в диапазоне \\(-10^9 \\le x \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — результат обработки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10",  "output": "2",  "is_public": 1 },
+            { "input": "-5",  "output": "1",  "is_public": 1 },
+            { "input": "0",   "output": "6",  "is_public": 1 },
+            { "input": "1",   "output": "-7", "is_public": 0 },
+            { "input": "100", "output": "92", "is_public": 0 },
+            { "input": "-1",  "output": "5",  "is_public": 0 },
+            { "input": "-10", "output": "-4", "is_public": 0 },
+            { "input": "8",   "output": "0",  "is_public": 0 },
+            { "input": "20",  "output": "12", "is_public": 0 },
+            { "input": "-100","output": "-94","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Три варианта для числа",
+        "given": "<p>Дано целое число. Если оно является <strong>положительным</strong>, то вычесть из него 8; если <strong>отрицательным</strong>, то прибавить к нему 6; если <strong>нулевым</strong>, то заменить его на 10. Вывести полученное число.</p>",
+        "input_format": "<p>Дано одно целое число (в диапазоне \\(-10^9 \\le x \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — результат обработки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10",  "output": "2",  "is_public": 1 },
+            { "input": "-5",  "output": "1",  "is_public": 1 },
+            { "input": "0",   "output": "10", "is_public": 1 },
+            { "input": "1",   "output": "-7", "is_public": 0 },
+            { "input": "-1",  "output": "5",  "is_public": 0 },
+            { "input": "100", "output": "92", "is_public": 0 },
+            { "input": "-100","output": "-94","is_public": 0 },
+            { "input": "8",   "output": "0",  "is_public": 0 },
+            { "input": "-8",  "output": "-2", "is_public": 0 },
+            { "input": "20",  "output": "12", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Количество положительных среди трёх",
+        "given": "<p>Даны три целых числа. Найдите <strong>количество положительных</strong> чисел в исходном наборе.</p>",
+        "input_format": "<p>Даны три целых числа (\\(-10^9 \\le x_i \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — количество положительных чисел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1\n-2\n3",     "output": "2", "is_public": 1 },
+            { "input": "-1\n-2\n-3",   "output": "0", "is_public": 1 },
+            { "input": "0\n0\n5",      "output": "1", "is_public": 1 },
+            { "input": "1\n2\n3",      "output": "3", "is_public": 0 },
+            { "input": "-1\n0\n1",     "output": "1", "is_public": 0 },
+            { "input": "0\n0\n0",      "output": "0", "is_public": 0 },
+            { "input": "5\n-5\n5",     "output": "2", "is_public": 0 },
+            { "input": "-10\n-20\n-30","output": "0", "is_public": 0 },
+            { "input": "100\n200\n300", "output": "3","is_public": 0 },
+            { "input": "-1\n2\n-3",    "output": "1", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Количество положительных и отрицательных",
+        "given": "<p>Даны три целых числа. Найдите <strong>количество положительных</strong> и <strong>количество отрицательных</strong> чисел в исходном наборе.</p>",
+        "input_format": "<p>Даны три целых числа (\\(-10^9 \\le x_i \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите два целых числа через пробел: сначала количество положительных, затем количество отрицательных чисел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1\n-2\n3",     "output": "2 1", "is_public": 1 },
+            { "input": "-1\n-2\n-3",   "output": "0 3", "is_public": 1 },
+            { "input": "0\n0\n5",      "output": "1 0", "is_public": 1 },
+            { "input": "1\n2\n3",      "output": "3 0", "is_public": 0 },
+            { "input": "-1\n0\n1",     "output": "1 1", "is_public": 0 },
+            { "input": "0\n0\n0",      "output": "0 0", "is_public": 0 },
+            { "input": "5\n-5\n5",     "output": "2 1", "is_public": 0 },
+            { "input": "-10\n-20\n-30","output": "0 3", "is_public": 0 },
+            { "input": "100\n200\n300", "output": "3 0","is_public": 0 },
+            { "input": "0\n-1\n1",     "output": "1 1", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Большее из двух чисел",
+        "given": "<p>Даны два разных числа. Выведите <strong>большее</strong> из них.</p>",
+        "input_format": "<p>Даны два вещественных числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно вещественное число — большее из двух. Значение должно выводиться с точностью 3 знака после десятичной точки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",       "output": "5.000",   "is_public": 1 },
+            { "input": "-2\n-8",     "output": "-2.000",  "is_public": 1 },
+            { "input": "10\n-10",    "output": "10.000",  "is_public": 1 },
+            { "input": "1\n100",     "output": "100.000", "is_public": 0 },
+            { "input": "-5\n3",      "output": "3.000",   "is_public": 0 },
+            { "input": "0\n-1",      "output": "0.000",   "is_public": 0 },
+            { "input": "100\n50",    "output": "100.000", "is_public": 0 },
+            { "input": "-10\n-5",    "output": "-5.000",  "is_public": 0 },
+            { "input": "8\n20",      "output": "20.000",  "is_public": 0 },
+            { "input": "-100\n-200", "output": "-100.000","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Порядковый номер меньшего числа",
+        "given": "<p>Даны два разных числа. Выведите <strong>порядковый номер</strong> меньшего из них (1 или 2).</p>",
+        "input_format": "<p>Даны два числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — номер меньшего числа (1, если меньше первое, и 2, если меньше второе).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",       "output": "2", "is_public": 1 },
+            { "input": "-2\n-8",     "output": "2", "is_public": 1 },
+            { "input": "10\n-10",    "output": "2", "is_public": 1 },
+            { "input": "1\n100",     "output": "1", "is_public": 0 },
+            { "input": "-5\n3",      "output": "1", "is_public": 0 },
+            { "input": "0\n-1",      "output": "2", "is_public": 0 },
+            { "input": "100\n50",    "output": "2", "is_public": 0 },
+            { "input": "-10\n-5",    "output": "1", "is_public": 0 },
+            { "input": "8\n20",      "output": "1", "is_public": 0 },
+            { "input": "-100\n-200", "output": "2", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Наибольшее и наименьшее из двух",
+        "given": "<p>Даны два числа. Сначала выведите <strong>наибольшее</strong>, а затем <strong>наименьшее</strong> из них.</p>",
+        "input_format": "<p>Даны два вещественных числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите два вещественных числа через пробел: сначала наибольшее, затем наименьшее. Каждое значение должно выводиться с точностью 3 знака после десятичной точки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",       "output": "5.000 3.000",    "is_public": 1 },
+            { "input": "-2\n-8",     "output": "-2.000 -8.000",  "is_public": 1 },
+            { "input": "10\n-10",    "output": "10.000 -10.000", "is_public": 1 },
+            { "input": "1\n100",     "output": "100.000 1.000",  "is_public": 0 },
+            { "input": "-5\n3",      "output": "3.000 -5.000",   "is_public": 0 },
+            { "input": "0\n-1",      "output": "0.000 -1.000",   "is_public": 0 },
+            { "input": "100\n50",    "output": "100.000 50.000", "is_public": 0 },
+            { "input": "-10\n-5",    "output": "-5.000 -10.000", "is_public": 0 },
+            { "input": "8\n20",      "output": "20.000 8.000",   "is_public": 0 },
+            { "input": "-100\n-200", "output": "-100.000 -200.000","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Упорядочивание двух чисел",
+        "given": "<p>Даны две переменные вещественного типа: \\(A\\), \\(B\\). Перераспределить значения данных переменных так, чтобы в \\(A\\) оказалось <strong>меньшее</strong> из значений, а в \\(B\\) — <strong>большее</strong>. Вывести новые значения переменных \\(A\\) и \\(B\\).</p>",
+        "input_format": "<p>Даны два вещественных числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите два вещественных числа через пробел: сначала \\(A\\), затем \\(B\\). Каждое значение должно выводиться с точностью 3 знака после десятичной точки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",       "output": "3.000 5.000",    "is_public": 1 },
+            { "input": "-2\n-8",     "output": "-8.000 -2.000",  "is_public": 1 },
+            { "input": "10\n-10",    "output": "-10.000 10.000", "is_public": 1 },
+            { "input": "1\n100",     "output": "1.000 100.000",  "is_public": 0 },
+            { "input": "-5\n3",      "output": "-5.000 3.000",   "is_public": 0 },
+            { "input": "0\n-1",      "output": "-1.000 0.000",   "is_public": 0 },
+            { "input": "100\n50",    "output": "50.000 100.000", "is_public": 0 },
+            { "input": "-10\n-5",    "output": "-10.000 -5.000", "is_public": 0 },
+            { "input": "8\n20",      "output": "8.000 20.000",   "is_public": 0 },
+            { "input": "-100\n-200", "output": "-200.000 -100.000","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма или обнуление",
+        "given": "<p>Даны две переменные целого типа: \\(A\\) и \\(B\\). Если их значения <strong>не равны</strong>, то присвоить каждой переменной <strong>сумму</strong> этих значений, а если <strong>равны</strong>, то присвоить переменным <strong>нулевые</strong> значения. Вывести новые значения переменных \\(A\\) и \\(B\\).</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите два целых числа через пробел — новые значения переменных \\(A\\) и \\(B\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",     "output": "8 8",    "is_public": 1 },
+            { "input": "7\n7",     "output": "0 0",    "is_public": 1 },
+            { "input": "-2\n2",    "output": "0 0",    "is_public": 1 },
+            { "input": "10\n-10",  "output": "0 0",    "is_public": 0 },
+            { "input": "100\n200", "output": "300 300","is_public": 0 },
+            { "input": "-5\n-5",   "output": "0 0",    "is_public": 0 },
+            { "input": "1\n2",     "output": "3 3",    "is_public": 0 },
+            { "input": "0\n0",     "output": "0 0",    "is_public": 0 },
+            { "input": "-8\n-3",   "output": "-11 -11","is_public": 0 },
+            { "input": "50\n50",   "output": "0 0",    "is_public": 0 }
+        ]
+    }
+]

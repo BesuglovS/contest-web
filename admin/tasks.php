@@ -10,15 +10,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'create') {
         $title = trim($_POST['title']);
-        $condition = $_POST['condition'] ?? '';
+        $given = $_POST['given'] ?? '';
         $inputFormat = $_POST['input_format'] ?? '';
         $outputFormat = $_POST['output_format'] ?? '';
         $timeLimit = (float) ($_POST['time_limit'] ?? 2.0);
         $memoryLimit = (int) ($_POST['memory_limit'] ?? 128);
 
         if ($title) {
-            $stmt = $db->prepare("INSERT INTO tasks (title, condition, input_format, output_format, time_limit, memory_limit) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$title, $condition, $inputFormat, $outputFormat, $timeLimit, $memoryLimit]);
+            $stmt = $db->prepare("INSERT INTO tasks (title, given, input_format, output_format, time_limit, memory_limit) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$title, $given, $inputFormat, $outputFormat, $timeLimit, $memoryLimit]);
             $taskId = $db->lastInsertId();
 
             // Сохраняем тесты
@@ -42,14 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update') {
         $id = (int) $_POST['id'];
         $title = trim($_POST['title']);
-        $condition = $_POST['condition'] ?? '';
+        $given = $_POST['given'] ?? '';
         $inputFormat = $_POST['input_format'] ?? '';
         $outputFormat = $_POST['output_format'] ?? '';
         $timeLimit = (float) ($_POST['time_limit'] ?? 2.0);
         $memoryLimit = (int) ($_POST['memory_limit'] ?? 128);
 
-        $stmt = $db->prepare("UPDATE tasks SET title=?, condition=?, input_format=?, output_format=?, time_limit=?, memory_limit=? WHERE id=?");
-        $stmt->execute([$title, $condition, $inputFormat, $outputFormat, $timeLimit, $memoryLimit, $id]);
+        $stmt = $db->prepare("UPDATE tasks SET title=?, given=?, input_format=?, output_format=?, time_limit=?, memory_limit=? WHERE id=?");
+        $stmt->execute([$title, $given, $inputFormat, $outputFormat, $timeLimit, $memoryLimit, $id]);
 
         // Удаляем старые тесты и вставляем новые
         $db->prepare("DELETE FROM tests WHERE task_id=?")->execute([$id]);
@@ -154,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'fix_s
     <a href="?page=admin-task-groups">Группы задач</a>
     <a href="?page=admin-contests">Контесты</a>
     <a href="?page=admin-submissions">Решения</a>
+    <a href="?page=admin-import-tasks">Импорт задач</a>
 </div>
 
 <?php if ($message): ?>
@@ -210,8 +211,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'fix_s
         </div>
 
         <div class="form-group">
-            <label for="condition">Условие задачи (HTML)</label>
-            <textarea id="condition" name="condition" style="min-height:200px;"><?= htmlspecialchars($editTask['condition'] ?? '') ?></textarea>
+            <label for="given">Условие задачи (HTML)</label>
+            <textarea id="given" name="given" style="min-height:200px;"><?= htmlspecialchars($editTask['given'] ?? '') ?></textarea>
         </div>
 
         <div class="form-group">

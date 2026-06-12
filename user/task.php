@@ -118,7 +118,7 @@ ob_start();
         <div class="card">
             <h3>Условие задачи</h3>
             <div class="task-content">
-                <?= $task['condition'] ?>
+                <?= $task['given'] ?>
             </div>
         </div>
 

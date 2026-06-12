@@ -79,7 +79,7 @@ class Database
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                condition TEXT NOT NULL DEFAULT '',
+                given TEXT NOT NULL DEFAULT '',
                 input_format TEXT NOT NULL DEFAULT '',
                 output_format TEXT NOT NULL DEFAULT '',
                 time_limit REAL NOT NULL DEFAULT 2.0,
