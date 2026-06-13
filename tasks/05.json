@@ -1,0 +1,302 @@
+[
+    {
+        "title": "Приветствие",
+        "given": "<p>Напишите функцию <code>greet(name)</code>, которая принимает имя (строку) и <strong>возвращает</strong> строку <code>\"Привет, {name}!\"</code>.</p>\n<p>Считайте имя с клавиатуры, вызовите функцию <code>greet</code> с этим именем и выведите результат.</p>",
+        "input_format": "<p>Дана одна строка — имя.</p>",
+        "output_format": "<p>Выведите строку — результат работы функции.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Анна",      "output": "Привет, Анна!",      "is_public": 1 },
+            { "input": "Мир",       "output": "Привет, Мир!",       "is_public": 1 },
+            { "input": "Python",    "output": "Привет, Python!",    "is_public": 1 },
+            { "input": "Борис",     "output": "Привет, Борис!",     "is_public": 0 },
+            { "input": "Александр", "output": "Привет, Александр!", "is_public": 0 },
+            { "input": "Мария",     "output": "Привет, Мария!",     "is_public": 0 },
+            { "input": "Олег",      "output": "Привет, Олег!",      "is_public": 0 },
+            { "input": "Елена",     "output": "Привет, Елена!",     "is_public": 0 },
+            { "input": "Дмитрий",   "output": "Привет, Дмитрий!",   "is_public": 0 },
+            { "input": "World",     "output": "Привет, World!",     "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма двух чисел",
+        "given": "<p>Напишите функцию <code>add(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> их сумму.</p>\n<p>Считайте два целых числа, вызовите функцию <code>add</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le a, b \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — сумму.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",      "output": "8",    "is_public": 1 },
+            { "input": "-2\n7",     "output": "5",    "is_public": 1 },
+            { "input": "0\n0",      "output": "0",    "is_public": 1 },
+            { "input": "100\n200",  "output": "300",  "is_public": 0 },
+            { "input": "-10\n-20",  "output": "-30",  "is_public": 0 },
+            { "input": "1\n-1",     "output": "0",    "is_public": 0 },
+            { "input": "999\n1",    "output": "1000", "is_public": 0 },
+            { "input": "50\n50",    "output": "100",  "is_public": 0 },
+            { "input": "-100\n100", "output": "0",    "is_public": 0 },
+            { "input": "15\n25",    "output": "40",   "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Разность двух чисел",
+        "given": "<p>Напишите функцию <code>subtract(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> разность <code>a - b</code>.</p>\n<p>Считайте два целых числа, вызовите функцию <code>subtract</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le a, b \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — разность <code>a - b</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10\n3",    "output": "7",   "is_public": 1 },
+            { "input": "3\n10",    "output": "-7",  "is_public": 1 },
+            { "input": "0\n5",     "output": "-5",  "is_public": 1 },
+            { "input": "-5\n-3",   "output": "-2",  "is_public": 0 },
+            { "input": "100\n50",  "output": "50",  "is_public": 0 },
+            { "input": "1\n100",   "output": "-99", "is_public": 0 },
+            { "input": "-10\n-20", "output": "10",  "is_public": 0 },
+            { "input": "0\n0",     "output": "0",   "is_public": 0 },
+            { "input": "7\n7",     "output": "0",   "is_public": 0 },
+            { "input": "42\n10",   "output": "32",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Произведение двух чисел",
+        "given": "<p>Напишите функцию <code>multiply(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> их произведение.</p>\n<p>Считайте два целых числа, вызовите функцию <code>multiply</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^4 \\le a, b \\le 10^4\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — произведение.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",    "output": "15",   "is_public": 1 },
+            { "input": "-2\n7",   "output": "-14",  "is_public": 1 },
+            { "input": "0\n100",  "output": "0",    "is_public": 1 },
+            { "input": "10\n10",  "output": "100",  "is_public": 0 },
+            { "input": "-5\n-5",  "output": "25",   "is_public": 0 },
+            { "input": "1\n-1",   "output": "-1",   "is_public": 0 },
+            { "input": "100\n0",  "output": "0",    "is_public": 0 },
+            { "input": "12\n12",  "output": "144",  "is_public": 0 },
+            { "input": "7\n8",    "output": "56",   "is_public": 0 },
+            { "input": "-3\n9",   "output": "-27",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Частное двух чисел",
+        "given": "<p>Напишите функцию <code>divide(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> частное <code>a / b</code>. Гарантируется, что \\(b \\neq 0\\).</p>\n<p>Считайте два целых числа, вызовите функцию <code>divide</code> и выведите результат, округлённый до <strong>6 знаков</strong> после запятой.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^4 \\le a \\le 10^4\\), \\(-10^4 \\le b \\le 10^4\\), \\(b \\neq 0\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно вещественное число — частное, округлённое до 6 знаков после запятой.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10\n2",   "output": "5.000000",  "is_public": 1 },
+            { "input": "7\n2",    "output": "3.500000",  "is_public": 1 },
+            { "input": "1\n3",    "output": "0.333333",  "is_public": 1 },
+            { "input": "100\n4",  "output": "25.000000", "is_public": 0 },
+            { "input": "-10\n5",  "output": "-2.000000", "is_public": 0 },
+            { "input": "9\n2",    "output": "4.500000",  "is_public": 0 },
+            { "input": "0\n5",    "output": "0.000000",  "is_public": 0 },
+            { "input": "22\n7",   "output": "3.142857",  "is_public": 0 },
+            { "input": "5\n1",    "output": "5.000000",  "is_public": 0 },
+            { "input": "-15\n3",  "output": "-5.000000", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Квадрат числа",
+        "given": "<p>Напишите функцию <code>square(n)</code>, которая принимает число и <strong>возвращает</strong> его квадрат (\\(n^2\\)).</p>\n<p>Считайте одно целое число, вызовите функцию <code>square</code> и выведите результат.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^4 \\le n \\le 10^4\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — квадрат числа.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5",   "output": "25",    "is_public": 1 },
+            { "input": "0",   "output": "0",     "is_public": 1 },
+            { "input": "-3",  "output": "9",     "is_public": 1 },
+            { "input": "10",  "output": "100",   "is_public": 0 },
+            { "input": "1",   "output": "1",     "is_public": 0 },
+            { "input": "12",  "output": "144",   "is_public": 0 },
+            { "input": "-7",  "output": "49",    "is_public": 0 },
+            { "input": "25",  "output": "625",   "is_public": 0 },
+            { "input": "-1",  "output": "1",     "is_public": 0 },
+            { "input": "100", "output": "10000", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Куб числа",
+        "given": "<p>Напишите функцию <code>cube(n)</code>, которая принимает число и <strong>возвращает</strong> его куб (\\(n^3\\)).</p>\n<p>Считайте одно целое число, вызовите функцию <code>cube</code> и выведите результат.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^3 \\le n \\le 10^3\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — куб числа.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "2",  "output": "8",     "is_public": 1 },
+            { "input": "0",  "output": "0",     "is_public": 1 },
+            { "input": "-3", "output": "-27",   "is_public": 1 },
+            { "input": "5",  "output": "125",   "is_public": 0 },
+            { "input": "10", "output": "1000",  "is_public": 0 },
+            { "input": "1",  "output": "1",     "is_public": 0 },
+            { "input": "-1", "output": "-1",    "is_public": 0 },
+            { "input": "7",  "output": "343",   "is_public": 0 },
+            { "input": "4",  "output": "64",    "is_public": 0 },
+            { "input": "-5", "output": "-125",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Модуль числа",
+        "given": "<p>Напишите функцию <code>my_abs(n)</code>, которая принимает целое число и <strong>возвращает</strong> его абсолютное значение (модуль). <strong>Не используйте</strong> встроенную функцию <code>abs()</code> — реализуйте проверку через <code>if</code>.</p>\n<p>Считайте одно целое число, вызовите функцию <code>my_abs</code> и выведите результат.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^9 \\le n \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — модуль числа.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5",    "output": "5",    "is_public": 1 },
+            { "input": "-7",   "output": "7",    "is_public": 1 },
+            { "input": "0",    "output": "0",    "is_public": 1 },
+            { "input": "-100", "output": "100",  "is_public": 0 },
+            { "input": "42",   "output": "42",   "is_public": 0 },
+            { "input": "-1",   "output": "1",    "is_public": 0 },
+            { "input": "1000", "output": "1000", "is_public": 0 },
+            { "input": "-999", "output": "999",  "is_public": 0 },
+            { "input": "15",   "output": "15",   "is_public": 0 },
+            { "input": "-50",  "output": "50",   "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Максимум из двух",
+        "given": "<p>Напишите функцию <code>max_of_two(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> большее из них. <strong>Не используйте</strong> встроенную функцию <code>max()</code> — реализуйте сравнение через <code>if</code>.</p>\n<p>Считайте два целых числа, вызовите функцию <code>max_of_two</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le a, b \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — максимум из двух.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",    "output": "5",   "is_public": 1 },
+            { "input": "-2\n7",   "output": "7",   "is_public": 1 },
+            { "input": "0\n0",    "output": "0",   "is_public": 1 },
+            { "input": "10\n10",  "output": "10",  "is_public": 0 },
+            { "input": "-5\n-3",  "output": "-3",  "is_public": 0 },
+            { "input": "100\n50", "output": "100", "is_public": 0 },
+            { "input": "-1\n-2",  "output": "-1",  "is_public": 0 },
+            { "input": "42\n42",  "output": "42",  "is_public": 0 },
+            { "input": "0\n-1",   "output": "0",   "is_public": 0 },
+            { "input": "15\n25",  "output": "25",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Минимум из двух",
+        "given": "<p>Напишите функцию <code>min_of_two(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> меньшее из них. <strong>Не используйте</strong> встроенную функцию <code>min()</code> — реализуйте сравнение через <code>if</code>.</p>\n<p>Считайте два целых числа, вызовите функцию <code>min_of_two</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le a, b \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — минимум из двух.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",    "output": "3",   "is_public": 1 },
+            { "input": "-2\n7",   "output": "-2",  "is_public": 1 },
+            { "input": "0\n0",    "output": "0",   "is_public": 1 },
+            { "input": "10\n10",  "output": "10",  "is_public": 0 },
+            { "input": "-5\n-3",  "output": "-5",  "is_public": 0 },
+            { "input": "100\n50", "output": "50",  "is_public": 0 },
+            { "input": "-1\n-2",  "output": "-2",  "is_public": 0 },
+            { "input": "42\n42",  "output": "42",  "is_public": 0 },
+            { "input": "0\n-1",   "output": "-1",  "is_public": 0 },
+            { "input": "15\n25",  "output": "15",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Проверка на чётность",
+        "given": "<p>Напишите функцию <code>is_even(n)</code>, которая принимает целое число и <strong>возвращает</strong> строку <code>\"YES\"</code>, если число чётное, и <code>\"NO\"</code>, если нечётное.</p>\n<p>Считайте одно целое число, вызовите функцию <code>is_even</code> и выведите результат.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^9 \\le n \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "4",   "output": "YES", "is_public": 1 },
+            { "input": "7",   "output": "NO",  "is_public": 1 },
+            { "input": "0",   "output": "YES", "is_public": 1 },
+            { "input": "2",   "output": "YES", "is_public": 0 },
+            { "input": "15",  "output": "NO",  "is_public": 0 },
+            { "input": "-6",  "output": "YES", "is_public": 0 },
+            { "input": "-3",  "output": "NO",  "is_public": 0 },
+            { "input": "100", "output": "YES", "is_public": 0 },
+            { "input": "1",   "output": "NO",  "is_public": 0 },
+            { "input": "42",  "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Знак числа",
+        "given": "<p>Напишите функцию <code>sign(n)</code>, которая принимает целое число и <strong>возвращает</strong>:</p>\n<ul>\n<li><code>1</code>, если число положительное,</li>\n<li><code>-1</code>, если число отрицательное,</li>\n<li><code>0</code>, если число равно нулю.</li>\n</ul>\n<p>Считайте одно целое число, вызовите функцию <code>sign</code> и выведите результат.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^9 \\le n \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите <code>1</code>, <code>-1</code> или <code>0</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5",    "output": "1",  "is_public": 1 },
+            { "input": "-3",   "output": "-1", "is_public": 1 },
+            { "input": "0",    "output": "0",  "is_public": 1 },
+            { "input": "100",  "output": "1",  "is_public": 0 },
+            { "input": "-50",  "output": "-1", "is_public": 0 },
+            { "input": "1",    "output": "1",  "is_public": 0 },
+            { "input": "-1",   "output": "-1", "is_public": 0 },
+            { "input": "42",   "output": "1",  "is_public": 0 },
+            { "input": "-100", "output": "-1", "is_public": 0 },
+            { "input": "0",    "output": "0",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Периметр прямоугольника",
+        "given": "<p>Напишите функцию <code>perimeter(a, b)</code>, которая принимает длины сторон прямоугольника и <strong>возвращает</strong> его периметр.</p>\n<p><strong>Формула:</strong> \\(P = 2 \\times (a + b)\\).</p>\n<p>Считайте два целых числа, вызовите функцию <code>perimeter</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа \\(a\\) и \\(b\\) (\\(0 \\le a, b \\le 10^9\\)) — длины сторон прямоугольника. Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — периметр прямоугольника.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3",    "output": "16",  "is_public": 1 },
+            { "input": "10\n10",  "output": "40",  "is_public": 1 },
+            { "input": "1\n1",    "output": "4",   "is_public": 1 },
+            { "input": "7\n2",    "output": "18",  "is_public": 0 },
+            { "input": "100\n200","output": "600", "is_public": 0 },
+            { "input": "0\n5",    "output": "10",  "is_public": 0 },
+            { "input": "12\n8",   "output": "40",  "is_public": 0 },
+            { "input": "25\n15",  "output": "80",  "is_public": 0 },
+            { "input": "3\n7",    "output": "20",  "is_public": 0 },
+            { "input": "50\n50",  "output": "200", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Среднее арифметическое",
+        "given": "<p>Напишите функцию <code>average(a, b)</code>, которая принимает два числа и <strong>возвращает</strong> их среднее арифметическое.</p>\n<p><strong>Формула:</strong> \\(\\frac{a + b}{2}\\).</p>\n<p>Считайте два целых числа, вызовите функцию <code>average</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le a, b \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно вещественное число — среднее арифметическое.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "4\n6",     "output": "5.0",   "is_public": 1 },
+            { "input": "10\n20",   "output": "15.0",  "is_public": 1 },
+            { "input": "0\n100",   "output": "50.0",  "is_public": 1 },
+            { "input": "-5\n5",    "output": "0.0",   "is_public": 0 },
+            { "input": "-10\n-20", "output": "-15.0", "is_public": 0 },
+            { "input": "7\n3",     "output": "5.0",   "is_public": 0 },
+            { "input": "99\n1",    "output": "50.0",  "is_public": 0 },
+            { "input": "17\n23",   "output": "20.0",  "is_public": 0 },
+            { "input": "-30\n10",  "output": "-10.0", "is_public": 0 },
+            { "input": "0\n0",     "output": "0.0",   "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Степень числа",
+        "given": "<p>Напишите функцию <code>power(base, exp)</code>, которая принимает два целых числа — основание и показатель степени — и <strong>возвращает</strong> \\(base^{exp}\\). Гарантируется, что \\(exp \\ge 0\\).</p>\n<p>Считайте два целых числа, вызовите функцию <code>power</code> и выведите результат.</p>",
+        "input_format": "<p>Даны два целых числа \\(base\\) и \\(exp\\) (\\(-10^3 \\le base \\le 10^3\\), \\(0 \\le exp \\le 10\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — результат возведения в степень.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "2\n10",  "output": "1024", "is_public": 1 },
+            { "input": "3\n4",   "output": "81",   "is_public": 1 },
+            { "input": "5\n0",   "output": "1",    "is_public": 1 },
+            { "input": "10\n2",  "output": "100",  "is_public": 0 },
+            { "input": "7\n3",   "output": "343",  "is_public": 0 },
+            { "input": "1\n8",   "output": "1",    "is_public": 0 },
+            { "input": "2\n5",   "output": "32",   "is_public": 0 },
+            { "input": "0\n5",   "output": "0",    "is_public": 0 },
+            { "input": "4\n4",   "output": "256",  "is_public": 0 },
+            { "input": "6\n3",   "output": "216",  "is_public": 0 }
+        ]
+    }
+]
