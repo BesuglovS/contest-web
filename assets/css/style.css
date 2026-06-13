@@ -505,6 +505,68 @@ tr:hover td { background: #f1f5f9; }
     background: #f1f5f9;
 }
 
+/* === Access Denied === */
+.access-denied {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 40px 0;
+}
+
+.access-denied-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    animation: accessDeniedFadeIn 0.5s ease-out;
+}
+
+.access-denied-icon {
+    color: var(--warning);
+    margin-bottom: 20px;
+    animation: accessDeniedPulse 2s ease-in-out infinite;
+}
+
+.access-denied-card h2 {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.access-denied-message {
+    font-size: 1.05em;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.access-denied-hint {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 36px;
+}
+
+@keyframes accessDeniedFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes accessDeniedPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
 /* === Utility === */
 .mt-20 { margin-top: 20px; }
 .mb-20 { margin-bottom: 20px; }

@@ -1,0 +1,302 @@
+[
+    {
+        "title": "Оба положительные",
+        "given": "<p>Даны два целых числа. Проверьте, являются ли <strong>оба числа положительными</strong>. Выведите <code>YES</code>, если оба числа больше нуля, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3", "output": "YES", "is_public": 1 },
+            { "input": "-2\n7", "output": "NO", "is_public": 1 },
+            { "input": "0\n1", "output": "NO", "is_public": 1 },
+            { "input": "-1\n-5", "output": "NO", "is_public": 0 },
+            { "input": "100\n200", "output": "YES", "is_public": 0 },
+            { "input": "1\n1", "output": "YES", "is_public": 0 },
+            { "input": "-100\n0", "output": "NO", "is_public": 0 },
+            { "input": "0\n0", "output": "NO", "is_public": 0 },
+            { "input": "10\n-3", "output": "NO", "is_public": 0 },
+            { "input": "50\n60", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Хотя бы одно положительное",
+        "given": "<p>Даны два целых числа. Проверьте, является ли <strong>хотя бы одно</strong> из них положительным. Выведите <code>YES</code>, если хотя бы одно число больше нуля, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n-3", "output": "YES", "is_public": 1 },
+            { "input": "-2\n-7", "output": "NO", "is_public": 1 },
+            { "input": "0\n1", "output": "YES", "is_public": 1 },
+            { "input": "100\n50", "output": "YES", "is_public": 0 },
+            { "input": "-10\n0", "output": "NO", "is_public": 0 },
+            { "input": "0\n0", "output": "NO", "is_public": 0 },
+            { "input": "1\n-1", "output": "YES", "is_public": 0 },
+            { "input": "-100\n-200", "output": "NO", "is_public": 0 },
+            { "input": "-5\n8", "output": "YES", "is_public": 0 },
+            { "input": "3\n4", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Ни одно не положительное",
+        "given": "<p>Даны два целых числа. Проверьте, что <strong>ни одно</strong> из них не является положительным (то есть оба числа меньше или равны нулю). Выведите <code>YES</code>, если оба числа ≤ 0, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Даны два целых числа (\\(-10^9 \\le x \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "-5\n-3", "output": "YES", "is_public": 1 },
+            { "input": "0\n0", "output": "YES", "is_public": 1 },
+            { "input": "1\n-7", "output": "NO", "is_public": 1 },
+            { "input": "-10\n0", "output": "YES", "is_public": 0 },
+            { "input": "-1\n-1", "output": "YES", "is_public": 0 },
+            { "input": "0\n5", "output": "NO", "is_public": 0 },
+            { "input": "100\n-200", "output": "NO", "is_public": 0 },
+            { "input": "-100\n-200", "output": "YES", "is_public": 0 },
+            { "input": "0\n-1", "output": "YES", "is_public": 0 },
+            { "input": "3\n0", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Число в отрезке",
+        "given": "<p>Дано целое число. Проверьте, принадлежит ли оно <strong>отрезку [10, 99]</strong> (включая границы). Выведите <code>YES</code>, если \\(10 \\le x \\le 99\\), и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^9 \\le x \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "50", "output": "YES", "is_public": 1 },
+            { "input": "10", "output": "YES", "is_public": 1 },
+            { "input": "9", "output": "NO", "is_public": 1 },
+            { "input": "99", "output": "YES", "is_public": 0 },
+            { "input": "100", "output": "NO", "is_public": 0 },
+            { "input": "0", "output": "NO", "is_public": 0 },
+            { "input": "25", "output": "YES", "is_public": 0 },
+            { "input": "-5", "output": "NO", "is_public": 0 },
+            { "input": "11", "output": "YES", "is_public": 0 },
+            { "input": "1000", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Число вне отрезка",
+        "given": "<p>Дано целое число. Проверьте, что оно <strong>НЕ принадлежит</strong> отрезку [10, 99]. Выведите <code>YES</code>, если \\(x < 10\\) или \\(x > 99\\), и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^9 \\le x \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5", "output": "YES", "is_public": 1 },
+            { "input": "50", "output": "NO", "is_public": 1 },
+            { "input": "100", "output": "YES", "is_public": 1 },
+            { "input": "10", "output": "NO", "is_public": 0 },
+            { "input": "99", "output": "NO", "is_public": 0 },
+            { "input": "0", "output": "YES", "is_public": 0 },
+            { "input": "-10", "output": "YES", "is_public": 0 },
+            { "input": "200", "output": "YES", "is_public": 0 },
+            { "input": "15", "output": "NO", "is_public": 0 },
+            { "input": "9", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Високосный год",
+        "given": "<p>Дан год (целое число). Определите, является ли он <strong>високосным</strong> по григорианскому календарю. Выведите <code>YES</code>, если год високосный, и <code>NO</code> в противном случае.</p>\n<p><strong>Правило:</strong> год является високосным, если он делится на 4 и при этом не делится на 100, либо если он делится на 400.</p>",
+        "input_format": "<p>Дано одно целое число — год (\\(1 \\le year \\le 3000\\)).</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "2020", "output": "YES", "is_public": 1 },
+            { "input": "1900", "output": "NO", "is_public": 1 },
+            { "input": "2000", "output": "YES", "is_public": 1 },
+            { "input": "2024", "output": "YES", "is_public": 0 },
+            { "input": "2023", "output": "NO", "is_public": 0 },
+            { "input": "2100", "output": "NO", "is_public": 0 },
+            { "input": "2400", "output": "YES", "is_public": 0 },
+            { "input": "2019", "output": "NO", "is_public": 0 },
+            { "input": "2008", "output": "YES", "is_public": 0 },
+            { "input": "1800", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Существует ли треугольник",
+        "given": "<p>Даны три целых числа — длины трёх сторон. Проверьте, может ли существовать <strong>треугольник</strong> с такими сторонами. Выведите <code>YES</code>, если треугольник существует, и <code>NO</code> в противном случае.</p>\n<p><strong>Условие существования:</strong> каждая сторона должна быть строго меньше суммы двух других.</p>",
+        "input_format": "<p>Даны три целых числа \\(a\\), \\(b\\), \\(c\\) (\\(1 \\le a, b, c \\le 10^9\\)) — длины сторон. Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\n4\n5", "output": "YES", "is_public": 1 },
+            { "input": "1\n2\n10", "output": "NO", "is_public": 1 },
+            { "input": "5\n5\n5", "output": "YES", "is_public": 1 },
+            { "input": "7\n10\n5", "output": "YES", "is_public": 0 },
+            { "input": "1\n1\n2", "output": "NO", "is_public": 0 },
+            { "input": "10\n20\n30", "output": "NO", "is_public": 0 },
+            { "input": "100\n100\n1", "output": "YES", "is_public": 0 },
+            { "input": "4\n8\n3", "output": "NO", "is_public": 0 },
+            { "input": "6\n6\n10", "output": "YES", "is_public": 0 },
+            { "input": "2\n3\n6", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Одинаковые цифры трёхзначного числа",
+        "given": "<p>Дано трёхзначное число. Проверьте, <strong>все ли его цифры одинаковы</strong>. Выведите <code>YES</code>, если все три цифры равны, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дано одно целое число от 100 до 999 включительно.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "111", "output": "YES", "is_public": 1 },
+            { "input": "123", "output": "NO", "is_public": 1 },
+            { "input": "999", "output": "YES", "is_public": 1 },
+            { "input": "222", "output": "YES", "is_public": 0 },
+            { "input": "100", "output": "NO", "is_public": 0 },
+            { "input": "555", "output": "YES", "is_public": 0 },
+            { "input": "789", "output": "NO", "is_public": 0 },
+            { "input": "101", "output": "NO", "is_public": 0 },
+            { "input": "333", "output": "YES", "is_public": 0 },
+            { "input": "990", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Счастливый билет",
+        "given": "<p>Дано шестизначное число (номер билета). Проверьте, является ли билет <strong>«счастливым»</strong>: сумма первых трёх цифр должна быть равна сумме последних трёх цифр. Выведите <code>YES</code>, если билет счастливый, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дано одно целое число от 100000 до 999999 включительно.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "123321", "output": "YES", "is_public": 1 },
+            { "input": "123456", "output": "NO", "is_public": 1 },
+            { "input": "111111", "output": "YES", "is_public": 1 },
+            { "input": "100001", "output": "YES", "is_public": 0 },
+            { "input": "385916", "output": "YES", "is_public": 0 },
+            { "input": "999999", "output": "YES", "is_public": 0 },
+            { "input": "123123", "output": "YES", "is_public": 0 },
+            { "input": "102003", "output": "YES", "is_public": 0 },
+            { "input": "100000", "output": "NO", "is_public": 0 },
+            { "input": "987654", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Доступ: возраст, билет и VIP",
+        "given": "<p>Даны три величины: возраст (целое число), наличие билета (строка <code>YES</code> или <code>NO</code>) и VIP-статус (строка <code>YES</code> или <code>NO</code>). Доступ разрешён, если <strong>возраст не менее 18 и есть билет, ИЛИ имеется VIP-статус</strong> (независимо от возраста и билета). Выведите <code>YES</code>, если доступ разрешён, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Первая строка — целое число (возраст, \\(0 \\le age \\le 150\\)). Вторая строка — <code>YES</code> или <code>NO</code> (наличие билета). Третья строка — <code>YES</code> или <code>NO</code> (VIP-статус).</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "20\nYES\nNO", "output": "YES", "is_public": 1 },
+            { "input": "16\nYES\nNO", "output": "NO", "is_public": 1 },
+            { "input": "10\nNO\nYES", "output": "YES", "is_public": 1 },
+            { "input": "18\nYES\nNO", "output": "YES", "is_public": 0 },
+            { "input": "25\nNO\nNO", "output": "NO", "is_public": 0 },
+            { "input": "5\nNO\nYES", "output": "YES", "is_public": 0 },
+            { "input": "30\nNO\nYES", "output": "YES", "is_public": 0 },
+            { "input": "17\nYES\nNO", "output": "NO", "is_public": 0 },
+            { "input": "18\nNO\nNO", "output": "NO", "is_public": 0 },
+            { "input": "1\nNO\nNO", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Хотя бы одно из трёх положительное",
+        "given": "<p>Даны три целых числа. Проверьте, является ли <strong>хотя бы одно</strong> из них положительным. Выведите <code>YES</code>, если хотя бы одно число больше нуля, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Даны три целых числа (\\(-10^9 \\le x_i \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "-1\n-2\n5", "output": "YES", "is_public": 1 },
+            { "input": "-1\n-2\n-3", "output": "NO", "is_public": 1 },
+            { "input": "0\n0\n1", "output": "YES", "is_public": 1 },
+            { "input": "0\n0\n0", "output": "NO", "is_public": 0 },
+            { "input": "10\n20\n30", "output": "YES", "is_public": 0 },
+            { "input": "-5\n0\n-8", "output": "NO", "is_public": 0 },
+            { "input": "-100\n-200\n50", "output": "YES", "is_public": 0 },
+            { "input": "1\n-1\n0", "output": "YES", "is_public": 0 },
+            { "input": "-7\n-7\n-7", "output": "NO", "is_public": 0 },
+            { "input": "0\n0\n-1", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Все три положительные",
+        "given": "<p>Даны три целых числа. Проверьте, являются ли <strong>все три числа положительными</strong>. Выведите <code>YES</code>, если все три числа больше нуля, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Даны три целых числа (\\(-10^9 \\le x_i \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1\n2\n3", "output": "YES", "is_public": 1 },
+            { "input": "1\n-2\n3", "output": "NO", "is_public": 1 },
+            { "input": "0\n1\n2", "output": "NO", "is_public": 1 },
+            { "input": "10\n20\n30", "output": "YES", "is_public": 0 },
+            { "input": "-1\n-2\n-3", "output": "NO", "is_public": 0 },
+            { "input": "0\n0\n0", "output": "NO", "is_public": 0 },
+            { "input": "100\n200\n-1", "output": "NO", "is_public": 0 },
+            { "input": "5\n5\n5", "output": "YES", "is_public": 0 },
+            { "input": "1\n2\n0", "output": "NO", "is_public": 0 },
+            { "input": "50\n100\n150", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Ровно одно положительное",
+        "given": "<p>Даны три целых числа. Проверьте, что среди них <strong>ровно одно</strong> является положительным (больше нуля). Выведите <code>YES</code>, если ровно одно число > 0, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Даны три целых числа (\\(-10^9 \\le x_i \\le 10^9\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1\n-2\n-3", "output": "YES", "is_public": 1 },
+            { "input": "1\n2\n-3", "output": "NO", "is_public": 1 },
+            { "input": "-1\n-2\n-3", "output": "NO", "is_public": 1 },
+            { "input": "0\n5\n0", "output": "YES", "is_public": 0 },
+            { "input": "0\n0\n0", "output": "NO", "is_public": 0 },
+            { "input": "-5\n10\n-7", "output": "YES", "is_public": 0 },
+            { "input": "1\n2\n3", "output": "NO", "is_public": 0 },
+            { "input": "-10\n0\n3", "output": "YES", "is_public": 0 },
+            { "input": "100\n200\n-50", "output": "NO", "is_public": 0 },
+            { "input": "-1\n-2\n0", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Проверка логина и пароля",
+        "given": "<p>Даны две строки: логин и пароль. Проверьте, что <strong>логин равен <code>admin</code> И пароль равен <code>12345</code></strong>. Выведите <code>OK</code>, если обе проверки пройдены, и <code>WRONG</code> в противном случае.</p>",
+        "input_format": "<p>Первая строка — логин. Вторая строка — пароль.</p>",
+        "output_format": "<p>Выведите <code>OK</code> или <code>WRONG</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "admin\n12345", "output": "OK", "is_public": 1 },
+            { "input": "admin\n00000", "output": "WRONG", "is_public": 1 },
+            { "input": "user\n12345", "output": "WRONG", "is_public": 1 },
+            { "input": "Admin\n12345", "output": "WRONG", "is_public": 0 },
+            { "input": "admin\n12345", "output": "OK", "is_public": 0 },
+            { "input": "root\n12345", "output": "WRONG", "is_public": 0 },
+            { "input": "admin\n54321", "output": "WRONG", "is_public": 0 },
+            { "input": "guest\nguest", "output": "WRONG", "is_public": 0 },
+            { "input": "admin\n1234", "output": "WRONG", "is_public": 0 },
+            { "input": "admin\n12345", "output": "OK", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Кратно 3 и 5",
+        "given": "<p>Дано целое число. Проверьте, <strong>делится ли оно одновременно на 3 и на 5</strong>. Выведите <code>YES</code>, если число кратно и 3, и 5 (то есть кратно 15), и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дано одно целое число (\\(-10^9 \\le x \\le 10^9\\), \\(x \\neq 0\\)).</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "15", "output": "YES", "is_public": 1 },
+            { "input": "10", "output": "NO", "is_public": 1 },
+            { "input": "9", "output": "NO", "is_public": 1 },
+            { "input": "30", "output": "YES", "is_public": 0 },
+            { "input": "45", "output": "YES", "is_public": 0 },
+            { "input": "60", "output": "YES", "is_public": 0 },
+            { "input": "3", "output": "NO", "is_public": 0 },
+            { "input": "5", "output": "NO", "is_public": 0 },
+            { "input": "20", "output": "NO", "is_public": 0 },
+            { "input": "150", "output": "YES", "is_public": 0 }
+        ]
+    }
+]

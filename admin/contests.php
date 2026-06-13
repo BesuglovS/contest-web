@@ -20,12 +20,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Добавляем задачи с учётом порядка
             $sortOrder = 0;
+            $addedTaskIds = []; // чтобы не дублировать задачи из групп
             if (!empty($_POST['task_ids'])) {
                 foreach ($_POST['task_ids'] as $taskId) {
                     if ($taskId === '') continue;
+                    $taskId = (int)$taskId;
+                    if (isset($addedTaskIds[$taskId])) continue;
                     $sortOrder++;
+                    $addedTaskIds[$taskId] = true;
                     $db->prepare("INSERT OR IGNORE INTO contest_tasks (contest_id, task_id, sort_order) VALUES (?, ?, ?)")
-                       ->execute([$contestId, (int)$taskId, $sortOrder]);
+                       ->execute([$contestId, $taskId, $sortOrder]);
                 }
             }
             if (!empty($_POST['task_group_ids'])) {
@@ -34,10 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([(int)$tgId]);
                     $tasks = $stmt->fetchAll() ?: [];
                     foreach ($tasks as $t) {
+                        if (isset($addedTaskIds[$t['task_id']])) continue;
                         $sortOrder++;
+                        $addedTaskIds[$t['task_id']] = true;
                         $db->prepare("INSERT OR IGNORE INTO contest_tasks (contest_id, task_id, sort_order) VALUES (?, ?, ?)")
                            ->execute([$contestId, $t['task_id'], $sortOrder]);
                     }
+                }
+            }
+
+            // Сохраняем группы задач
+            if (!empty($_POST['task_group_ids'])) {
+                foreach ($_POST['task_group_ids'] as $tgId) {
+                    $db->prepare("INSERT OR IGNORE INTO contest_task_groups (contest_id, task_group_id) VALUES (?, ?)")->execute([$contestId, (int)$tgId]);
                 }
             }
 
@@ -67,16 +80,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("UPDATE contests SET title=?, description=?, start_time=?, end_time=? WHERE id=?")
            ->execute([$title, $description, $startTime, $endTime, $id]);
 
-        // Перестраиваем задачи и доступ
+        // Перестраиваем задачи, группы задач и доступ
         $db->prepare("DELETE FROM contest_tasks WHERE contest_id=?")->execute([$id]);
+        $db->prepare("DELETE FROM contest_task_groups WHERE contest_id=?")->execute([$id]);
         $db->prepare("DELETE FROM contest_access WHERE contest_id=?")->execute([$id]);
 
         $sortOrder = 0;
+        $addedTaskIds = []; // чтобы не дублировать задачи из групп
         if (!empty($_POST['task_ids'])) {
             foreach ($_POST['task_ids'] as $taskId) {
                 if ($taskId === '') continue;
+                $taskId = (int)$taskId;
+                if (isset($addedTaskIds[$taskId])) continue;
                 $sortOrder++;
-                $db->prepare("INSERT OR IGNORE INTO contest_tasks (contest_id, task_id, sort_order) VALUES (?, ?, ?)")->execute([$id, (int)$taskId, $sortOrder]);
+                $addedTaskIds[$taskId] = true;
+                $db->prepare("INSERT OR IGNORE INTO contest_tasks (contest_id, task_id, sort_order) VALUES (?, ?, ?)")->execute([$id, $taskId, $sortOrder]);
             }
         }
         if (!empty($_POST['task_group_ids'])) {
@@ -84,9 +102,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("SELECT task_id FROM task_to_groups WHERE task_group_id=?");
                 $stmt->execute([(int)$tgId]);
                 foreach ($stmt->fetchAll() ?: [] as $t) {
+                    if (isset($addedTaskIds[$t['task_id']])) continue;
                     $sortOrder++;
+                    $addedTaskIds[$t['task_id']] = true;
                     $db->prepare("INSERT OR IGNORE INTO contest_tasks (contest_id, task_id, sort_order) VALUES (?, ?, ?)")->execute([$id, $t['task_id'], $sortOrder]);
                 }
+            }
+        }
+        if (!empty($_POST['task_group_ids'])) {
+            foreach ($_POST['task_group_ids'] as $tgId) {
+                $db->prepare("INSERT OR IGNORE INTO contest_task_groups (contest_id, task_group_id) VALUES (?, ?)")->execute([$id, (int)$tgId]);
             }
         }
         if (!empty($_POST['group_ids'])) {
@@ -138,6 +163,10 @@ if (isset($_GET['edit'])) {
             $stmt = $db->prepare("SELECT user_id FROM contest_access WHERE contest_id=? AND user_id IS NOT NULL");
             $stmt->execute([$cid]);
             $editContest['user_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+            $stmt = $db->prepare("SELECT task_group_id FROM contest_task_groups WHERE contest_id=?");
+            $stmt->execute([$cid]);
+            $editContest['task_group_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
         }
     }
 }
@@ -241,7 +270,8 @@ ob_start();
                 <div style="max-height:200px; overflow-y:auto;">
                     <?php foreach ($allTaskGroups as $tg): ?>
                     <label style="display:block; padding:4px 0;">
-                        <input type="checkbox" name="task_group_ids[]" value="<?= $tg['id'] ?>">
+                        <input type="checkbox" name="task_group_ids[]" value="<?= $tg['id'] ?>"
+                            <?= (isset($editContest['task_group_ids']) && in_array($tg['id'], $editContest['task_group_ids'])) ? 'checked' : '' ?>>
                         <?= htmlspecialchars($tg['name']) ?>
                     </label>
                     <?php endforeach; ?>
@@ -273,7 +303,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="form-actions mt-20">
+        <div class="form-actions mt-20 mb-20">
             <button type="submit" class="btn btn-primary"><?= isset($editContest['id']) ? 'Сохранить' : 'Создать контест' ?></button>
             <a href="?page=admin-contests" class="btn">Отмена</a>
         </div>

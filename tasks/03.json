@@ -1,0 +1,442 @@
+[
+    {
+        "title": "Конкатенация: имя и фамилия",
+        "given": "<p>Даны две строки: <strong>имя</strong> и <strong>фамилия</strong>. Выведите строку в формате <code>Фамилия, Имя</code> (фамилия, запятая, пробел, имя).</p>",
+        "input_format": "<p>Даны две непустые строки, каждая на отдельной строке: сначала имя, затем фамилия.</p>",
+        "output_format": "<p>Выведите одну строку — результат конкатенации в формате <code>Фамилия, Имя</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Иван\nПетров", "output": "Петров, Иван", "is_public": 1 },
+            { "input": "Анна\nСмирнова", "output": "Смирнова, Анна", "is_public": 1 },
+            { "input": "John\nDoe", "output": "Doe, John", "is_public": 1 },
+            { "input": "Мария\nИванова", "output": "Иванова, Мария", "is_public": 0 },
+            { "input": "Алексей\nКузнецов", "output": "Кузнецов, Алексей", "is_public": 0 },
+            { "input": "Jane\nSmith", "output": "Smith, Jane", "is_public": 0 },
+            { "input": "Олег\nСидоров", "output": "Сидоров, Олег", "is_public": 0 },
+            { "input": "Елена\nВолкова", "output": "Волкова, Елена", "is_public": 0 },
+            { "input": "Tom\nHanks", "output": "Hanks, Tom", "is_public": 0 },
+            { "input": "Сергей\nПопов", "output": "Попов, Сергей", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Повторение строки",
+        "given": "<p>Дана строка \\(S\\) и целое число \\(N\\). Выведите строку, полученную <strong>повторением</strong> строки \\(S\\) ровно \\(N\\) раз подряд.</p>",
+        "input_format": "<p>Первая строка — непустая строка \\(S\\). Вторая строка — целое число \\(N\\) (\\(1 \\le N \\le 100\\)).</p>",
+        "output_format": "<p>Выведите одну строку — \\(S\\), повторённую \\(N\\) раз.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Ha\n3", "output": "HaHaHa", "is_public": 1 },
+            { "input": "А\n5", "output": "ААААА", "is_public": 1 },
+            { "input": "ab\n2", "output": "abab", "is_public": 1 },
+            { "input": "X\n10", "output": "XXXXXXXXXX", "is_public": 0 },
+            { "input": "Привет\n1", "output": "Привет", "is_public": 0 },
+            { "input": "Go\n4", "output": "GoGoGoGo", "is_public": 0 },
+            { "input": "*-*\n3", "output": "*-**-**-*", "is_public": 0 },
+            { "input": "0\n7", "output": "0000000", "is_public": 0 },
+            { "input": "да\n6", "output": "дададададада", "is_public": 0 },
+            { "input": "? \n4", "output": "? ? ? ? ", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Длина строки",
+        "given": "<p>Дана строка. Выведите её <strong>длину</strong> — количество символов в ней.</p>",
+        "input_format": "<p>Дана одна строка (может быть пустой).</p>",
+        "output_format": "<p>Выведите одно целое число — длину строки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Привет", "output": "6", "is_public": 1 },
+            { "input": "", "output": "0", "is_public": 1 },
+            { "input": "Hello World", "output": "11", "is_public": 1 },
+            { "input": "Python", "output": "6", "is_public": 0 },
+            { "input": " ", "output": "1", "is_public": 0 },
+            { "input": "1234567890", "output": "10", "is_public": 0 },
+            { "input": "абв", "output": "3", "is_public": 0 },
+            { "input": "длинная строка с пробелами", "output": "25", "is_public": 0 },
+            { "input": "a", "output": "1", "is_public": 0 },
+            { "input": "   ", "output": "3", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Заглавные буквы (upper)",
+        "given": "<p>Дана строка. Выведите её, преобразовав <strong>все буквы в заглавные</strong> (верхний регистр).</p>",
+        "input_format": "<p>Дана одна строка.</p>",
+        "output_format": "<p>Выведите строку, в которой все буквы заменены на заглавные.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "hello", "output": "HELLO", "is_public": 1 },
+            { "input": "Привет", "output": "ПРИВЕТ", "is_public": 1 },
+            { "input": "Python", "output": "PYTHON", "is_public": 1 },
+            { "input": "Мир", "output": "МИР", "is_public": 0 },
+            { "input": "hello world", "output": "HELLO WORLD", "is_public": 0 },
+            { "input": "123abc", "output": "123ABC", "is_public": 0 },
+            { "input": "Большие Буквы", "output": "БОЛЬШИЕ БУКВЫ", "is_public": 0 },
+            { "input": "UPPER", "output": "UPPER", "is_public": 0 },
+            { "input": "small", "output": "SMALL", "is_public": 0 },
+            { "input": "ТеСт", "output": "ТЕСТ", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Только цифры? (isdigit)",
+        "given": "<p>Дана строка. Определите, состоит ли она <strong>только из цифр</strong>. Выведите <code>YES</code>, если строка состоит только из цифр и при этом не пуста, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дана одна строка.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "12345", "output": "YES", "is_public": 1 },
+            { "input": "123a45", "output": "NO", "is_public": 1 },
+            { "input": "", "output": "NO", "is_public": 1 },
+            { "input": "000", "output": "YES", "is_public": 0 },
+            { "input": "12 34", "output": "NO", "is_public": 0 },
+            { "input": "9876543210", "output": "YES", "is_public": 0 },
+            { "input": "hello", "output": "NO", "is_public": 0 },
+            { "input": "Ⅷ", "output": "NO", "is_public": 0 },
+            { "input": "42", "output": "YES", "is_public": 0 },
+            { "input": "-5", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Только буквы? (isalpha)",
+        "given": "<p>Дана строка. Определите, состоит ли она <strong>только из букв</strong>. Выведите <code>YES</code>, если строка содержит только буквы и не пуста, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дана одна строка.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "abc", "output": "YES", "is_public": 1 },
+            { "input": "abc123", "output": "NO", "is_public": 1 },
+            { "input": "абв", "output": "YES", "is_public": 1 },
+            { "input": "HelloWorld", "output": "YES", "is_public": 0 },
+            { "input": "Hello World", "output": "NO", "is_public": 0 },
+            { "input": "", "output": "NO", "is_public": 0 },
+            { "input": "ПриветМир", "output": "YES", "is_public": 0 },
+            { "input": "test123test", "output": "NO", "is_public": 0 },
+            { "input": "ABC", "output": "YES", "is_public": 0 },
+            { "input": "один1два", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Только буквы и цифры? (isalnum)",
+        "given": "<p>Дана строка. Определите, состоит ли она <strong>только из букв и цифр</strong> (без пробелов и других символов). Выведите <code>YES</code>, если строка содержит только буквы и/или цифры и не пуста, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Дана одна строка.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "abc123", "output": "YES", "is_public": 1 },
+            { "input": "abc 123", "output": "NO", "is_public": 1 },
+            { "input": "", "output": "NO", "is_public": 1 },
+            { "input": "Hello2024", "output": "YES", "is_public": 0 },
+            { "input": "Привет123", "output": "YES", "is_public": 0 },
+            { "input": "test@mail", "output": "NO", "is_public": 0 },
+            { "input": "42", "output": "YES", "is_public": 0 },
+            { "input": "alpha beta", "output": "NO", "is_public": 0 },
+            { "input": "user_name", "output": "NO", "is_public": 0 },
+            { "input": "A1", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Подсчёт символа (count)",
+        "given": "<p>Дана строка и один символ. Подсчитайте, <strong>сколько раз</strong> этот символ встречается в строке.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — один символ (ровно один символ, не пробел).</p>",
+        "output_format": "<p>Выведите одно целое число — количество вхождений символа в строку.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "раз два раз\nр", "output": "2", "is_public": 1 },
+            { "input": "hello\nl", "output": "2", "is_public": 1 },
+            { "input": "aaa\na", "output": "3", "is_public": 1 },
+            { "input": "программирование\nр", "output": "2", "is_public": 0 },
+            { "input": "python\nz", "output": "0", "is_public": 0 },
+            { "input": "abracadabra\na", "output": "5", "is_public": 0 },
+            { "input": "Mississippi\ns", "output": "4", "is_public": 0 },
+            { "input": "1234512345\n5", "output": "2", "is_public": 0 },
+            { "input": "кокос\nо", "output": "2", "is_public": 0 },
+            { "input": "AAAA\nA", "output": "4", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Поиск подстроки (find)",
+        "given": "<p>Даны две строки: исходная строка и подстрока. Найдите <strong>индекс первого вхождения</strong> подстроки в строку. Если подстрока не найдена, выведите <code>-1</code>.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — искомая подстрока.</p>",
+        "output_format": "<p>Выведите одно целое число — индекс первого вхождения подстроки, либо <code>-1</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "hello world\nworld", "output": "6", "is_public": 1 },
+            { "input": "hello world\njava", "output": "-1", "is_public": 1 },
+            { "input": "test\nt", "output": "0", "is_public": 1 },
+            { "input": "программирование\nмир", "output": "4", "is_public": 0 },
+            { "input": "Python\nP", "output": "0", "is_public": 0 },
+            { "input": "abracadabra\ncad", "output": "4", "is_public": 0 },
+            { "input": "abcdef\nf", "output": "5", "is_public": 0 },
+            { "input": "hello hello\nhello", "output": "0", "is_public": 0 },
+            { "input": "строка\nток", "output": "2", "is_public": 0 },
+            { "input": "empty\nxyz", "output": "-1", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Поиск справа (rfind)",
+        "given": "<p>Даны две строки: исходная строка и подстрока. Найдите <strong>индекс последнего вхождения</strong> подстроки в строку. Если подстрока не найдена, выведите <code>-1</code>.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — искомая подстрока.</p>",
+        "output_format": "<p>Выведите одно целое число — индекс последнего вхождения подстроки, либо <code>-1</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "раз два раз\nраз", "output": "8", "is_public": 1 },
+            { "input": "hello\nl", "output": "3", "is_public": 1 },
+            { "input": "abc\nx", "output": "-1", "is_public": 1 },
+            { "input": "abracadabra\nbra", "output": "7", "is_public": 0 },
+            { "input": "Python\no", "output": "4", "is_public": 0 },
+            { "input": "hello hello\nhello", "output": "6", "is_public": 0 },
+            { "input": "строка строка\nстрока", "output": "7", "is_public": 0 },
+            { "input": "Mississippi\nss", "output": "5", "is_public": 0 },
+            { "input": "abcdef\na", "output": "0", "is_public": 0 },
+            { "input": "test\ny", "output": "-1", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Замена подстроки (replace)",
+        "given": "<p>Даны три строки: исходная строка, подстрока для замены и строка-замена. <strong>Замените все вхождения</strong> первой подстроки на вторую в исходной строке и выведите результат.</p>",
+        "input_format": "<p>Три строки, каждая на отдельной строке: исходная строка, что заменить, на что заменить.</p>",
+        "output_format": "<p>Выведите строку — результат замены.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Hello World\nWorld\nPython", "output": "Hello Python", "is_public": 1 },
+            { "input": "aaa\nb\nc", "output": "aaa", "is_public": 1 },
+            { "input": "abc\nabc\nxyz", "output": "xyz", "is_public": 1 },
+            { "input": "раз два раз\nраз\nтри", "output": "три два три", "is_public": 0 },
+            { "input": "кот собака кот\nкот\nпёс", "output": "пёс собака пёс", "is_public": 0 },
+            { "input": "hello hello\nhello\nhi", "output": "hi hi", "is_public": 0 },
+            { "input": "test\nt\nT", "output": "TesT", "is_public": 0 },
+            { "input": "ababab\nab\nxy", "output": "xyxyxy", "is_public": 0 },
+            { "input": "nothing\nx\ny", "output": "nothing", "is_public": 0 },
+            { "input": "мама\nа\nо", "output": "момо", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма чисел из строки (split)",
+        "given": "<p>Дана строка, содержащая целые числа, разделённые запятыми. Найдите <strong>сумму</strong> всех этих чисел.</p>",
+        "input_format": "<p>Одна строка, содержащая целые числа, разделённые запятыми без пробелов (минимум одно число).</p>",
+        "output_format": "<p>Выведите одно целое число — сумму всех чисел из строки.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1,2,3", "output": "6", "is_public": 1 },
+            { "input": "10,20,30", "output": "60", "is_public": 1 },
+            { "input": "5,-3,2", "output": "4", "is_public": 1 },
+            { "input": "100", "output": "100", "is_public": 0 },
+            { "input": "-1,-2,-3", "output": "-6", "is_public": 0 },
+            { "input": "0,0,0,0", "output": "0", "is_public": 0 },
+            { "input": "1,10,100,1000", "output": "1111", "is_public": 0 },
+            { "input": "7,-7,7", "output": "7", "is_public": 0 },
+            { "input": "15,25,35", "output": "75", "is_public": 0 },
+            { "input": "99,1", "output": "100", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Объединение строк (join)",
+        "given": "<p>Дано число \\(N\\), а затем \\(N\\) строк. <strong>Объедините</strong> все эти строки в одну, разделяя их запятой и пробелом (<code>, </code>).</p>",
+        "input_format": "<p>Первая строка — целое число \\(N\\) (\\(1 \\le N \\le 100\\)). Далее \\(N\\) строк, каждая на отдельной строке.</p>",
+        "output_format": "<p>Выведите одну строку — все строки, соединённые через <code>, </code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\nяблоко\nгруша\nбанан", "output": "яблоко, груша, банан", "is_public": 1 },
+            { "input": "2\nодин\nдва", "output": "один, два", "is_public": 1 },
+            { "input": "1\nтолько", "output": "только", "is_public": 1 },
+            { "input": "4\nA\nB\nC\nD", "output": "A, B, C, D", "is_public": 0 },
+            { "input": "3\nраз\nдва\nтри", "output": "раз, два, три", "is_public": 0 },
+            { "input": "2\nHello\nWorld", "output": "Hello, World", "is_public": 0 },
+            { "input": "5\nа\nб\nв\nг\nд", "output": "а, б, в, г, д", "is_public": 0 },
+            { "input": "2\nкошка\nсобака", "output": "кошка, собака", "is_public": 0 },
+            { "input": "3\nx\ny\nz", "output": "x, y, z", "is_public": 0 },
+            { "input": "1\nединственная", "output": "единственная", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Проверка начала строки (startswith)",
+        "given": "<p>Даны две строки: исходная строка и префикс. Определите, <strong>начинается ли</strong> исходная строка с заданного префикса. Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — префикс.</p>",
+        "output_format": "<p>Выведите <code>YES</code>, если строка начинается с префикса, иначе <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Hello World\nHello", "output": "YES", "is_public": 1 },
+            { "input": "Hello World\nWorld", "output": "NO", "is_public": 1 },
+            { "input": "Python\nPy", "output": "YES", "is_public": 1 },
+            { "input": "программирование\nпро", "output": "YES", "is_public": 0 },
+            { "input": "index.html\nindex", "output": "YES", "is_public": 0 },
+            { "input": "data.txt\nx", "output": "NO", "is_public": 0 },
+            { "input": "abcdef\nabc", "output": "YES", "is_public": 0 },
+            { "input": "start\nend", "output": "NO", "is_public": 0 },
+            { "input": "12345\n12", "output": "YES", "is_public": 0 },
+            { "input": "example\nex", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Проверка конца строки (endswith)",
+        "given": "<p>Даны две строки: исходная строка и суффикс. Определите, <strong>заканчивается ли</strong> исходная строка на заданный суффикс. Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — суффикс.</p>",
+        "output_format": "<p>Выведите <code>YES</code>, если строка заканчивается суффиксом, иначе <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "hello.txt\n.txt", "output": "YES", "is_public": 1 },
+            { "input": "hello.txt\n.exe", "output": "NO", "is_public": 1 },
+            { "input": "Python\non", "output": "YES", "is_public": 1 },
+            { "input": "программирование\nие", "output": "YES", "is_public": 0 },
+            { "input": "image.png\npng", "output": "YES", "is_public": 0 },
+            { "input": "document\ndoc", "output": "NO", "is_public": 0 },
+            { "input": "abcdef\nef", "output": "YES", "is_public": 0 },
+            { "input": "hello\nlo", "output": "YES", "is_public": 0 },
+            { "input": "12345\n345", "output": "YES", "is_public": 0 },
+            { "input": "test\nabc", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Обрезка пробелов (strip)",
+        "given": "<p>Дана строка, возможно, с пробелами в начале и в конце. Удалите все пробельные символы с обоих концов строки и выведите результат.</p>",
+        "input_format": "<p>Дана одна строка, которая может содержать пробелы в начале и/или в конце.</p>",
+        "output_format": "<p>Выведите строку без пробелов в начале и в конце.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "  hello  ", "output": "hello", "is_public": 1 },
+            { "input": "   text", "output": "text", "is_public": 1 },
+            { "input": "word   ", "output": "word", "is_public": 1 },
+            { "input": "\tPython\n", "output": "Python", "is_public": 0 },
+            { "input": "  привет  мир  ", "output": "привет  мир", "is_public": 0 },
+            { "input": "no_spaces", "output": "no_spaces", "is_public": 0 },
+            { "input": "   много пробелов   ", "output": "много пробелов", "is_public": 0 },
+            { "input": "\nновая строка\n", "output": "новая строка", "is_public": 0 },
+            { "input": "  a  ", "output": "a", "is_public": 0 },
+            { "input": "left right ", "output": "left right", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Выравнивание по центру (center)",
+        "given": "<p>Дана строка и целое число \\(W\\) — требуемая ширина. <strong>Отцентрируйте</strong> строку внутри поля ширины \\(W\\), заполнив свободное место символами <code>-</code> (дефис). Если \\(W\\) меньше или равно длине строки, выведите строку без изменений.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — целое число \\(W\\) (\\(1 \\le W \\le 100\\)).</p>",
+        "output_format": "<p>Выведите строку, отцентрированную в поле ширины \\(W\\) с заполнителем <code>-</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Hi\n6", "output": "--Hi--", "is_public": 1 },
+            { "input": "A\n5", "output": "--A--", "is_public": 1 },
+            { "input": "test\n10", "output": "---test---", "is_public": 1 },
+            { "input": "Привет\n9", "output": "--Привет--", "is_public": 0 },
+            { "input": "ab\n3", "output": "ab-", "is_public": 0 },
+            { "input": "x\n1", "output": "x", "is_public": 0 },
+            { "input": "word\n4", "output": "word", "is_public": 0 },
+            { "input": "OK\n8", "output": "---OK---", "is_public": 0 },
+            { "input": "центр\n7", "output": "-центр-", "is_public": 0 },
+            { "input": "a\n2", "output": "a-", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Дополнение нулями (zfill)",
+        "given": "<p>Дана строка, содержащая целое число, и требуемая ширина \\(W\\). <strong>Дополните</strong> строку слева нулями до ширины \\(W\\). Если длина строки уже не меньше \\(W\\), выведите её без изменений.</p>",
+        "input_format": "<p>Первая строка — строка с целым числом (может содержать знак минус). Вторая строка — целое число \\(W\\) (\\(1 \\le W \\le 100\\)).</p>",
+        "output_format": "<p>Выведите строку, дополненную нулями слева до ширины \\(W\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "42\n5", "output": "00042", "is_public": 1 },
+            { "input": "7\n3", "output": "007", "is_public": 1 },
+            { "input": "123\n2", "output": "123", "is_public": 1 },
+            { "input": "1\n6", "output": "000001", "is_public": 0 },
+            { "input": "-5\n4", "output": "-005", "is_public": 0 },
+            { "input": "1000\n4", "output": "1000", "is_public": 0 },
+            { "input": "99\n2", "output": "99", "is_public": 0 },
+            { "input": "0\n5", "output": "00000", "is_public": 0 },
+            { "input": "12345\n10", "output": "0000012345", "is_public": 0 },
+            { "input": "888\n6", "output": "000888", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Проверка вхождения (in)",
+        "given": "<p>Даны две строки: исходная строка и подстрока. Определите, <strong>содержит ли</strong> исходная строка заданную подстроку. Выведите <code>YES</code>, если содержит, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Первая строка — исходная строка. Вторая строка — искомая подстрока.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Python programming\nPython", "output": "YES", "is_public": 1 },
+            { "input": "Python programming\nJava", "output": "NO", "is_public": 1 },
+            { "input": "hello world\nlo wo", "output": "YES", "is_public": 1 },
+            { "input": "привет мир\nмир", "output": "YES", "is_public": 0 },
+            { "input": "abcdef\ngh", "output": "NO", "is_public": 0 },
+            { "input": "test@mail.ru\n@", "output": "YES", "is_public": 0 },
+            { "input": "строка\nток", "output": "YES", "is_public": 0 },
+            { "input": "empty\nx", "output": "NO", "is_public": 0 },
+            { "input": "12345\n23", "output": "YES", "is_public": 0 },
+            { "input": "hello\nH", "output": "NO", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Форматирование: f-строка приветствия",
+        "given": "<p>Даны имя (строка) и возраст (целое число). Сформируйте строку с помощью <strong>f-строки</strong> в формате:</p>\n<p><code>Меня зовут {имя}, мне {возраст} лет</code></p>\n<p>Обратите внимание: пробелы и запятая должны быть в точности как в примере.</p>",
+        "input_format": "<p>Первая строка — имя. Вторая строка — целое число (возраст, \\(0 \\le age \\le 150\\)).</p>",
+        "output_format": "<p>Выведите одну строку, сформированную по шаблону.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Анна\n17", "output": "Меня зовут Анна, мне 17 лет", "is_public": 1 },
+            { "input": "Иван\n25", "output": "Меня зовут Иван, мне 25 лет", "is_public": 1 },
+            { "input": "Олег\n0", "output": "Меня зовут Олег, мне 0 лет", "is_public": 1 },
+            { "input": "Мария\n30", "output": "Меня зовут Мария, мне 30 лет", "is_public": 0 },
+            { "input": "Alex\n42", "output": "Меня зовут Alex, мне 42 лет", "is_public": 0 },
+            { "input": "Елена\n100", "output": "Меня зовут Елена, мне 100 лет", "is_public": 0 },
+            { "input": "Сергей\n18", "output": "Меня зовут Сергей, мне 18 лет", "is_public": 0 },
+            { "input": "Алиса\n7", "output": "Меня зовут Алиса, мне 7 лет", "is_public": 0 },
+            { "input": "Tom\n65", "output": "Меня зовут Tom, мне 65 лет", "is_public": 0 },
+            { "input": "Катя\n12", "output": "Меня зовут Катя, мне 12 лет", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Преобразование числа в строку (str)",
+        "given": "<p>Дано целое число. Припишите к нему справа слово <code> рублей</code> (с пробелом перед словом) и выведите полученную строку.</p>",
+        "input_format": "<p>Дано одно целое число.</p>",
+        "output_format": "<p>Выведите строку — число и слово <code> рублей</code> через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "100", "output": "100 рублей", "is_public": 1 },
+            { "input": "0", "output": "0 рублей", "is_public": 1 },
+            { "input": "1234", "output": "1234 рублей", "is_public": 1 },
+            { "input": "42", "output": "42 рублей", "is_public": 0 },
+            { "input": "9999", "output": "9999 рублей", "is_public": 0 },
+            { "input": "5", "output": "5 рублей", "is_public": 0 },
+            { "input": "1000000", "output": "1000000 рублей", "is_public": 0 },
+            { "input": "-1", "output": "-1 рублей", "is_public": 0 },
+            { "input": "73", "output": "73 рублей", "is_public": 0 },
+            { "input": "2024", "output": "2024 рублей", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сравнение без учёта регистра",
+        "given": "<p>Даны две строки. Определите, <strong>равны ли они</strong> без учёта регистра (то есть при приведении обеих к нижнему регистру). Выведите <code>YES</code>, если строки равны без учёта регистра, и <code>NO</code> в противном случае.</p>",
+        "input_format": "<p>Две строки, каждая на отдельной строке.</p>",
+        "output_format": "<p>Выведите <code>YES</code> или <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "Hello\nHELLO", "output": "YES", "is_public": 1 },
+            { "input": "Hello\nWorld", "output": "NO", "is_public": 1 },
+            { "input": "Python\npython", "output": "YES", "is_public": 1 },
+            { "input": "Привет\nпривет", "output": "YES", "is_public": 0 },
+            { "input": "AbC\naBc", "output": "YES", "is_public": 0 },
+            { "input": "test\nTEST", "output": "YES", "is_public": 0 },
+            { "input": "abc\ndef", "output": "NO", "is_public": 0 },
+            { "input": "Строка\nстрока", "output": "YES", "is_public": 0 },
+            { "input": "Case\ncase", "output": "YES", "is_public": 0 },
+            { "input": "different\nDIFFERENTLY", "output": "NO", "is_public": 0 }
+        ]
+    }
+]
