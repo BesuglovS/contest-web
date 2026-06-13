@@ -103,7 +103,9 @@ class Router
             $password = $_POST['password'] ?? '';
             $result = Auth::login($login, $password);
             if ($result['success']) {
-                header('Location: ' . BASE_URL . '/index.php');
+                $redirect = $_SESSION['redirect_after_login'] ?? (BASE_URL . '/index.php');
+                unset($_SESSION['redirect_after_login']);
+                header('Location: ' . $redirect);
                 exit;
             }
             $error = $result['error'];

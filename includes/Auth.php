@@ -76,6 +76,7 @@ class Auth
     public static function requireLogin(): void
     {
         if (!self::isLoggedIn()) {
+            $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
             header('Location: ' . BASE_URL . '/index.php?page=login');
             exit;
         }
