@@ -158,6 +158,37 @@ class Auth
     }
 
     /**
+     * Сменить пароль текущему пользователю
+     */
+    public static function changePassword(string $currentPassword, string $newPassword): array
+    {
+        $db = Database::getInstance();
+        $userId = self::getUserId();
+        
+        $stmt = $db->prepare("SELECT password_hash FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        
+        if (!$user) {
+            return ['success' => false, 'error' => 'Пользователь не найден'];
+        }
+        
+        if (!password_verify($currentPassword, $user['password_hash'])) {
+            return ['success' => false, 'error' => 'Неверный текущий пароль'];
+        }
+        
+        if (strlen($newPassword) < 4) {
+            return ['success' => false, 'error' => 'Новый пароль должен быть не менее 4 символов'];
+        }
+        
+        $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $stmt = $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+        $stmt->execute([$hash, $userId]);
+        
+        return ['success' => true];
+    }
+
+    /**
      * Удалить пользователя
      */
     public static function deleteUser(int $id): bool

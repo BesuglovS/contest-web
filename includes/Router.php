@@ -62,6 +62,7 @@ class Router
             'admin-generate-tasks' => require BASE_PATH . '/admin/generate_tasks.php',
             'admin-import-tasks' => require BASE_PATH . '/admin/import_tasks.php',
             'admin-import-format' => require BASE_PATH . '/admin/import_format.php',
+            'admin-change-password' => require BASE_PATH . '/admin/change_password.php',
             default => $this->render404(),
         };
     }
