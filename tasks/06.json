@@ -1,0 +1,202 @@
+[
+    {
+        "title": "Сумма чисел от 1 до N",
+        "given": "<p>Дано целое число \\(N\\). Найдите <strong>сумму всех целых чисел</strong> от 1 до \\(N\\) включительно, используя цикл <code>while</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 10^6\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — сумму чисел от 1 до \\(N\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5",   "output": "15",     "is_public": 1 },
+            { "input": "1",   "output": "1",      "is_public": 1 },
+            { "input": "10",  "output": "55",     "is_public": 1 },
+            { "input": "100", "output": "5050",   "is_public": 0 },
+            { "input": "2",   "output": "3",      "is_public": 0 },
+            { "input": "7",   "output": "28",     "is_public": 0 },
+            { "input": "15",  "output": "120",    "is_public": 0 },
+            { "input": "3",   "output": "6",      "is_public": 0 },
+            { "input": "20",  "output": "210",    "is_public": 0 },
+            { "input": "50",  "output": "1275",   "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Факториал числа",
+        "given": "<p>Дано целое число \\(N\\). Найдите <strong>факториал</strong> числа \\(N\\), используя цикл <code>while</code>.</p>\n<p><strong>Формула:</strong> \\(N! = 1 \\times 2 \\times 3 \\times \\dots \\times N\\).</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 12\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — значение \\(N!\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5",  "output": "120",     "is_public": 1 },
+            { "input": "1",  "output": "1",       "is_public": 1 },
+            { "input": "3",  "output": "6",       "is_public": 1 },
+            { "input": "7",  "output": "5040",    "is_public": 0 },
+            { "input": "10", "output": "3628800", "is_public": 0 },
+            { "input": "2",  "output": "2",       "is_public": 0 },
+            { "input": "4",  "output": "24",      "is_public": 0 },
+            { "input": "6",  "output": "720",     "is_public": 0 },
+            { "input": "8",  "output": "40320",   "is_public": 0 },
+            { "input": "9",  "output": "362880",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Количество цифр числа",
+        "given": "<p>Дано целое неотрицательное число. Используя цикл <code>while</code>, найдите <strong>количество цифр</strong> в его десятичной записи.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(0 \\le N \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — количество цифр в записи числа \\(N\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "12345",     "output": "5", "is_public": 1 },
+            { "input": "0",         "output": "1", "is_public": 1 },
+            { "input": "1",         "output": "1", "is_public": 1 },
+            { "input": "100",       "output": "3", "is_public": 0 },
+            { "input": "999",       "output": "3", "is_public": 0 },
+            { "input": "1000000",   "output": "7", "is_public": 0 },
+            { "input": "987654321", "output": "9", "is_public": 0 },
+            { "input": "10",        "output": "2", "is_public": 0 },
+            { "input": "7",         "output": "1", "is_public": 0 },
+            { "input": "555",       "output": "3", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма цифр числа",
+        "given": "<p>Дано целое неотрицательное число. Используя цикл <code>while</code>, найдите <strong>сумму цифр</strong> его десятичной записи.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(0 \\le N \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — сумму цифр числа \\(N\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "123",       "output": "6",  "is_public": 1 },
+            { "input": "0",         "output": "0",  "is_public": 1 },
+            { "input": "1",         "output": "1",  "is_public": 1 },
+            { "input": "999",       "output": "27", "is_public": 0 },
+            { "input": "100",       "output": "1",  "is_public": 0 },
+            { "input": "555",       "output": "15", "is_public": 0 },
+            { "input": "1000000",   "output": "1",  "is_public": 0 },
+            { "input": "987654321", "output": "45", "is_public": 0 },
+            { "input": "10",        "output": "1",  "is_public": 0 },
+            { "input": "7",         "output": "7",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Вывод чисел от A до B",
+        "given": "<p>Даны два целых числа \\(A\\) и \\(B\\). Используя цикл <code>while</code>, выведите <strong>все целые числа</strong> от \\(A\\) до \\(B\\) включительно в порядке возрастания.</p>\n<p>Гарантируется, что \\(A \\le B\\).</p>",
+        "input_format": "<p>Даны два целых числа \\(A\\) и \\(B\\) (\\(-100 \\le A \\le B \\le 100\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите все целые числа от \\(A\\) до \\(B\\) включительно через пробел на одной строке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1\n5",       "output": "1 2 3 4 5",         "is_public": 1 },
+            { "input": "3\n3",       "output": "3",                 "is_public": 1 },
+            { "input": "-2\n2",      "output": "-2 -1 0 1 2",       "is_public": 1 },
+            { "input": "0\n5",       "output": "0 1 2 3 4 5",       "is_public": 0 },
+            { "input": "10\n15",     "output": "10 11 12 13 14 15", "is_public": 0 },
+            { "input": "-5\n-1",     "output": "-5 -4 -3 -2 -1",     "is_public": 0 },
+            { "input": "7\n9",       "output": "7 8 9",             "is_public": 0 },
+            { "input": "-3\n3",      "output": "-3 -2 -1 0 1 2 3",  "is_public": 0 },
+            { "input": "1\n3",       "output": "1 2 3",             "is_public": 0 },
+            { "input": "10\n12",     "output": "10 11 12",          "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Первая степень двойки не меньше N",
+        "given": "<p>Дано целое число \\(N\\). Используя цикл <code>while</code>, найдите <strong>наименьшую степень числа 2</strong>, которая больше или равна \\(N\\).</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 10^6\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — наименьшую степень двойки, не меньшую \\(N\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1",   "output": "1",   "is_public": 1 },
+            { "input": "2",   "output": "2",   "is_public": 1 },
+            { "input": "3",   "output": "4",   "is_public": 1 },
+            { "input": "5",   "output": "8",   "is_public": 0 },
+            { "input": "10",  "output": "16",  "is_public": 0 },
+            { "input": "100", "output": "128", "is_public": 0 },
+            { "input": "50",  "output": "64",  "is_public": 0 },
+            { "input": "7",   "output": "8",   "is_public": 0 },
+            { "input": "15",  "output": "16",  "is_public": 0 },
+            { "input": "32",  "output": "32",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Числа Фибоначчи до N",
+        "given": "<p>Дано целое число \\(N\\). Используя цикл <code>while</code>, выведите все <strong>числа Фибоначчи</strong>, которые не превышают \\(N\\).</p>\n<p>Последовательность Фибоначчи начинается с чисел 0 и 1, а каждое следующее число равно сумме двух предыдущих:</p>\n<p>\\(F_0 = 0, \\; F_1 = 1, \\; F_n = F_{n-1} + F_{n-2}\\).</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(0 \\le N \\le 10^6\\)).</p>",
+        "output_format": "<p>Выведите все числа Фибоначчи, не превышающие \\(N\\), через пробел на одной строке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10",  "output": "0 1 1 2 3 5 8",             "is_public": 1 },
+            { "input": "0",   "output": "0",                         "is_public": 1 },
+            { "input": "1",   "output": "0 1 1",                     "is_public": 1 },
+            { "input": "20",  "output": "0 1 1 2 3 5 8 13",          "is_public": 0 },
+            { "input": "100", "output": "0 1 1 2 3 5 8 13 21 34 55 89", "is_public": 0 },
+            { "input": "2",   "output": "0 1 1 2",                   "is_public": 0 },
+            { "input": "5",   "output": "0 1 1 2 3 5",               "is_public": 0 },
+            { "input": "3",   "output": "0 1 1 2 3",                 "is_public": 0 },
+            { "input": "50",  "output": "0 1 1 2 3 5 8 13 21 34",    "is_public": 0 },
+            { "input": "8",   "output": "0 1 1 2 3 5 8",             "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Обратное число",
+        "given": "<p>Дано целое неотрицательное число. Используя цикл <code>while</code>, составьте и выведите <strong>число, записанное теми же цифрами в обратном порядке</strong> (без ведущих нулей).</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(0 \\le N \\le 10^9\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — число, полученное записью цифр \\(N\\) в обратном порядке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "123",       "output": "321",       "is_public": 1 },
+            { "input": "1",         "output": "1",         "is_public": 1 },
+            { "input": "0",         "output": "0",         "is_public": 1 },
+            { "input": "100",       "output": "1",         "is_public": 0 },
+            { "input": "987654321", "output": "123456789", "is_public": 0 },
+            { "input": "10",        "output": "1",         "is_public": 0 },
+            { "input": "555",       "output": "555",       "is_public": 0 },
+            { "input": "123456789", "output": "987654321", "is_public": 0 },
+            { "input": "101",       "output": "101",       "is_public": 0 },
+            { "input": "1000",      "output": "1",         "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Среднее арифметическое введённых чисел",
+        "given": "<p>На вход подаётся последовательность целых <strong>положительных</strong> чисел. Последним элементом последовательности является <strong>0</strong> (признак окончания ввода). Используя цикл <code>while</code>, найдите <strong>среднее арифметическое</strong> всех введённых чисел (без учёта завершающего нуля).</p>",
+        "input_format": "<p>Дана последовательность целых положительных чисел, каждое на отдельной строке. Последним подаётся число 0.</p>",
+        "output_format": "<p>Выведите одно вещественное число — среднее арифметическое введённых чисел. Если не было введено ни одного числа, выведите 0.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n10\n0",          "output": "7.5",   "is_public": 1 },
+            { "input": "0",                "output": "0",     "is_public": 1 },
+            { "input": "1\n2\n3\n4\n0",    "output": "2.5",   "is_public": 1 },
+            { "input": "10\n0",            "output": "10.0",  "is_public": 0 },
+            { "input": "100\n200\n300\n0", "output": "200.0", "is_public": 0 },
+            { "input": "7\n7\n7\n0",       "output": "7.0",   "is_public": 0 },
+            { "input": "1\n0",             "output": "1.0",   "is_public": 0 },
+            { "input": "2\n4\n6\n8\n0",    "output": "5.0",   "is_public": 0 },
+            { "input": "15\n25\n35\n0",    "output": "25.0",  "is_public": 0 },
+            { "input": "3\n0",             "output": "3.0",   "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Проверка числа на простоту",
+        "given": "<p>Дано целое число \\(N\\). Используя цикл <code>while</code>, проверьте, является ли оно <strong>простым</strong>.</p>\n<p><strong>Простое число</strong> — это натуральное число больше 1, которое делится только на 1 и на само себя.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 10^5\\)).</p>",
+        "output_format": "<p>Выведите <strong>YES</strong>, если число простое, и <strong>NO</strong> в противном случае.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "7",   "output": "YES",  "is_public": 1 },
+            { "input": "1",   "output": "NO",   "is_public": 1 },
+            { "input": "4",   "output": "NO",   "is_public": 1 },
+            { "input": "2",   "output": "YES",  "is_public": 0 },
+            { "input": "3",   "output": "YES",  "is_public": 0 },
+            { "input": "6",   "output": "NO",   "is_public": 0 },
+            { "input": "11",  "output": "YES",  "is_public": 0 },
+            { "input": "97",  "output": "YES",  "is_public": 0 },
+            { "input": "100", "output": "NO",   "is_public": 0 },
+            { "input": "23",  "output": "YES",  "is_public": 0 }
+        ]
+    }
+]

@@ -1,0 +1,202 @@
+[
+    {
+        "title": "Поиск числа (break)",
+        "given": "<p>Даны \\(N\\) чисел. Найдите, встречается ли среди них число \\(K\\). Как только найдёте — завершите поиск с помощью <code>break</code>.</p>",
+        "input_format": "<p>Даны два целых числа \\(N\\) и \\(K\\) (\\(1 \\le N \\le 100\\), \\(-10^3 \\le K \\le 10^3\\)). Затем на каждой из следующих \\(N\\) строк дано по одному целому числу.</p>",
+        "output_format": "<p>Выведите <code>YES</code>, если число \\(K\\) встречается среди введённых чисел, иначе — <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n3\n1\n2\n3\n4\n5",    "output": "YES", "is_public": 1 },
+            { "input": "4\n10\n1\n2\n3\n4",      "output": "NO",  "is_public": 1 },
+            { "input": "1\n7\n7",                 "output": "YES", "is_public": 1 },
+            { "input": "3\n0\n-1\n0\n5",         "output": "YES", "is_public": 0 },
+            { "input": "6\n-5\n10\n-3\n8\n-5\n0","output": "YES", "is_public": 0 },
+            { "input": "2\n100\n99\n100",         "output": "YES", "is_public": 0 },
+            { "input": "5\n9\n1\n8\n3\n6\n2",    "output": "NO",  "is_public": 0 },
+            { "input": "7\n4\n4\n4\n4\n4\n4\n4\n4","output": "YES","is_public": 0 },
+            { "input": "3\n1\n2\n3\n4",           "output": "NO",  "is_public": 0 },
+            { "input": "10\n15\n5\n10\n15\n20\n25\n30\n35\n40\n45\n50", "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма до нуля (break в while)",
+        "given": "<p>На вход подаются целые числа, пока не встретится число 0. Найдите их <strong>сумму</strong>. Число 0 в сумму не включайте. Используйте <code>while True</code> и <code>break</code>.</p>",
+        "input_format": "<p>Даны целые числа, по одному на строке. Последним подаётся число 0. Гарантируется, что 0 будет обязательно.</p>",
+        "output_format": "<p>Выведите одно целое число — сумму всех введённых чисел (без учёта завершающего 0).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n10\n3\n0",           "output": "18", "is_public": 1 },
+            { "input": "0",                     "output": "0",  "is_public": 1 },
+            { "input": "-5\n10\n-3\n0",         "output": "2",  "is_public": 1 },
+            { "input": "100\n200\n300\n0",      "output": "600","is_public": 0 },
+            { "input": "7\n0",                  "output": "7",  "is_public": 0 },
+            { "input": "-10\n-20\n-30\n0",      "output": "-60","is_public": 0 },
+            { "input": "1\n2\n3\n4\n5\n0",      "output": "15", "is_public": 0 },
+            { "input": "42\n0",                 "output": "42", "is_public": 0 },
+            { "input": "-1\n-2\n-3\n0",         "output": "-6", "is_public": 0 },
+            { "input": "0\n0",                  "output": "0",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Только нечётные числа (continue)",
+        "given": "<p>Выведите все <strong>нечётные числа</strong> от 1 до \\(N\\) включительно. Чётные числа пропускайте с помощью <code>continue</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 100\\)).</p>",
+        "output_format": "<p>Выведите нечётные числа от 1 до \\(N\\) через пробел на одной строке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10", "output": "1 3 5 7 9",    "is_public": 1 },
+            { "input": "1",  "output": "1",            "is_public": 1 },
+            { "input": "5",  "output": "1 3 5",        "is_public": 1 },
+            { "input": "2",  "output": "1",            "is_public": 0 },
+            { "input": "15", "output": "1 3 5 7 9 11 13 15", "is_public": 0 },
+            { "input": "3",  "output": "1 3",          "is_public": 0 },
+            { "input": "20", "output": "1 3 5 7 9 11 13 15 17 19", "is_public": 0 },
+            { "input": "7",  "output": "1 3 5 7",      "is_public": 0 },
+            { "input": "9",  "output": "1 3 5 7 9",    "is_public": 0 },
+            { "input": "12", "output": "1 3 5 7 9 11", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Простое число (break)",
+        "given": "<p>Определите, является ли натуральное число \\(N\\) <strong>простым</strong>. Простое число делится только на 1 и на само себя. Если найдёте делитель — завершите цикл с помощью <code>break</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(2 \\le N \\le 10^5\\)).</p>",
+        "output_format": "<p>Выведите <code>YES</code>, если число простое, иначе — <code>NO</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "7",   "output": "YES", "is_public": 1 },
+            { "input": "4",   "output": "NO",  "is_public": 1 },
+            { "input": "2",   "output": "YES", "is_public": 1 },
+            { "input": "3",   "output": "YES", "is_public": 0 },
+            { "input": "9",   "output": "NO",  "is_public": 0 },
+            { "input": "13",  "output": "YES", "is_public": 0 },
+            { "input": "15",  "output": "NO",  "is_public": 0 },
+            { "input": "17",  "output": "YES", "is_public": 0 },
+            { "input": "21",  "output": "NO",  "is_public": 0 },
+            { "input": "29",  "output": "YES", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Пропуск кратных 3 (continue)",
+        "given": "<p>Выведите все числа от 1 до \\(N\\), которые <strong>не делятся на 3</strong>. Числа, кратные 3, пропускайте с помощью <code>continue</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 100\\)).</p>",
+        "output_format": "<p>Выведите числа от 1 до \\(N\\), не кратные 3, через пробел на одной строке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "10", "output": "1 2 4 5 7 8 10",       "is_public": 1 },
+            { "input": "3",  "output": "1 2",                  "is_public": 1 },
+            { "input": "1",  "output": "1",                    "is_public": 1 },
+            { "input": "5",  "output": "1 2 4 5",              "is_public": 0 },
+            { "input": "15", "output": "1 2 4 5 7 8 10 11 13 14", "is_public": 0 },
+            { "input": "7",  "output": "1 2 4 5 7",           "is_public": 0 },
+            { "input": "12", "output": "1 2 4 5 7 8 10 11",   "is_public": 0 },
+            { "input": "2",  "output": "1 2",                  "is_public": 0 },
+            { "input": "20", "output": "1 2 4 5 7 8 10 11 13 14 16 17 19 20", "is_public": 0 },
+            { "input": "9",  "output": "1 2 4 5 7 8",         "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Прямоугольник (вложенные циклы)",
+        "given": "<p>Даны высота \\(H\\) и ширина \\(W\\). Используя <strong>вложенные циклы</strong>, выведите прямоугольник из символов <code>*</code> размером \\(H\\) строк на \\(W\\) столбцов.</p>",
+        "input_format": "<p>Даны два целых числа \\(H\\) и \\(W\\) (\\(1 \\le H, W \\le 20\\)). Каждое число вводится на отдельной строке.</p>",
+        "output_format": "<p>Выведите \\(H\\) строк, в каждой из которых \\(W\\) символов <code>*</code> без пробелов.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\n4",  "output": "****\n****\n****",       "is_public": 1 },
+            { "input": "1\n1",  "output": "*",                     "is_public": 1 },
+            { "input": "2\n5",  "output": "*****\n*****",          "is_public": 1 },
+            { "input": "5\n1",  "output": "*\n*\n*\n*\n*",         "is_public": 0 },
+            { "input": "4\n3",  "output": "***\n***\n***\n***",     "is_public": 0 },
+            { "input": "1\n10", "output": "**********",             "is_public": 0 },
+            { "input": "6\n2",  "output": "**\n**\n**\n**\n**\n**", "is_public": 0 },
+            { "input": "3\n7",  "output": "*******\n*******\n*******", "is_public": 0 },
+            { "input": "2\n2",  "output": "**\n**",                 "is_public": 0 },
+            { "input": "4\n4",  "output": "****\n****\n****\n****", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Числовой треугольник (вложенные циклы)",
+        "given": "<p>Дано число \\(N\\). Используя <strong>вложенные циклы</strong>, выведите числовой треугольник: в первой строке — 1, во второй — 1 2, в третьей — 1 2 3, и так до \\(N\\).</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 20\\)).</p>",
+        "output_format": "<p>Выведите \\(N\\) строк. В \\(i\\)-й строке выведите числа от 1 до \\(i\\) через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3", "output": "1\n1 2\n1 2 3",                "is_public": 1 },
+            { "input": "1", "output": "1",                            "is_public": 1 },
+            { "input": "5", "output": "1\n1 2\n1 2 3\n1 2 3 4\n1 2 3 4 5", "is_public": 1 },
+            { "input": "2", "output": "1\n1 2",                       "is_public": 0 },
+            { "input": "4", "output": "1\n1 2\n1 2 3\n1 2 3 4",       "is_public": 0 },
+            { "input": "6", "output": "1\n1 2\n1 2 3\n1 2 3 4\n1 2 3 4 5\n1 2 3 4 5 6", "is_public": 0 },
+            { "input": "7", "output": "1\n1 2\n1 2 3\n1 2 3 4\n1 2 3 4 5\n1 2 3 4 5 6\n1 2 3 4 5 6 7", "is_public": 0 },
+            { "input": "8", "output": "1\n1 2\n1 2 3\n1 2 3 4\n1 2 3 4 5\n1 2 3 4 5 6\n1 2 3 4 5 6 7\n1 2 3 4 5 6 7 8", "is_public": 0 },
+            { "input": "9", "output": "1\n1 2\n1 2 3\n1 2 3 4\n1 2 3 4 5\n1 2 3 4 5 6\n1 2 3 4 5 6 7\n1 2 3 4 5 6 7 8\n1 2 3 4 5 6 7 8 9", "is_public": 0 },
+            { "input": "10","output": "1\n1 2\n1 2 3\n1 2 3 4\n1 2 3 4 5\n1 2 3 4 5 6\n1 2 3 4 5 6 7\n1 2 3 4 5 6 7 8\n1 2 3 4 5 6 7 8 9\n1 2 3 4 5 6 7 8 9 10", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Поиск в строках (break во вложенных циклах)",
+        "given": "<p>Даны \\(N\\) строк, в каждой строке — \\(M\\) целых чисел. Найдите номер первой строки (начиная с 1), в которой встречается число \\(K\\). Если такой строки нет — выведите 0.</p>\n<p>При обнаружении числа \\(K\\) используйте <code>break</code> для выхода из внутреннего цикла.</p>",
+        "input_format": "<p>Даны три целых числа \\(N\\), \\(M\\), \\(K\\) (\\(1 \\le N, M \\le 10\\), \\(-10^3 \\le K \\le 10^3\\)). Затем даны \\(N\\) строк, в каждой — \\(M\\) целых чисел через пробел.</p>",
+        "output_format": "<p>Выведите одно целое число — номер первой строки, содержащей \\(K\\), или 0, если \\(K\\) не найдено.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\n4\n5\n1 2 3 4\n5 6 7 8\n9 10 11 12", "output": "2", "is_public": 1 },
+            { "input": "2\n2\n10\n1 2\n3 4",                    "output": "0", "is_public": 1 },
+            { "input": "1\n3\n7\n7 8 9",                        "output": "1", "is_public": 1 },
+            { "input": "4\n3\n0\n1 2 3\n4 5 6\n0 1 2\n3 4 5",  "output": "3", "is_public": 0 },
+            { "input": "2\n5\n-3\n10 20 30 40 50\n-1 -2 -3 -4 -5", "output": "2", "is_public": 0 },
+            { "input": "3\n3\n99\n1 2 3\n4 5 6\n7 8 9",        "output": "0", "is_public": 0 },
+            { "input": "5\n1\n8\n1\n2\n3\n4\n8",               "output": "5", "is_public": 0 },
+            { "input": "2\n4\n5\n1 3 5 7\n2 4 6 8",            "output": "1", "is_public": 0 },
+            { "input": "3\n2\n9\n10 9\n11 12\n13 14",           "output": "1", "is_public": 0 },
+            { "input": "4\n4\n15\n16 17 18 19\n20 21 22 23\n24 25 26 27\n28 29 30 31", "output": "0", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Таблица умножения (вложенные циклы)",
+        "given": "<p>Дано число \\(N\\). Используя <strong>вложенные циклы</strong>, выведите таблицу умножения от 1 до \\(N\\). В \\(i\\)-й строке должны быть значения: \\(i \\times 1, i \\times 2, \\dots, i \\times N\\).</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 10\\)).</p>",
+        "output_format": "<p>Выведите \\(N\\) строк. В \\(i\\)-й строке выведите \\(N\\) чисел — результаты умножения \\(i\\) на числа от 1 до \\(N\\) через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3", "output": "1 2 3\n2 4 6\n3 6 9",                         "is_public": 1 },
+            { "input": "1", "output": "1",                                            "is_public": 1 },
+            { "input": "5", "output": "1 2 3 4 5\n2 4 6 8 10\n3 6 9 12 15\n4 8 12 16 20\n5 10 15 20 25", "is_public": 1 },
+            { "input": "2", "output": "1 2\n2 4",                                     "is_public": 0 },
+            { "input": "4", "output": "1 2 3 4\n2 4 6 8\n3 6 9 12\n4 8 12 16",        "is_public": 0 },
+            { "input": "6", "output": "1 2 3 4 5 6\n2 4 6 8 10 12\n3 6 9 12 15 18\n4 8 12 16 20 24\n5 10 15 20 25 30\n6 12 18 24 30 36", "is_public": 0 },
+            { "input": "7", "output": "1 2 3 4 5 6 7\n2 4 6 8 10 12 14\n3 6 9 12 15 18 21\n4 8 12 16 20 24 28\n5 10 15 20 25 30 35\n6 12 18 24 30 36 42\n7 14 21 28 35 42 49", "is_public": 0 },
+            { "input": "8", "output": "1 2 3 4 5 6 7 8\n2 4 6 8 10 12 14 16\n3 6 9 12 15 18 21 24\n4 8 12 16 20 24 28 32\n5 10 15 20 25 30 35 40\n6 12 18 24 30 36 42 48\n7 14 21 28 35 42 49 56\n8 16 24 32 40 48 56 64", "is_public": 0 },
+            { "input": "9", "output": "1 2 3 4 5 6 7 8 9\n2 4 6 8 10 12 14 16 18\n3 6 9 12 15 18 21 24 27\n4 8 12 16 20 24 28 32 36\n5 10 15 20 25 30 35 40 45\n6 12 18 24 30 36 42 48 54\n7 14 21 28 35 42 49 56 63\n8 16 24 32 40 48 56 64 72\n9 18 27 36 45 54 63 72 81", "is_public": 0 },
+            { "input": "10","output": "1 2 3 4 5 6 7 8 9 10\n2 4 6 8 10 12 14 16 18 20\n3 6 9 12 15 18 21 24 27 30\n4 8 12 16 20 24 28 32 36 40\n5 10 15 20 25 30 35 40 45 50\n6 12 18 24 30 36 42 48 54 60\n7 14 21 28 35 42 49 56 63 70\n8 16 24 32 40 48 56 64 72 80\n9 18 27 36 45 54 63 72 81 90\n10 20 30 40 50 60 70 80 90 100", "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Наименьший делитель (break)",
+        "given": "<p>Найдите <strong>наименьший натуральный делитель</strong> числа \\(N\\), больший 1. Как только найдёте — завершите цикл с помощью <code>break</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(2 \\le N \\le 10^6\\)).</p>",
+        "output_format": "<p>Выведите одно целое число — наименьший делитель числа \\(N\\), больший 1.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "15", "output": "3",   "is_public": 1 },
+            { "input": "7",  "output": "7",   "is_public": 1 },
+            { "input": "2",  "output": "2",   "is_public": 1 },
+            { "input": "9",  "output": "3",   "is_public": 0 },
+            { "input": "25", "output": "5",   "is_public": 0 },
+            { "input": "13", "output": "13",  "is_public": 0 },
+            { "input": "21", "output": "3",   "is_public": 0 },
+            { "input": "49", "output": "7",   "is_public": 0 },
+            { "input": "10", "output": "2",   "is_public": 0 },
+            { "input": "97", "output": "97",  "is_public": 0 }
+        ]
+    }
+]
