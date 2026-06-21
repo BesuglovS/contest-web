@@ -1,0 +1,202 @@
+[
+    {
+        "title": "Список квадратов",
+        "given": "<p>Дано целое число \\(N\\). Используя <strong>списочное выражение</strong> (list comprehension), создайте список квадратов чисел от 0 до \\(N-1\\) (включительно) и выведите его.</p>\n<p>Пример: <code>[x**2 for x in range(N)]</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 100\\)).</p>",
+        "output_format": "<p>Выведите список квадратов чисел от 0 до \\(N-1\\) через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5",     "output": "0 1 4 9 16",              "is_public": 1 },
+            { "input": "3",     "output": "0 1 4",                   "is_public": 1 },
+            { "input": "1",     "output": "0",                       "is_public": 1 },
+            { "input": "6",     "output": "0 1 4 9 16 25",           "is_public": 0 },
+            { "input": "10",    "output": "0 1 4 9 16 25 36 49 64 81","is_public": 0 },
+            { "input": "2",     "output": "0 1",                     "is_public": 0 },
+            { "input": "7",     "output": "0 1 4 9 16 25 36",        "is_public": 0 },
+            { "input": "4",     "output": "0 1 4 9",                 "is_public": 0 },
+            { "input": "8",     "output": "0 1 4 9 16 25 36 49",     "is_public": 0 },
+            { "input": "9",     "output": "0 1 4 9 16 25 36 49 64",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Только чётные",
+        "given": "<p>Дан список целых чисел. Используя списочное выражение <strong>с условием</strong>, создайте новый список, содержащий только <strong>чётные</strong> числа из исходного. Выведите его.</p>\n<p>Пример: <code>[x for x in lst if x % 2 == 0]</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 100\\)) — количество чисел. Затем на каждой из следующих \\(N\\) строк дано по одному целому числу.</p>",
+        "output_format": "<p>Выведите все чётные числа из списка через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n1\n2\n3\n4\n5",            "output": "2 4",           "is_public": 1 },
+            { "input": "4\n2\n4\n6\n8",               "output": "2 4 6 8",       "is_public": 1 },
+            { "input": "3\n1\n3\n5",                  "output": "",             "is_public": 1 },
+            { "input": "6\n0\n-1\n-2\n3\n4\n7",       "output": "0 -2 4",       "is_public": 0 },
+            { "input": "8\n10\n15\n20\n25\n30\n35\n40\n45","output": "10 20 30 40","is_public": 0 },
+            { "input": "5\n11\n22\n33\n44\n55",        "output": "22 44",        "is_public": 0 },
+            { "input": "7\n-3\n-2\n-1\n0\n1\n2\n3",    "output": "-2 0 2",       "is_public": 0 },
+            { "input": "4\n1\n1\n1\n1",                "output": "",             "is_public": 0 },
+            { "input": "6\n100\n101\n102\n103\n104\n105","output": "100 102 104", "is_public": 0 },
+            { "input": "2\n7\n14",                     "output": "14",            "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Длины строк",
+        "given": "<p>Дано несколько строк. Используя списочное выражение, создайте список, содержащий <strong>длину</strong> каждой строки. Выведите его.</p>\n<p>Длину строки можно получить функцией <code>len()</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 100\\)) — количество строк. Затем на каждой из следующих \\(N\\) строк дано по одной строке, состоящей из латинских букв. Длина каждой строки от 1 до 100.</p>",
+        "output_format": "<p>Выведите длины всех строк через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\ncat\nelephant\ndog",              "output": "3 8 3",     "is_public": 1 },
+            { "input": "2\nhello\nworld",                    "output": "5 5",       "is_public": 1 },
+            { "input": "1\npython",                          "output": "6",         "is_public": 1 },
+            { "input": "5\na\nab\nabc\nabcd\nabcde",         "output": "1 2 3 4 5", "is_public": 0 },
+            { "input": "4\napple\nbanana\ncherry\ndate",     "output": "5 6 6 4",   "is_public": 0 },
+            { "input": "3\none\ntwo\nthree",                 "output": "3 3 5",     "is_public": 0 },
+            { "input": "6\nred\ngreen\nblue\nyellow\nblack\nwhite","output": "3 5 4 6 5 5","is_public": 0 },
+            { "input": "2\ntest\ncode",                      "output": "4 4",       "is_public": 0 },
+            { "input": "4\nx\nxyz\nxyzuv\nqwertyuiop",       "output": "1 3 5 10",  "is_public": 0 },
+            { "input": "3\nsplit\njoin\ncomprehension",        "output": "5 4 13",    "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Строки в верхний регистр",
+        "given": "<p>Дано несколько строк в нижнем регистре. Используя списочное выражение и метод <code>upper()</code>, преобразуйте каждую строку в <strong>верхний регистр</strong>. Выведите полученный список.</p>\n<p>Пример: <code>[s.upper() for s in words]</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 100\\)) — количество строк. Затем на каждой из следующих \\(N\\) строк дано по одной строке, состоящей из строчных латинских букв.</p>",
+        "output_format": "<p>Выведите все строки в верхнем регистре через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\ncat\ndog\nbird",                    "output": "CAT DOG BIRD",           "is_public": 1 },
+            { "input": "2\nhello\nworld",                      "output": "HELLO WORLD",             "is_public": 1 },
+            { "input": "1\npython",                            "output": "PYTHON",                  "is_public": 1 },
+            { "input": "4\napple\nbanana\ncherry\ndate",       "output": "APPLE BANANA CHERRY DATE","is_public": 0 },
+            { "input": "5\na\nb\nc\nd\ne",                     "output": "A B C D E",               "is_public": 0 },
+            { "input": "3\nred\ngreen\nblue",                  "output": "RED GREEN BLUE",           "is_public": 0 },
+            { "input": "6\none\ntwo\nthree\nfour\nfive\nsix",  "output": "ONE TWO THREE FOUR FIVE SIX","is_public": 0 },
+            { "input": "2\nsplit\njoin",                       "output": "SPLIT JOIN",               "is_public": 0 },
+            { "input": "4\ntest\ncode\nwork\nplay",            "output": "TEST CODE WORK PLAY",      "is_public": 0 },
+            { "input": "3\nfirst\nsecond\nthird",              "output": "FIRST SECOND THIRD",       "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Числа больше порога",
+        "given": "<p>Дан список целых чисел и число-порог \\(T\\). Используя списочное выражение с условием, создайте новый список, содержащий только те числа, которые <strong>больше</strong> \\(T\\). Выведите его.</p>\n<p>Пример: <code>[x for x in lst if x > T]</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 100\\)) — количество чисел. Затем на каждой из следующих \\(N\\) строк дано по одному целому числу. Затем дано целое число \\(T\\) — пороговое значение.</p>",
+        "output_format": "<p>Выведите все числа из списка, которые больше \\(T\\), через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "5\n1\n5\n10\n15\n20\n9",                "output": "10 15 20",        "is_public": 1 },
+            { "input": "4\n-5\n0\n3\n8\n0",                     "output": "3 8",             "is_public": 1 },
+            { "input": "3\n1\n2\n3\n10",                        "output": "",               "is_public": 1 },
+            { "input": "6\n10\n20\n30\n40\n50\n60\n25",         "output": "30 40 50 60",     "is_public": 0 },
+            { "input": "5\n-10\n-5\n0\n5\n10\n-1",             "output": "0 5 10",          "is_public": 0 },
+            { "input": "7\n100\n200\n150\n50\n75\n25\n0\n80",   "output": "100 200 150",     "is_public": 0 },
+            { "input": "4\n1\n2\n3\n4\n4",                     "output": "",               "is_public": 0 },
+            { "input": "6\n-3\n-2\n-1\n0\n1\n2\n-1",           "output": "0 1 2",           "is_public": 0 },
+            { "input": "3\n5\n10\n15\n7",                      "output": "10 15",           "is_public": 0 },
+            { "input": "5\n8\n12\n16\n20\n24\n18",             "output": "20 24",           "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Список кубов",
+        "given": "<p>Дано целое число \\(N\\). Используя списочное выражение, создайте список <strong>кубов</strong> чисел от 1 до \\(N\\) (включительно) и выведите его.</p>\n<p>Пример: <code>[x**3 for x in range(1, N + 1)]</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 50\\)).</p>",
+        "output_format": "<p>Выведите кубы чисел от 1 до \\(N\\) через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "4",    "output": "1 8 27 64",           "is_public": 1 },
+            { "input": "2",    "output": "1 8",                 "is_public": 1 },
+            { "input": "1",    "output": "1",                   "is_public": 1 },
+            { "input": "5",    "output": "1 8 27 64 125",       "is_public": 0 },
+            { "input": "3",    "output": "1 8 27",              "is_public": 0 },
+            { "input": "6",    "output": "1 8 27 64 125 216",   "is_public": 0 },
+            { "input": "7",    "output": "1 8 27 64 125 216 343","is_public": 0 },
+            { "input": "8",    "output": "1 8 27 64 125 216 343 512","is_public": 0 },
+            { "input": "9",    "output": "1 8 27 64 125 216 343 512 729","is_public": 0 },
+            { "input": "10",   "output": "1 8 27 64 125 216 343 512 729 1000","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма квадратов",
+        "given": "<p>Даны два целых числа \\(A\\) и \\(B\\). Используя списочное выражение и функцию <code>sum()</code>, найдите <strong>сумму квадратов</strong> всех целых чисел от \\(A\\) до \\(B\\) включительно.</p>\n<p>Сначала создайте список квадратов с помощью comprehension, затем передайте его в <code>sum()</code>.</p>",
+        "input_format": "<p>Даны два целых числа \\(A\\) и \\(B\\) (\\(-100 \\le A \\le B \\le 100\\)). Каждое число на отдельной строке.</p>",
+        "output_format": "<p>Выведите одно целое число — сумму квадратов чисел от \\(A\\) до \\(B\\).</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1\n3",      "output": "14",     "is_public": 1 },
+            { "input": "0\n2",      "output": "5",      "is_public": 1 },
+            { "input": "5\n5",      "output": "25",     "is_public": 1 },
+            { "input": "-2\n2",     "output": "10",     "is_public": 0 },
+            { "input": "1\n10",     "output": "385",    "is_public": 0 },
+            { "input": "0\n5",      "output": "55",     "is_public": 0 },
+            { "input": "-3\n-1",    "output": "14",     "is_public": 0 },
+            { "input": "2\n6",      "output": "90",     "is_public": 0 },
+            { "input": "4\n7",      "output": "126",    "is_public": 0 },
+            { "input": "-5\n0",     "output": "55",     "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Словарь квадратов",
+        "given": "<p>Дано целое число \\(N\\). Используя <strong>словарное выражение</strong> (dict comprehension), создайте словарь, где ключами являются числа от 0 до \\(N-1\\), а значениями — их квадраты. Выведите этот словарь.</p>\n<p>Пример: <code>{x: x**2 for x in range(N)}</code>.</p>",
+        "input_format": "<p>Дано одно целое число \\(N\\) (\\(1 \\le N \\le 15\\)).</p>",
+        "output_format": "<p>Выведите полученный словарь в формате <code>ключ: значение</code>, каждый элемент на отдельной строке. Порядок — по возрастанию ключа.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "4",    "output": "0: 0\n1: 1\n2: 4\n3: 9",             "is_public": 1 },
+            { "input": "2",    "output": "0: 0\n1: 1",                         "is_public": 1 },
+            { "input": "1",    "output": "0: 0",                               "is_public": 1 },
+            { "input": "5",    "output": "0: 0\n1: 1\n2: 4\n3: 9\n4: 16",     "is_public": 0 },
+            { "input": "3",    "output": "0: 0\n1: 1\n2: 4",                   "is_public": 0 },
+            { "input": "6",    "output": "0: 0\n1: 1\n2: 4\n3: 9\n4: 16\n5: 25","is_public": 0 },
+            { "input": "7",    "output": "0: 0\n1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36","is_public": 0 },
+            { "input": "8",    "output": "0: 0\n1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49","is_public": 0 },
+            { "input": "9",    "output": "0: 0\n1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49\n8: 64","is_public": 0 },
+            { "input": "10",   "output": "0: 0\n1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49\n8: 64\n9: 81","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Таблица умножения",
+        "given": "<p>Даны два целых числа \\(N\\) и \\(M\\). Используя <strong>вложенное списочное выражение</strong>, создайте таблицу умножения размером \\(N \\times M\\), где элемент на позиции \\((i, j)\\) равен \\(i \\times j\\). Индексация строк и столбцов начинается с 1.</p>\n<p>Пример: <code>[[i * j for j in range(1, M + 1)] for i in range(1, N + 1)]</code>.</p>",
+        "input_format": "<p>Даны два целых числа \\(N\\) и \\(M\\) (\\(1 \\le N, M \\le 12\\)). Каждое число на отдельной строке.</p>",
+        "output_format": "<p>Выведите \\(N\\) строк, в каждой строке через пробел — \\(M\\) чисел, соответствующих строке таблицы умножения.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\n3",     "output": "1 2 3\n2 4 6\n3 6 9",                 "is_public": 1 },
+            { "input": "2\n4",     "output": "1 2 3 4\n2 4 6 8",                    "is_public": 1 },
+            { "input": "1\n5",     "output": "1 2 3 4 5",                           "is_public": 1 },
+            { "input": "4\n2",     "output": "1 2\n2 4\n3 6\n4 8",                  "is_public": 0 },
+            { "input": "3\n5",     "output": "1 2 3 4 5\n2 4 6 8 10\n3 6 9 12 15", "is_public": 0 },
+            { "input": "5\n1",     "output": "1\n2\n3\n4\n5",                       "is_public": 0 },
+            { "input": "6\n3",     "output": "1 2 3\n2 4 6\n3 6 9\n4 8 12\n5 10 15\n6 12 18","is_public": 0 },
+            { "input": "2\n2",     "output": "1 2\n2 4",                             "is_public": 0 },
+            { "input": "4\n4",     "output": "1 2 3 4\n2 4 6 8\n3 6 9 12\n4 8 12 16","is_public": 0 },
+            { "input": "3\n6",     "output": "1 2 3 4 5 6\n2 4 6 8 10 12\n3 6 9 12 15 18","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Фильтрация словаря",
+        "given": "<p>Дан словарь, где ключи — названия фруктов (строки), а значения — их цена в рублях (целые числа). Используя словарное выражение с условием, создайте новый словарь, содержащий только те пары, где цена <strong>больше</strong> \\(P\\) рублей. Выведите отфильтрованный словарь.</p>\n<p>Пример: <code>{k: v for k, v in d.items() if v > P}</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 20\\)) — количество пар. Затем на каждой из следующих \\(N\\) строк даны название фрукта (строка из латинских букв) и его цена (целое число от 1 до 1000), разделённые пробелом. Затем дано целое число \\(P\\) — пороговое значение цены.</p>",
+        "output_format": "<p>Выведите каждую пару отфильтрованного словаря на отдельной строке в формате <code>ключ: значение</code>. Порядок — по возрастанию ключа.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "4\napple 50\nbanana 30\ncherry 80\ndate 20\n40",     "output": "apple: 50\ncherry: 80",               "is_public": 1 },
+            { "input": "3\norange 100\nkiwi 75\ngrape 120\n90",              "output": "grape: 120\norange: 100",             "is_public": 1 },
+            { "input": "2\nlemon 10\nlime 15\n20",                           "output": "",                                  "is_public": 1 },
+            { "input": "5\npear 45\nplum 55\npeach 65\nmango 85\nfig 25\n50","output": "mango: 85\npeach: 65\nplum: 55",     "is_public": 0 },
+            { "input": "3\na 100\nb 200\nc 300\n150",                        "output": "b: 200\nc: 300",                    "is_public": 0 },
+            { "input": "4\nx 5\ny 15\nz 25\nw 35\n20",                      "output": "w: 35\nz: 25",                      "is_public": 0 },
+            { "input": "2\nred 500\nblue 600\n550",                          "output": "blue: 600",                          "is_public": 0 },
+            { "input": "6\none 1\ntwo 2\nthree 3\nfour 4\nfive 5\nsix 6\n3","output": "five: 5\nfour: 4\nsix: 6\nthree: 3", "is_public": 0 },
+            { "input": "3\ncat 10\ndog 10\npig 10\n10",                      "output": "",                                  "is_public": 0 },
+            { "input": "1\napple 99\n50",                                    "output": "apple: 99",                          "is_public": 0 }
+        ]
+    }
+]

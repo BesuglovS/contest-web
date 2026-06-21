@@ -1,0 +1,202 @@
+[
+    {
+        "title": "Количество слов в строке",
+        "given": "<p>Дана строка, содержащая слова, разделённые пробелами. Используя метод <code>split()</code>, разбейте строку на список слов и выведите <strong>количество слов</strong> в строке.</p>\n<p>Метод <code>split()</code> без аргументов разбивает строку по пробельным символам.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая слова, разделённые одним или несколькими пробелами. Строка может содержать только латинские буквы и пробелы.</p>",
+        "output_format": "<p>Выведите одно целое число — количество слов в строке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "hello world",                        "output": "2",  "is_public": 1 },
+            { "input": "python",                             "output": "1",  "is_public": 1 },
+            { "input": "a b c d e",                          "output": "5",  "is_public": 1 },
+            { "input": "one  two   three    four",           "output": "4",  "is_public": 0 },
+            { "input": "apple banana cherry",                "output": "3",  "is_public": 0 },
+            { "input": "x",                                  "output": "1",  "is_public": 0 },
+            { "input": "alpha beta gamma delta epsilon",     "output": "5",  "is_public": 0 },
+            { "input": "split   join   string   methods",    "output": "4",  "is_public": 0 },
+            { "input": "hello     world     python",         "output": "3",  "is_public": 0 },
+            { "input": "simple test",                        "output": "2",  "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Объединение слов в предложение",
+        "given": "<p>Дано несколько слов. Используя метод <code>join()</code>, объедините их в одну строку, разделяя слова <strong>ровно одним пробелом</strong>.</p>\n<p>Метод <code>join()</code> вызывается на строке-разделителе и принимает список строк: <code>\" \".join(words)</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 100\\)) — количество слов. Затем на каждой из следующих \\(N\\) строк дано по одному слову, состоящему только из латинских букв.</p>",
+        "output_format": "<p>Выведите одну строку — все слова через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "3\nhello\nworld\npython",            "output": "hello world python",   "is_public": 1 },
+            { "input": "1\nhello",                           "output": "hello",                 "is_public": 1 },
+            { "input": "5\na\nb\nc\nd\ne",                   "output": "a b c d e",             "is_public": 1 },
+            { "input": "4\none\ntwo\nthree\nfour",           "output": "one two three four",    "is_public": 0 },
+            { "input": "2\napple\nbanana",                   "output": "apple banana",           "is_public": 0 },
+            { "input": "3\nsplit\njoin\npython",             "output": "split join python",     "is_public": 0 },
+            { "input": "6\nred\ngreen\nblue\nyellow\nblack\nwhite","output": "red green blue yellow black white","is_public": 0 },
+            { "input": "3\nx\ny\nz",                         "output": "x y z",                 "is_public": 0 },
+            { "input": "4\nfirst\nsecond\nthird\nlast",      "output": "first second third last","is_public": 0 },
+            { "input": "2\nhello\nworld",                    "output": "hello world",            "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Разделение по разделителю",
+        "given": "<p>Дана строка, содержащая элементы, разделённые запятыми (символ <code>,</code>). Используя метод <code>split()</code> с указанным разделителем, разбейте строку и выведите каждый элемент на отдельной строке.</p>\n<p>Передайте в <code>split()</code> строку-разделитель: <code>text.split(\",\")</code>.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая элементы, разделённые запятыми. Элементы состоят только из латинских букв и цифр.</p>",
+        "output_format": "<p>Выведите каждый элемент строки на отдельной строке в том же порядке.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "red,green,blue",                     "output": "red\ngreen\nblue",      "is_public": 1 },
+            { "input": "a,b,c,d,e",                          "output": "a\nb\nc\nd\ne",         "is_public": 1 },
+            { "input": "hello",                              "output": "hello",                 "is_public": 1 },
+            { "input": "john,doe,25,new,york",               "output": "john\ndoe\n25\nnew\nyork","is_public": 0 },
+            { "input": "x,y,z",                              "output": "x\ny\nz",               "is_public": 0 },
+            { "input": "one,two,three,four,five,six",        "output": "one\ntwo\nthree\nfour\nfive\nsix","is_public": 0 },
+            { "input": "split,join,methods",                 "output": "split\njoin\nmethods",  "is_public": 0 },
+            { "input": "1,2,3,4,5",                          "output": "1\n2\n3\n4\n5",         "is_public": 0 },
+            { "input": "apple,banana,cherry",                "output": "apple\nbanana\ncherry",  "is_public": 0 },
+            { "input": "alpha,beta,gamma,delta",             "output": "alpha\nbeta\ngamma\ndelta","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Разделение с ограничением",
+        "given": "<p>Дана строка, содержащая числа, разделённые дефисом (<code>-</code>), и целое число \\(K\\). Используя метод <code>split()</code> с параметром <code>maxsplit</code> (вторым аргументом), разбейте строку на <strong>не более</strong> \\(K+1\\) частей. Выведите список полученных частей.</p>\n<p>Пример: <code>\"a-b-c-d\".split(\"-\", 2)</code> даст <code>[\"a\", \"b\", \"c-d\"]</code>.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая части, разделённые дефисом. Затем дано целое число \\(K\\) (\\(0 \\le K \\le 10\\)) — максимальное количество разбиений.</p>",
+        "output_format": "<p>Выведите все элементы полученного списка через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "a-b-c-d\n2",                     "output": "a b c-d",              "is_public": 1 },
+            { "input": "1-2-3-4-5\n0",                   "output": "1-2-3-4-5",             "is_public": 1 },
+            { "input": "x-y-z\n1",                       "output": "x y-z",                "is_public": 1 },
+            { "input": "one-two-three-four-five\n3",     "output": "one two three four-five","is_public": 0 },
+            { "input": "hello-world\n1",                 "output": "hello world",           "is_public": 0 },
+            { "input": "split-join-split-join\n2",       "output": "split join split-join","is_public": 0 },
+            { "input": "a\n0",                           "output": "a",                     "is_public": 0 },
+            { "input": "a-b-c-d-e-f\n4",                 "output": "a b c d e-f",           "is_public": 0 },
+            { "input": "1-2-3-4\n1",                     "output": "1 2-3-4",               "is_public": 0 },
+            { "input": "x-x-x-x\n3",                     "output": "x x x x",               "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сумма чисел из строки",
+        "given": "<p>Дана строка, содержащая целые числа, разделённые пробелами. Используя метод <code>split()</code>, разбейте строку на список чисел, преобразуйте каждый элемент в целое число и вычислите их <strong>сумму</strong>.</p>\n<p>Для преобразования строк в числа можно использовать функцию <code>int()</code>. Так как <code>split()</code> возвращает список строк, вам потребуется преобразовать каждый элемент.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая целые числа, разделённые пробелами. Количество чисел от 1 до 100, каждое число от \\(-10^4\\) до \\(10^4\\).</p>",
+        "output_format": "<p>Выведите одно целое число — сумму всех чисел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "1 2 3 4 5",              "output": "15",  "is_public": 1 },
+            { "input": "10 20 30",               "output": "60",  "is_public": 1 },
+            { "input": "100",                    "output": "100", "is_public": 1 },
+            { "input": "-1 -2 -3 -4 -5",         "output": "-15", "is_public": 0 },
+            { "input": "0 0 0 0",                "output": "0",   "is_public": 0 },
+            { "input": "5 -3 2 0 -1 7",          "output": "10",  "is_public": 0 },
+            { "input": "-100 100 -50 50 0",      "output": "0",   "is_public": 0 },
+            { "input": "42 17 8 99 3",           "output": "169", "is_public": 0 },
+            { "input": "1 1 1 1 1 1 1 1 1 1",   "output": "10",  "is_public": 0 },
+            { "input": "500 400 300 200 100",    "output": "1500","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Обратный порядок слов",
+        "given": "<p>Дана строка, содержащая слова, разделённые пробелами. Используя методы <code>split()</code> и <code>join()</code>, выведите слова в <strong>обратном порядке</strong>.</p>\n<p>Сначала разбейте строку на список слов с помощью <code>split()</code>, затем разверните список (например, с помощью среза <code>[::-1]</code>), и затем объедините обратно через пробел с помощью <code>join()</code>.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая слова, разделённые ровно одним пробелом. Слова состоят из латинских букв. Количество слов от 1 до 100.</p>",
+        "output_format": "<p>Выведите строку, в которой слова исходной строки записаны в обратном порядке через пробел.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "hello world",                    "output": "world hello",              "is_public": 1 },
+            { "input": "a b c d",                        "output": "d c b a",                  "is_public": 1 },
+            { "input": "python",                         "output": "python",                   "is_public": 1 },
+            { "input": "one two three four",             "output": "four three two one",       "is_public": 0 },
+            { "input": "red green blue",                 "output": "blue green red",            "is_public": 0 },
+            { "input": "split join reverse",             "output": "reverse join split",       "is_public": 0 },
+            { "input": "apple banana cherry date",       "output": "date cherry banana apple",  "is_public": 0 },
+            { "input": "first second",                   "output": "second first",              "is_public": 0 },
+            { "input": "x y z w",                        "output": "w z y x",                   "is_public": 0 },
+            { "input": "alpha beta gamma delta epsilon", "output": "epsilon delta gamma beta alpha","is_public": 0 }
+        ]
+    },
+    {
+        "title": "Замена разделителя",
+        "given": "<p>Дана строка, содержащая элементы, разделённые точкой с запятой (<code>;</code>). Используя методы <code>split()</code> и <code>join()</code>, замените разделитель на запятую с пробелом (<code>\", \"</code>) и выведите полученную строку.</p>\n<p>Сначала разбейте строку по текущему разделителю с помощью <code>split(\";\")</code>, затем объедините с новым разделителем: <code>\", \".join(...)</code>.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая элементы, разделённые точкой с запятой. Элементы состоят из латинских букв. Количество элементов от 1 до 50.</p>",
+        "output_format": "<p>Выведите одну строку — элементы, разделённые запятой и пробелом.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "apple;banana;cherry",                "output": "apple, banana, cherry",         "is_public": 1 },
+            { "input": "a;b;c;d",                            "output": "a, b, c, d",                    "is_public": 1 },
+            { "input": "x",                                  "output": "x",                             "is_public": 1 },
+            { "input": "one;two;three;four;five",            "output": "one, two, three, four, five",   "is_public": 0 },
+            { "input": "red;green;blue;yellow",              "output": "red, green, blue, yellow",      "is_public": 0 },
+            { "input": "split;join;separator",               "output": "split, join, separator",        "is_public": 0 },
+            { "input": "alpha;beta;gamma",                   "output": "alpha, beta, gamma",            "is_public": 0 },
+            { "input": "python;javascript;java;c;rust",      "output": "python, javascript, java, c, rust","is_public": 0 },
+            { "input": "first;second;third",                 "output": "first, second, third",          "is_public": 0 },
+            { "input": "hello;world",                        "output": "hello, world",                   "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Самое длинное слово",
+        "given": "<p>Дана строка, содержащая слова, разделённые пробелами. Используя метод <code>split()</code>, найдите слово <strong>наибольшей длины</strong>. Если таких слов несколько, выведите первое из них.</p>\n<p>Разбейте строку на список слов, затем обойдите его циклом и найдите слово с максимальной длиной. Длину строки можно получить функцией <code>len()</code>.</p>",
+        "input_format": "<p>Дана строка \\(S\\) (\\(1 \\le |S| \\le 1000\\)), содержащая слова, разделённые ровно одним пробелом. Слова состоят из латинских букв. Количество слов от 1 до 100.</p>",
+        "output_format": "<p>Выведите одно слово — первое слово наибольшей длины.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "apple banana cherry",                "output": "banana",     "is_public": 1 },
+            { "input": "cat dog elephant",                   "output": "elephant",   "is_public": 1 },
+            { "input": "a bb c dd eee",                      "output": "eee",        "is_public": 1 },
+            { "input": "hello world python programming",     "output": "programming","is_public": 0 },
+            { "input": "red blue green yellow",              "output": "yellow",     "is_public": 0 },
+            { "input": "x y z",                              "output": "x",          "is_public": 0 },
+            { "input": "small big huge tiny",                "output": "small",      "is_public": 0 },
+            { "input": "split join method parameter",        "output": "parameter",  "is_public": 0 },
+            { "input": "a ab abc abcd abcde abcdef",         "output": "abcdef",     "is_public": 0 },
+            { "input": "test",                               "output": "test",       "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Парсинг данных о студенте",
+        "given": "<p>Дана строка, содержащая данные студента в формате: <code>имя,возраст,город</code> (поля разделены запятой). Используя метод <code>split()</code>, разбейте строку на части и выведите отформатированное сообщение.</p>\n<p>Пример: для строки <code>\"Иван,25,Москва\"</code> выведите <code>\"Иван из Москвы, возраст 25\"</code>.</p>",
+        "input_format": "<p>Дана строка \\(S\\) формата <code>имя,возраст,город</code>. Имя и город состоят только из латинских букв (первая буква заглавная). Возраст — целое число от 1 до 99. Длина строки не превышает 200 символов.</p>",
+        "output_format": "<p>Выведите строку формата: <code>имя из город, возраст возраст</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "John,25,NewYork",        "output": "John from NewYork, age 25",    "is_public": 1 },
+            { "input": "Alice,20,Boston",        "output": "Alice from Boston, age 20",    "is_public": 1 },
+            { "input": "Bob,30,Chicago",         "output": "Bob from Chicago, age 30",     "is_public": 1 },
+            { "input": "Kate,22,London",         "output": "Kate from London, age 22",     "is_public": 0 },
+            { "input": "Mike,35,Paris",          "output": "Mike from Paris, age 35",      "is_public": 0 },
+            { "input": "Anna,19,Berlin",         "output": "Anna from Berlin, age 19",     "is_public": 0 },
+            { "input": "Tom,28,Tokyo",           "output": "Tom from Tokyo, age 28",       "is_public": 0 },
+            { "input": "Eve,21,Rome",            "output": "Eve from Rome, age 21",        "is_public": 0 },
+            { "input": "Max,27,Moscow",          "output": "Max from Moscow, age 27",      "is_public": 0 },
+            { "input": "Sam,18,Dubai",           "output": "Sam from Dubai, age 18",       "is_public": 0 }
+        ]
+    },
+    {
+        "title": "Сборка пути из частей",
+        "given": "<p>Дано несколько названий папок (по одному на строке). Используя метод <code>join()</code>, соберите из них путь к файлу, разделяя названия символом <code>/</code> (прямой слеш). В конце добавьте имя файла <code>\"index.html\"</code>.</p>\n<p>Сначала соберите список из всех названий папок (через <code>input()</code>), затем добавьте в конец <code>\"index.html\"</code> с помощью <code>append()</code>, и затем объедините всё через <code>\"/\".join(...)</code>.</p>",
+        "input_format": "<p>Дано целое число \\(N\\) (\\(1 \\le N \\le 10\\)) — количество папок. Затем на каждой из следующих \\(N\\) строк дано название папки, состоящее из латинских букв.</p>",
+        "output_format": "<p>Выведите одну строку — полный путь, где названия папок разделены символом <code>/</code>, а в конце указан файл <code>index.html</code>.</p>",
+        "time_limit": 1.0,
+        "memory_limit": 64,
+        "tests": [
+            { "input": "2\nhome\nuser",                    "output": "home/user/index.html",        "is_public": 1 },
+            { "input": "3\nvar\nwww\nhtml",                "output": "var/www/html/index.html",     "is_public": 1 },
+            { "input": "1\nroot",                          "output": "root/index.html",             "is_public": 1 },
+            { "input": "3\nhome\nprojects\npython",        "output": "home/projects/python/index.html","is_public": 0 },
+            { "input": "2\ndocs\ntutorials",               "output": "docs/tutorials/index.html",   "is_public": 0 },
+            { "input": "4\na\nb\nc\nd",                    "output": "a/b/c/d/index.html",          "is_public": 0 },
+            { "input": "3\nusr\nlocal\nbin",               "output": "usr/local/bin/index.html",    "is_public": 0 },
+            { "input": "2\nimages\nphotos",                "output": "images/photos/index.html",     "is_public": 0 },
+            { "input": "3\ndownloads\nmusic\nrock",        "output": "downloads/music/rock/index.html","is_public": 0 },
+            { "input": "1\nsrc",                           "output": "src/index.html",              "is_public": 0 }
+        ]
+    }
+]
