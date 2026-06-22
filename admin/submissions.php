@@ -199,7 +199,7 @@ ob_start();
                 </span>
             </td>
             <td><?= number_format((float)($s['execution_time'] ?? 0), 3) ?></td>
-            <td><?= htmlspecialchars(toDisplayTime($s['executed_at'] ?? '')) ?></td>
+             <td><?= htmlspecialchars(toDisplayTime($s['executed_at'] ?? '')) ?></td>
             <td>
                 <a href="?page=admin-submission-detail&id=<?= $s['id'] ?>" class="btn btn-sm btn-primary">Просмотр</a>
                 <form method="POST" style="display:inline" onsubmit="return confirm('Удалить решение #<?= $s['id'] ?>?')">

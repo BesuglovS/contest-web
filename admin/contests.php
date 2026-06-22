@@ -198,8 +198,8 @@ ob_start();
         <tr>
             <td><?= $c['id'] ?></td>
             <td><?= htmlspecialchars($c['title']) ?></td>
-            <td><?= htmlspecialchars(toDisplayTime($c['start_time']) ?? '') ?></td>
-            <td><?= htmlspecialchars(toDisplayTime($c['end_time']) ?? '—') ?></td>
+             <td><?= htmlspecialchars(toDisplayTime($c['start_time']) ?? '') ?></td>
+             <td><?= htmlspecialchars(toDisplayTime($c['end_time']) ?? '—') ?></td>
             <td>
                 <a href="?page=admin-contest-results&id=<?= $c['id'] ?>" class="btn btn-sm">Результаты</a>
                 <a href="?page=admin-contests&edit=<?= $c['id'] ?>" class="btn btn-sm">Ред.</a>
@@ -229,11 +229,11 @@ ob_start();
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
                 <div class="form-group">
                     <label>Дата начала</label>
-                    <input type="datetime-local" name="start_time" value="<?= isset($editContest['start_time']) ? str_replace(' ', 'T', toDisplayTime($editContest['start_time'])) : toDisplayTime(utcNow()) ?>">
+                    <input type="datetime-local" name="start_time" value="<?= isset($editContest['start_time']) ? str_replace(' ', 'T', toDisplayTimeInput($editContest['start_time'])) : toDisplayTimeInput(utcNow()) ?>">
                 </div>
                 <div class="form-group">
                     <label>Дата окончания</label>
-                    <input type="datetime-local" name="end_time" value="<?= isset($editContest['end_time']) && $editContest['end_time'] ? str_replace(' ', 'T', toDisplayTime($editContest['end_time'])) : '' ?>">
+                    <input type="datetime-local" name="end_time" value="<?= isset($editContest['end_time']) && $editContest['end_time'] ? str_replace(' ', 'T', toDisplayTimeInput($editContest['end_time'])) : '' ?>">
                 </div>
             </div>
         </div>

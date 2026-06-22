@@ -114,7 +114,7 @@ ob_start();
                 </span>
             </td>
             <td><?= number_format((float)($s['execution_time'] ?? 0), 3) ?></td>
-            <td><?= htmlspecialchars(toDisplayTime($s['executed_at'] ?? '')) ?></td>
+             <td><?= htmlspecialchars(toDisplayTime($s['executed_at'] ?? '')) ?></td>
             <td style="display:flex; gap:8px;">
                 <a href="?page=submission-detail&id=<?= $s['id'] ?>" class="btn btn-small">Просмотр</a>
                 <?php if (!empty($s['contest_id']) && $s['contest_active']): ?>

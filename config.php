@@ -34,9 +34,29 @@ define('DISPLAY_TIMEZONE_NAME', 'Europe/Samara');
 
 /**
  * Конвертирует время из UTC в часовой пояс для отображения (UTC+4)
- * Принимает строку в формате 'Y-m-d H:i:s' или null, возвращает строку в том же формате
+ * Принимает строку в формате 'Y-m-d H:i:s' или null, возвращает строку в русском формате: "22 июня 2024, 15:30:15"
  */
 function toDisplayTime(?string $utcTime): ?string {
+    if ($utcTime === null || $utcTime === '') return null;
+    $dt = new DateTime($utcTime, new DateTimeZone('UTC'));
+    $dt->setTimezone(new DateTimeZone(DISPLAY_TIMEZONE_NAME));
+    $months = [
+        1 => 'января', 2 => 'февраля', 3 => 'марта', 4 => 'апреля',
+        5 => 'мая', 6 => 'июня', 7 => 'июля', 8 => 'августа',
+        9 => 'сентября', 10 => 'октября', 11 => 'ноября', 12 => 'декабря'
+    ];
+    $day = (int)$dt->format('j');
+    $month = $months[(int)$dt->format('n')];
+    $year = $dt->format('Y');
+    $time = $dt->format('H:i:s');
+    return $day . ' ' . $month . ' ' . $year . ', ' . $time;
+}
+
+/**
+ * Конвертирует время из UTC в машинный формат для полей ввода datetime-local
+ * Принимает строку в формате 'Y-m-d H:i:s' или null, возвращает 'Y-m-d H:i:s'
+ */
+function toDisplayTimeInput(?string $utcTime): ?string {
     if ($utcTime === null || $utcTime === '') return null;
     $dt = new DateTime($utcTime, new DateTimeZone('UTC'));
     $dt->setTimezone(new DateTimeZone(DISPLAY_TIMEZONE_NAME));

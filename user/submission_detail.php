@@ -101,7 +101,7 @@ ob_start();
             </tr>
             <tr>
                 <th>Дата отправки</th>
-                <td><?= htmlspecialchars(toDisplayTime($submission['executed_at'] ?? '')) ?></td>
+                 <td><?= htmlspecialchars(toDisplayTime($submission['executed_at'] ?? '')) ?></td>
             </tr>
         </tbody>
     </table>

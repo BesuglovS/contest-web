@@ -176,7 +176,7 @@ ob_start();
                             <span class="badge badge-user">Пользователь</span>
                         <?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars(toDisplayTime($user['created_at'] ?? '')) ?></td>
+                     <td><?= htmlspecialchars(toDisplayTime($user['created_at'] ?? '')) ?></td>
                     <td>
                         <a href="?page=admin-users&edit=<?= $user['id'] ?>" class="btn btn-sm">Ред.</a>
                         <?php if ($user['id'] != 1): ?>
