@@ -54,7 +54,7 @@
             { "input": " ", "output": "1", "is_public": 0 },
             { "input": "1234567890", "output": "10", "is_public": 0 },
             { "input": "абв", "output": "3", "is_public": 0 },
-            { "input": "длинная строка с пробелами", "output": "25", "is_public": 0 },
+            { "input": "длинная строка с пробелами", "output": "26", "is_public": 0 },
             { "input": "a", "output": "1", "is_public": 0 },
             { "input": "   ", "output": "3", "is_public": 0 }
         ]
@@ -150,7 +150,7 @@
             { "input": "раз два раз\nр", "output": "2", "is_public": 1 },
             { "input": "hello\nl", "output": "2", "is_public": 1 },
             { "input": "aaa\na", "output": "3", "is_public": 1 },
-            { "input": "программирование\nр", "output": "2", "is_public": 0 },
+            { "input": "программирование\nр", "output": "3", "is_public": 0 },
             { "input": "python\nz", "output": "0", "is_public": 0 },
             { "input": "abracadabra\na", "output": "5", "is_public": 0 },
             { "input": "Mississippi\ns", "output": "4", "is_public": 0 },
@@ -170,12 +170,12 @@
             { "input": "hello world\nworld", "output": "6", "is_public": 1 },
             { "input": "hello world\njava", "output": "-1", "is_public": 1 },
             { "input": "test\nt", "output": "0", "is_public": 1 },
-            { "input": "программирование\nмир", "output": "4", "is_public": 0 },
+            { "input": "программирование\nмир", "output": "7", "is_public": 0 },
             { "input": "Python\nP", "output": "0", "is_public": 0 },
             { "input": "abracadabra\ncad", "output": "4", "is_public": 0 },
             { "input": "abcdef\nf", "output": "5", "is_public": 0 },
             { "input": "hello hello\nhello", "output": "0", "is_public": 0 },
-            { "input": "строка\nток", "output": "2", "is_public": 0 },
+            { "input": "строка\nток", "output": "-1", "is_public": 0 },
             { "input": "empty\nxyz", "output": "-1", "is_public": 0 }
         ]
     },
@@ -190,7 +190,7 @@
             { "input": "раз два раз\nраз", "output": "8", "is_public": 1 },
             { "input": "hello\nl", "output": "3", "is_public": 1 },
             { "input": "abc\nx", "output": "-1", "is_public": 1 },
-            { "input": "abracadabra\nbra", "output": "7", "is_public": 0 },
+            { "input": "abracadabra\nbra", "output": "8", "is_public": 0 },
             { "input": "Python\no", "output": "4", "is_public": 0 },
             { "input": "hello hello\nhello", "output": "6", "is_public": 0 },
             { "input": "строка строка\nстрока", "output": "7", "is_public": 0 },

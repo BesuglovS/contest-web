@@ -85,6 +85,8 @@ class Sandbox
             "try:" . $nl .
             "    with open(INPUT_FILE, 'r') as f:" . $nl .
             "        stdin_data = f.read()" . $nl .
+            "    if stdin_data == '':" . $nl .
+            "        stdin_data = '\\n'" . $nl .
             "" . $nl .
             "    start_time = time.time()" . $nl .
             "" . $nl .
