@@ -160,9 +160,10 @@ ob_start();
                 <div style="margin-bottom: 16px;">
                     <strong>Пример <?= $idx + 1 ?></strong>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
-                        <div>
+                        <div class="copy-block-wrapper">
                             <div style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 4px;">Входные данные</div>
-                            <pre class="test-block"><?= htmlspecialchars($test['input']) ?></pre>
+                            <button class="copy-btn" onclick="copyToClipboard(this, '<?= $idx ?>')" title="Скопировать">📋</button>
+                            <pre class="test-block" id="copy-source-<?= $idx ?>"><?= htmlspecialchars($test['input']) ?></pre>
                         </div>
                         <div>
                             <div style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 4px;">Выходные данные</div>
@@ -184,7 +185,10 @@ ob_start();
             <div class="form-group">
                 <div class="editor-container">
                     <div class="editor-line-numbers" id="line-numbers">1</div>
-                    <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')"><?= htmlspecialchars($_SESSION['last_code_' . $taskId] ?? '') ?></textarea>
+                    <div class="editor-overlay-wrapper">
+                        <div class="editor-highlight-layer" id="highlight-layer"></div>
+                        <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"><?= htmlspecialchars($_SESSION['last_code_' . $taskId] ?? '') ?></textarea>
+                    </div>
                 </div>
                 <div class="editor-statusbar">
                     <span class="cursor-position" id="cursor-position">1:1</span>
@@ -209,6 +213,151 @@ ob_start();
 </div>
 
 <script>
+/**
+ * Подсветка синтаксиса Python для редактора кода.
+ * Использует технику overlay: прозрачная textarea поверх div с подсвеченным кодом.
+ */
+const SyntaxHighlight = {
+    // Ключевые слова Python
+    keywords: new Set([
+        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
+        'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
+        'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
+        'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return',
+        'try', 'while', 'with', 'yield'
+    ]),
+
+    // Встроенные функции Python (наиболее часто используемые)
+    builtins: new Set([
+        'abs', 'all', 'any', 'bin', 'bool', 'bytearray', 'bytes', 'callable',
+        'chr', 'classmethod', 'compile', 'complex', 'delattr', 'dict', 'dir',
+        'divmod', 'enumerate', 'eval', 'exec', 'filter', 'float', 'format',
+        'frozenset', 'getattr', 'globals', 'hasattr', 'hash', 'hex', 'id',
+        'input', 'int', 'isinstance', 'issubclass', 'iter', 'len', 'list',
+        'locals', 'map', 'max', 'memoryview', 'min', 'next', 'object', 'oct',
+        'open', 'ord', 'pow', 'print', 'property', 'range', 'repr', 'reversed',
+        'round', 'set', 'setattr', 'slice', 'sorted', 'staticmethod', 'str',
+        'sum', 'super', 'tuple', 'type', 'vars', 'zip', '__import__'
+    ]),
+
+    /**
+     * Основная функция подсветки кода Python.
+     * Возвращает HTML с цветовыми span-ами.
+     */
+    highlight: function(code) {
+        if (!code) return '';
+        
+        // Экранируем HTML
+        let amp = String.fromCharCode(38);
+        let escaped = code
+            .replace(/&/g, amp + 'amp;')
+            .replace(/</g, amp + 'lt;')
+            .replace(/>/g, amp + 'gt;');
+
+        // Подсветка: применяем токены последовательно
+        // Используем одну строку с регулярными выражениями для производительности
+        let result = '';
+        let pos = 0;
+        
+        // Составляем единое регулярное выражение для всех токенов
+        const tokenRegex = new RegExp([
+            // Строки: тройные кавычки (самые длинные — в начале)
+            '(?:\"\"\"[\\s\\S]*?\"\"\")',
+            '(?:\'\'\'[\\s\\S]*?\'\'\')',
+            '(?:f\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\")',
+            '(?:f\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*\')',
+            '(?:\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\")',
+            '(?:\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*\')',
+            // Комментарии
+            '(?:#[^\\n]*)',
+            // Декораторы
+            '(?:@[a-zA-Z_][a-zA-Z0-9_.]*)',
+            // Числа
+            '(?:\\b(?:0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?(?:j|J)?)\\b)',
+            // Идентификаторы (слова)
+            '(?:[a-zA-Z_][a-zA-Z0-9_]*)'
+        ].join('|'), 'g');
+
+        // Сохраняем последний match для контекстной подсветки
+        let lastMatch = null;
+
+        // Разбиваем код на токены
+        let match;
+        tokenRegex.lastIndex = 0;
+        
+        // Сбрасываем lastIndex
+        const re = new RegExp(tokenRegex.source, 'g');
+        
+        while ((match = re.exec(escaped)) !== null) {
+            const matchStart = match.index;
+            const matchEnd = re.lastIndex;
+            const token = match[0];
+            
+            // Добавляем текст до токена
+            if (matchStart > pos) {
+                result += escaped.substring(pos, matchStart);
+            }
+            
+            // Определяем тип токена
+            let tokenClass = '';
+            
+            // Проверяем тип
+            if (/^"""[\s\S]*"""$/.test(token) || /^'''[\s\S]*'''$/.test(token)) {
+                tokenClass = 'hl-string hl-multiline';
+            } else if (/^f["']/.test(token)) {
+                tokenClass = 'hl-string hl-fstring';
+            } else if (/^["']/.test(token)) {
+                tokenClass = 'hl-string';
+            } else if (/^#/.test(token)) {
+                tokenClass = 'hl-comment';
+            } else if (/^@/.test(token)) {
+                tokenClass = 'hl-decorator';
+            } else if (/^\d/.test(token) || /^0[xXoObB]/.test(token)) {
+                tokenClass = 'hl-number';
+            } else if (/^[a-zA-Z_]/.test(token)) {
+                if (this.keywords.has(token)) {
+                    tokenClass = 'hl-keyword';
+                } else if (this.builtins.has(token)) {
+                    tokenClass = 'hl-builtin';
+                }
+                // else: обычный идентификатор — без класса
+            }
+            
+            if (tokenClass) {
+                result += '<span class="' + tokenClass + '">' + token + '</span>';
+            } else {
+                result += token;
+            }
+            
+            pos = matchEnd;
+            lastMatch = match;
+        }
+        
+        // Добавляем оставшийся текст
+        if (pos < escaped.length) {
+            result += escaped.substring(pos);
+        }
+        
+        return result;
+    },
+
+    /**
+     * Обновляет подсветку в слое highlight-layer
+     */
+    update: function() {
+        const textarea = document.getElementById('code-editor');
+        const layer = document.getElementById('highlight-layer');
+        if (!textarea || !layer) return;
+        
+        const code = textarea.value;
+        const highlighted = this.highlight(code);
+        
+        // Добавляем trailing newline для позиционирования курсора на пустой строке
+        const html = highlighted + (code.endsWith('\n') ? '\n' : '');
+        layer.innerHTML = html;
+    }
+};
+
 let isRunning = false;
 
 async function submitSolution() {
@@ -404,24 +553,29 @@ function updateCursorPosition() {
     cursorPos.textContent = line + ':' + column;
 }
 
-// Синхронизация скролла между gutter и textarea и обновление позиции курсора
+// Синхронизация скролла между gutter, highlight-слоем и textarea + обновление подсветки
 (function() {
     const textarea = document.getElementById('code-editor');
     const lineNumbers = document.getElementById('line-numbers');
+    const highlightLayer = document.getElementById('highlight-layer');
 
-    // Обновляем номера строк при вводе
+    // Обновляем номера строк и подсветку при вводе
     textarea.addEventListener('input', function() {
         updateLineNumbers();
         updateCursorPosition();
+        SyntaxHighlight.update();
     });
 
     // Обновляем позицию курсора при клике, навигации с клавиатуры и изменениях выделения
     textarea.addEventListener('click', updateCursorPosition);
     textarea.addEventListener('keyup', updateCursorPosition);
 
-    // Синхронизируем вертикальный скролл gutter с textarea
+    // Синхронизируем вертикальный скролл gutter и highlight-слоя с textarea
     textarea.addEventListener('scroll', function() {
         lineNumbers.scrollTop = this.scrollTop;
+        if (highlightLayer) {
+            highlightLayer.scrollTop = this.scrollTop;
+        }
     });
 
     // Обновляем при paste (через setTimeout, чтобы value уже обновилось)
@@ -429,6 +583,7 @@ function updateCursorPosition() {
         setTimeout(function() {
             updateLineNumbers();
             updateCursorPosition();
+            SyntaxHighlight.update();
         }, 0);
     });
 
@@ -437,14 +592,16 @@ function updateCursorPosition() {
         setTimeout(function() {
             updateLineNumbers();
             updateCursorPosition();
+            SyntaxHighlight.update();
         }, 0);
     });
 
-    // Первоначальное заполнение номеров строк и позиции курсора
+    // Первоначальное заполнение номеров строк, позиции курсора и подсветки
     // Используем небольшой setTimeout, чтобы значение из localStorage уже было установлено
     setTimeout(function() {
         updateLineNumbers();
         updateCursorPosition();
+        SyntaxHighlight.update();
     }, 0);
 })();
 </script>
@@ -498,10 +655,46 @@ function updateCursorPosition() {
     white-space: pre;
     pointer-events: none;
     box-sizing: border-box;
+    z-index: 3;
 }
 
+.editor-overlay-wrapper {
+    position: relative;
+    min-height: 300px;
+}
+
+/* Слой с подсвеченным кодом (фон) */
+.editor-highlight-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 12px 12px 56px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #ffffff;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+    pointer-events: none;
+    background: transparent;
+    z-index: 1;
+    /* Скрываем полосу прокрутки, так как textarea управляет скроллом */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.editor-highlight-layer::-webkit-scrollbar {
+    display: none;
+}
+
+/* Textarea (прозрачный ввод) */
 .form-group textarea.code-editor,
 .form-group textarea.code-editor:focus {
+    position: relative;
+    z-index: 2;
     width: 100%;
     min-height: 300px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -510,13 +703,56 @@ function updateCursorPosition() {
     border: none !important;
     border-radius: 0;
     background: transparent !important;
-    color: #ffffff !important;
+    color: transparent !important;
     caret-color: #ffffff;
     resize: vertical;
     tab-size: 4;
     outline: none;
     line-height: 1.5;
     box-sizing: border-box;
+    overflow: auto;
+}
+
+/* Плейсхолдер для textarea виден, когда нет ввода */
+.form-group textarea.code-editor::placeholder {
+    color: #6c6c8a;
+}
+
+/* Стили подсветки синтаксиса */
+.hl-keyword {
+    color: #c678dd; /* фиолетовый — ключевые слова */
+    font-weight: 500;
+}
+
+.hl-builtin {
+    color: #e5c07b; /* жёлтый — встроенные функции */
+}
+
+.hl-string {
+    color: #98c379; /* зелёный — строки */
+}
+
+.hl-multiline {
+    color: #98c379; /* зелёный — многострочные строки */
+    font-style: italic;
+}
+
+.hl-fstring {
+    color: #98c379; /* зелёный — f-строки */
+}
+
+.hl-comment {
+    color: #5c6370; /* серый — комментарии */
+    font-style: italic;
+}
+
+.hl-number {
+    color: #d19a66; /* оранжевый — числа */
+}
+
+.hl-decorator {
+    color: #61afef; /* голубой — декораторы */
+    font-weight: 500;
 }
 
 .test-block {
@@ -570,6 +806,74 @@ function updateCursorPosition() {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+function copyToClipboard(btn, idx) {
+    const source = document.getElementById('copy-source-' + idx);
+    if (!source) return;
+    const text = source.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        const originalText = btn.textContent;
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        setTimeout(function() {
+            btn.textContent = originalText;
+            btn.classList.remove('copied');
+        }, 1500);
+    }).catch(function(err) {
+        // Fallback: select and copy
+        const range = document.createRange();
+        range.selectNodeContents(source);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const originalText = btn.textContent;
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        setTimeout(function() {
+            btn.textContent = originalText;
+            btn.classList.remove('copied');
+        }, 1500);
+    });
+}
+</script>
+
+<style>
+.copy-block-wrapper {
+    position: relative;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 10;
+    background: var(--bg, #1a1a2e);
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 13px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s, background 0.2s;
+    line-height: 1.4;
+    color: var(--text-muted, #aaa);
+}
+
+.copy-btn:hover {
+    opacity: 1;
+    background: var(--primary, #4a6cf7);
+    color: #fff;
+}
+
+.copy-btn.copied {
+    background: #22c55e;
+    color: #fff;
+    opacity: 1;
 }
 </style>
 
