@@ -213,8 +213,8 @@ ob_start();
     </div>
 </div>
 
-<link rel="stylesheet" href="/contest-web/assets/css/editor.css">
-<script src="/contest-web/assets/js/editor.js"></script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css">
+<script src="<?= BASE_URL ?>/assets/js/editor.js"></script>
 <script>
 // Передаём taskId и contestId из PHP в JS
 window.TASK_ID = <?= $taskId ?>;

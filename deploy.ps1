@@ -90,8 +90,8 @@ $excludeArgs = @(
 ) -join ' '
 
 $tarCmd = "tar czf - $excludeArgs -C `"$srcPath`" ."
-$preDeployCmd = "( find ${remotePath} -mindepth 1 -delete 2>/dev/null || rm -rf ${remotePath}/* ) || true"
-$postDeployCmd = "mkdir -p ${remotePath}/data ${remotePath}/sandbox; chown -R ${webUser}:${webUser} ${remotePath}/data ${remotePath}/sandbox; chmod -R 775 ${remotePath}/data ${remotePath}/sandbox"
+$preDeployCmd = "mkdir -p /tmp/contest-backup; cp -f ${remotePath}/data/contest.db ${remotePath}/data/contest.db-wal ${remotePath}/data/contest.db-shm /tmp/contest-backup/ 2>/dev/null || true; find ${remotePath} -mindepth 1 -delete 2>/dev/null || true"
+$postDeployCmd = "mkdir -p ${remotePath}/data ${remotePath}/sandbox; cp -f /tmp/contest-backup/contest.db /tmp/contest-backup/contest.db-wal /tmp/contest-backup/contest.db-shm ${remotePath}/data/ 2>/dev/null || true; chown -R ${webUser}:${webUser} ${remotePath}/data ${remotePath}/sandbox; chmod -R 775 ${remotePath}/data ${remotePath}/sandbox; find ${remotePath}/data -type f -name '*.db' -exec chmod 664 {} \; ; find ${remotePath}/sandbox -type f -exec chmod 664 {} \; ; rm -rf /tmp/contest-backup"
 $sshCmd = "ssh $portArg $identityArg $remote `"${preDeployCmd}; tar -xzf - -C ${remotePath}; ${postDeployCmd}`""
 
 Write-Host "`n==> Deploying to ${remote}:${remotePath} ..." -ForegroundColor Cyan

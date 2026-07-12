@@ -10,7 +10,7 @@ class TestingEngine
      * Запускает тесты для кода задачи.
      * @param string $code Код решения
      * @param int $taskId ID задачи
-     * @param Database $db Экземпляр базы данных
+     * @param PDO $db Экземпляр базы данных
      * @return array Результаты тестирования:
      *   - lint_errors: bool
      *   - lint_errors_json: string|null (JSON или null)
@@ -18,7 +18,7 @@ class TestingEngine
      *   - total_time: float
      *   - test_results: array (каждый: test_number, status, time, memory, output)
      */
-    public static function runTests(string $code, int $taskId, Database $db): array
+    public static function runTests(string $code, int $taskId, PDO $db): array
     {
         // Загружаем задачу
         $stmt = $db->prepare("SELECT * FROM tasks WHERE id = ?");
