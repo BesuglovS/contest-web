@@ -387,14 +387,57 @@ code {
 @media (max-width: 768px) {
     .site-header .container {
         flex-wrap: wrap;
+        gap: 8px;
     }
     .site-header .main-nav {
         width: 100%;
+        justify-content: flex-start;
+        gap: 6px;
+    }
+    .site-header .main-nav a {
+        font-size: 13px;
+        padding: 3px 6px;
+    }
+    .site-header .main-nav .user-info {
+        margin-left: auto;
+        font-size: 12px;
+    }
+    .site-header .btn-logout {
+        font-size: 12px;
+        padding: 3px 6px;
+    }
+    .task-list {
+        grid-template-columns: 1fr !important;
+    }
+    .task-grid,
+    .contests-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .card-grid {
+        grid-template-columns: 1fr !important;
     }
     table {
-        font-size: 12px;
+        font-size: 13px;
     }
     th, td {
         padding: 6px 8px;
+    }
+    th:nth-child(4),
+    td:nth-child(4),
+    th:nth-child(5),
+    td:nth-child(5) {
+        display: none;
+    }
+    .container {
+        padding: 12px;
+    }
+    h1 {
+        font-size: 20px;
+    }
+    h2 {
+        font-size: 18px;
+    }
+    h3 {
+        font-size: 16px;
     }
 }

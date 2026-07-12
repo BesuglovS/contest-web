@@ -128,6 +128,20 @@ try {
         exit;
     }
 
+    // Проверяем, не завершён ли контест
+    $stmt = $db->prepare("SELECT end_time FROM contests WHERE id = ? LIMIT 1");
+    $stmt->execute([$contestId]);
+    $contest = $stmt->fetch();
+    if ($contest && $contest['end_time']) {
+        $endTime = strtotime($contest['end_time']);
+        if ($endTime && $endTime < time()) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Контест завершён']);
+            ob_end_flush();
+            exit;
+        }
+    }
+
     // Получаем тесты
     $stmt = $db->prepare("SELECT * FROM tests WHERE task_id = ? ORDER BY test_number");
     $stmt->execute([$taskId]);
@@ -146,16 +160,19 @@ try {
     $stmt->execute([$userId, $taskId, $contestId, $code]);
     $submissionId = $db->lastInsertId();
 
-    // Проверяем код на соответствие PEP8 через pycodestyle
-    $sandbox = new Sandbox();
-    // Проверка PEP8: все E и W правила, включая отключённое по умолчанию E226 (пробелы вокруг операторов)
-    $lintResult = $sandbox->lint($code, '--select=E,E226,W');
+    require_once BASE_PATH . '/includes/TestingEngine.php';
+    $testResult = TestingEngine::runTests($code, $taskId, $db);
 
-    if ($lintResult['has_errors']) {
+    if (isset($testResult['error'])) {
+        echo json_encode(['error' => $testResult['error']], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        ob_end_flush();
+        exit;
+    }
+
+    if ($testResult['lint_errors']) {
         // Сохраняем ошибки линтинга в JSON
-        $lintErrorsJson = json_encode($lintResult['errors'], JSON_UNESCAPED_UNICODE);
         $stmt = $db->prepare("UPDATE submissions SET status = 'lint_error', lint_errors = ? WHERE id = ?");
-        $stmt->execute([$lintErrorsJson, $submissionId]);
+        $stmt->execute([$testResult['lint_errors_json'], $submissionId]);
 
         echo json_encode([
             'submission_id' => $submissionId,
@@ -164,90 +181,33 @@ try {
             'passed' => 0,
             'total' => count($tests),
             'total_time' => 0,
-            'lint_errors' => $lintResult['errors'],
+            'lint_errors' => $testResult['lint_errors_array'],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         ob_end_flush();
         exit;
     }
 
-    $timeLimit = (float) ($task['time_limit'] ?? 2.0);
-    $memoryLimit = (int) ($task['memory_limit'] ?? 128);
+    $results = $testResult['test_results'];
+    $overallStatus = $testResult['overall_status'];
+    $totalTime = $testResult['total_time'];
 
-    $results = [];
-    $overallStatus = 'accepted';
-    $totalTime = 0;
-
-    // Функция для очистки Python traceback от имён файлов (номер строки сохраняем)
-    $cleanTraceback = function (string $error): string {
-        $lines = explode("\n", $error);
-        $filtered = [];
-        foreach ($lines as $line) {
-            // Убираем строку "Traceback (most recent call last)"
-            if (strpos($line, 'Traceback (most recent call last)') !== false) {
-                continue;
-            }
-            // В строках вида '  File "путь", line N, in ...' — убираем File "путь", но оставляем 'line N, in ...'
-            $line = preg_replace('/^\s*File\s+"[^"]*",\s*/', '', $line);
-            $filtered[] = $line;
-        }
-        return trim(implode("\n", $filtered));
-    };
-
-    foreach ($tests as $test) {
-        $runResult = $sandbox->run($code, $test['input'], $timeLimit, $memoryLimit);
-
-        $testResult = [
-            'test_number' => (int) $test['test_number'],
-            'is_public' => (bool) $test['is_public'],
-            'status' => '',
-            'input' => $test['input'],
-            'expected' => $test['expected_output'],
-            'output' => $runResult['output'] ?? '',
-            'error' => $cleanTraceback($runResult['error'] ?? ''),
-            'time' => $runResult['time'] ?? 0,
-        ];
-
-        if (($runResult['status'] ?? 'error') === 'time_limit') {
-            $testResult['status'] = 'time_limit';
-            $overallStatus = 'time_limit';
-        } elseif (($runResult['status'] ?? 'error') === 'memory_limit') {
-            $testResult['status'] = 'memory_limit';
-            if ($overallStatus === 'accepted') {
-                $overallStatus = 'memory_limit';
-            }
-        } elseif (in_array(($runResult['status'] ?? 'error'), ['runtime_error', 'error'], true)) {
-            $testResult['status'] = 'runtime_error';
-            if ($overallStatus === 'accepted') {
-                $overallStatus = 'runtime_error';
-            }
-        } elseif (Sandbox::compareOutput($runResult['output'] ?? '', $test['expected_output'])) {
-            $testResult['status'] = 'accepted';
-        } else {
-            $testResult['status'] = 'wrong_answer';
-            if ($overallStatus === 'accepted') {
-                $overallStatus = 'wrong_answer';
-            }
-        }
-
-        $results[] = $testResult;
-        $totalTime += ($runResult['time'] ?? 0);
-
-        // Сохраняем результат теста в БД
+    // Сохраняем результат каждого теста в БД
+    foreach ($results as $tr) {
         $stmt = $db->prepare("INSERT INTO submission_test_results (submission_id, test_number, status, execution_time, memory_used, output) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $submissionId,
-            (int)$test['test_number'],
-            $testResult['status'],
-            round($testResult['time'], 3),
-            (int)($runResult['memory'] ?? 0),
-            $testResult['output']
+            (int)$tr['test_number'],
+            $tr['status'],
+            round($tr['time'], 3),
+            (int)($tr['memory'] ?? 0),
+            $tr['output']
         ]);
     }
 
     // Обновляем статус попытки
     $stmt = $db->prepare("UPDATE submissions SET status = ?, execution_time = ? WHERE id = ?");
-    $stmt->execute([$overallStatus, round($totalTime, 3), $submissionId]);
+    $stmt->execute([$overallStatus, $totalTime, $submissionId]);
 
     // Формируем ответ
     $publicResults = array_filter($results, fn($r) => $r['is_public']);
@@ -261,7 +221,7 @@ try {
         'all_passed' => $allPassed,
         'passed' => $passedCount,
         'total' => $totalCount,
-        'total_time' => round($totalTime, 3),
+        'total_time' => $totalTime,
         'public_results' => array_values($publicResults),
         'all_results' => $results,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

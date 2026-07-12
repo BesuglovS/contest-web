@@ -6,7 +6,7 @@ $userId = Auth::getUserId();
 $contestId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if (!$contestId) {
-    header('Location: ?page=index');
+    header('Location: ?page=home');
     exit;
 }
 

@@ -176,16 +176,7 @@ ob_start();
 
 <h1>Управление контестами</h1>
 
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users">Пользователи</a>
-    <a href="?page=admin-groups">Группы</a>
-    <a href="?page=admin-tasks">Задачи</a>
-    <a href="?page=admin-task-groups">Группы задач</a>
-    <a href="?page=admin-contests" class="active">Контесты</a>
-    <a href="?page=admin-submissions">Решения</a>
-    <a href="?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'contests'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
 <?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
@@ -204,6 +195,7 @@ ob_start();
                 <a href="?page=admin-contest-results&id=<?= $c['id'] ?>" class="btn btn-sm">Результаты</a>
                 <a href="?page=admin-contests&edit=<?= $c['id'] ?>" class="btn btn-sm">Ред.</a>
                 <form method="POST" style="display:inline" onsubmit="return confirm('Удалить?')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= $c['id'] ?>">
                     <button class="btn btn-sm btn-danger">Удалить</button>
@@ -214,6 +206,7 @@ ob_start();
     </table>
 <?php else: ?>
     <form method="POST">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="<?= isset($editContest['id']) ? 'update' : 'create' ?>">
         <?php if (isset($editContest['id'])): ?><input type="hidden" name="id" value="<?= $editContest['id'] ?>"><?php endif; ?>
 

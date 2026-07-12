@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= csrfToken() ?>">
     <title><?= htmlspecialchars($pageTitle ?? 'Контест') ?> — <?= SITE_NAME ?></title>
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
@@ -25,6 +26,7 @@
                         <a href="<?= BASE_URL ?>/index.php?page=admin">Админка</a>
                     <?php endif; ?>
                     <a href="<?= BASE_URL ?>/index.php?page=contests">Контесты</a>
+                    <a href="<?= BASE_URL ?>/index.php?page=leaderboard">Лидеры</a>
                     <a href="<?= BASE_URL ?>/index.php?page=submissions">Мои решения</a>
                     <span class="user-info"><?= htmlspecialchars(Auth::getUserName()) ?></span>
                     <a href="<?= BASE_URL ?>/index.php?page=logout" class="btn-logout">Выйти</a>

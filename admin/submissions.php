@@ -4,6 +4,8 @@ $db = Database::getInstance();
 $message = '';
 $error = '';
 
+require_once BASE_PATH . '/includes/labels.php';
+
 // Обработка POST-действий (удаление)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -41,59 +43,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Удаляем старые результаты тестов
                     $db->prepare("DELETE FROM submission_test_results WHERE submission_id = ?")->execute([$id]);
 
-                    require_once BASE_PATH . '/includes/Sandbox.php';
-                    $sandbox = new Sandbox();
+                    require_once BASE_PATH . '/includes/TestingEngine.php';
 
-                    // Запускаем линтинг
-                    $lintResult = $sandbox->lint($code, '--select=E,E226,W');
+                    // Запускаем тестирование
+                    $testingResult = TestingEngine::runTests($code, $taskId, $db);
 
-                    if ($lintResult['has_errors']) {
+                    if (isset($testingResult['error'])) {
+                        $error = $testingResult['error'];
+                    } elseif ($testingResult['lint_errors']) {
                         // Ошибки линтинга
-                        $lintErrorsJson = json_encode($lintResult['errors'], JSON_UNESCAPED_UNICODE);
-                        $db->prepare("UPDATE submissions SET status = 'lint_error', lint_errors = ?, execution_time = 0 WHERE id = ?")->execute([$lintErrorsJson, $id]);
+                        $db->prepare("UPDATE submissions SET status = 'lint_error', lint_errors = ?, execution_time = 0 WHERE id = ?")->execute([$testingResult['lint_errors_json'], $id]);
                         $message = 'Решение #' . $id . ' перетестировано — ошибка оформления';
                     } else {
                         // Очищаем ошибки линтинга
                         $db->prepare("UPDATE submissions SET lint_errors = NULL WHERE id = ?")->execute([$id]);
 
-                        $timeLimit = (float)($task['time_limit'] ?? 2.0);
-                        $memoryLimit = (int)($task['memory_limit'] ?? 128);
-                        $overallStatus = 'accepted';
-                        $totalTime = 0;
+                        $overallStatus = $testingResult['overall_status'];
+                        $totalTime = $testingResult['total_time'];
 
-                        foreach ($tests as $test) {
-                            $runResult = $sandbox->run($code, $test['input'], $timeLimit, $memoryLimit);
-
-                            $testResultStatus = '';
-
-                            if (($runResult['status'] ?? 'error') === 'time_limit') {
-                                $testResultStatus = 'time_limit';
-                                $overallStatus = 'time_limit';
-                            } elseif (($runResult['status'] ?? 'error') === 'memory_limit') {
-                                $testResultStatus = 'memory_limit';
-                                if ($overallStatus === 'accepted') $overallStatus = 'memory_limit';
-                            } elseif (in_array(($runResult['status'] ?? 'error'), ['runtime_error', 'error'], true)) {
-                                $testResultStatus = 'runtime_error';
-                                if ($overallStatus === 'accepted') $overallStatus = 'runtime_error';
-                            } elseif (Sandbox::compareOutput($runResult['output'] ?? '', $test['expected_output'])) {
-                                $testResultStatus = 'accepted';
-                            } else {
-                                $testResultStatus = 'wrong_answer';
-                                if ($overallStatus === 'accepted') $overallStatus = 'wrong_answer';
-                            }
-
-                            // Сохраняем результат теста
+                        // Сохраняем результат каждого теста
+                        foreach ($testingResult['test_results'] as $tr) {
                             $stmt = $db->prepare("INSERT INTO submission_test_results (submission_id, test_number, status, execution_time, memory_used, output) VALUES (?, ?, ?, ?, ?, ?)");
                             $stmt->execute([
                                 $id,
-                                (int)$test['test_number'],
-                                $testResultStatus,
-                                round((float)($runResult['time'] ?? 0), 3),
-                                (int)($runResult['memory'] ?? 0),
-                                $runResult['output'] ?? ''
+                                (int)$tr['test_number'],
+                                $tr['status'],
+                                round((float)($tr['time'] ?? 0), 3),
+                                (int)($tr['memory'] ?? 0),
+                                $tr['output'] ?? ''
                             ]);
-
-                            $totalTime += (float)($runResult['time'] ?? 0);
                         }
 
                         // Обновляем статус и время посылки
@@ -148,6 +126,23 @@ if ($filterUser) { $where[] = "s.user_id = ?"; $params[] = (int)$filterUser; }
 if ($filterStatus) { $where[] = "s.status = ?"; $params[] = $filterStatus; }
 if ($filterContest) { $where[] = "s.contest_id = ?"; $params[] = (int)$filterContest; }
 
+// Пагинация
+$perPage = 20;
+$pageNum = max(1, (int)($_GET['page_num'] ?? 1));
+$offset = ($pageNum - 1) * $perPage;
+
+// Подсчёт общего количества
+$countSql = "SELECT COUNT(*) FROM submissions s
+        JOIN users u ON s.user_id = u.id
+        JOIN tasks t ON s.task_id = t.id";
+if ($where) {
+    $countSql .= " WHERE " . implode(" AND ", $where);
+}
+$stmt = $db->prepare($countSql);
+$stmt->execute($params);
+$totalCount = (int)$stmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalCount / $perPage));
+
 $sql = "SELECT s.*, u.login, u.display_name, t.title as task_title
         FROM submissions s
         JOIN users u ON s.user_id = u.id
@@ -155,7 +150,7 @@ $sql = "SELECT s.*, u.login, u.display_name, t.title as task_title
 if ($where) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
-$sql .= " ORDER BY s.id DESC LIMIT 200";
+$sql .= " ORDER BY s.id DESC LIMIT " . $perPage . " OFFSET " . $offset;
 
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -165,31 +160,12 @@ $tasks = $db->query("SELECT id, title FROM tasks ORDER BY title")->fetchAll();
 $users = Auth::getAllUsers();
 $contests = $db->query("SELECT id, title FROM contests ORDER BY title")->fetchAll();
 
-$statusLabels = [
-    'pending' => 'Ожидает',
-    'lint_error' => 'Ошибка оформления',
-    'accepted' => 'Принято',
-    'wrong_answer' => 'Неверный ответ',
-    'runtime_error' => 'Ошибка выполнения',
-    'time_limit' => 'Превышен лимит времени',
-    'memory_limit' => 'Превышен лимит памяти',
-];
-
 ob_start();
 ?>
 
 <h1>Решения пользователей</h1>
 
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users">Пользователи</a>
-    <a href="?page=admin-groups">Группы</a>
-    <a href="?page=admin-tasks">Задачи</a>
-    <a href="?page=admin-task-groups">Группы задач</a>
-    <a href="?page=admin-contests">Контесты</a>
-    <a href="?page=admin-submissions" class="active">Решения</a>
-    <a href="?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'submissions'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
 <?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
@@ -199,6 +175,7 @@ ob_start();
     <div class="card">
         <h3 style="margin-top: 0;">Удалить все решения участника</h3>
         <form method="POST" onsubmit="return confirm('Удалить ВСЕ решения этого пользователя? Действие необратимо.')">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="delete_user_submissions">
             <div style="display: flex; gap: 8px; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0; flex: 1;">
@@ -218,6 +195,7 @@ ob_start();
     <div class="card">
         <h3 style="margin-top: 0;">Удалить все решения в контесте</h3>
         <form method="POST" onsubmit="return confirm('Удалить ВСЕ решения в этом контесте? Действие необратимо.')">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="delete_contest_submissions">
             <div style="display: flex; gap: 8px; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0; flex: 1;">
@@ -359,6 +337,7 @@ if ($filterContest !== '') {
                     foreach ($params as $k => $v) echo '&' . $k . '=' . urlencode($v);
                 ?>" title="Показать только решения этого статуса">🔍</a>
                 <form method="POST" style="display:inline" onsubmit="return confirm('Перетестировать решение #<?= $s['id'] ?>?')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="retest_submission">
                     <input type="hidden" name="id" value="<?= $s['id'] ?>">
                     <button class="btn-retest" title="Перетестировать">🔄</button>
@@ -369,6 +348,7 @@ if ($filterContest !== '') {
             <td>
                 <a href="?page=admin-submission-detail&id=<?= $s['id'] ?>" class="btn btn-sm btn-primary">Просмотр</a>
                 <form method="POST" style="display:inline" onsubmit="return confirm('Удалить решение #<?= $s['id'] ?>?')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="delete_submission">
                     <input type="hidden" name="id" value="<?= $s['id'] ?>">
                     <button class="btn btn-sm btn-danger">Удалить</button>
@@ -378,6 +358,44 @@ if ($filterContest !== '') {
         <?php endforeach; ?>
     </tbody>
 </table>
+
+<?php if ($totalPages > 1): ?>
+<?php
+$queryParams = $_GET;
+unset($queryParams['page_num']);
+$baseQuery = http_build_query($queryParams);
+?>
+<nav class="pagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+    <?php if ($pageNum > 1): ?>
+        <a href="?<?= $baseQuery ?>&page_num=<?= $pageNum - 1 ?>" class="btn btn-small">&laquo; Назад</a>
+    <?php endif; ?>
+
+    <?php
+    $start = max(1, $pageNum - 3);
+    $end = min($totalPages, $pageNum + 3);
+    if ($start > 1): ?>
+        <a href="?<?= $baseQuery ?>&page_num=1" class="btn btn-small">1</a>
+        <?php if ($start > 2): ?><span style="padding: 4px;">...</span><?php endif; ?>
+    <?php endif; ?>
+
+    <?php for ($i = $start; $i <= $end; $i++): ?>
+        <?php if ($i == $pageNum): ?>
+            <span class="btn btn-primary btn-small"><?= $i ?></span>
+        <?php else: ?>
+            <a href="?<?= $baseQuery ?>&page_num=<?= $i ?>" class="btn btn-small"><?= $i ?></a>
+        <?php endif; ?>
+    <?php endfor; ?>
+
+    <?php if ($end < $totalPages): ?>
+        <?php if ($end < $totalPages - 1): ?><span style="padding: 4px;">...</span><?php endif; ?>
+        <a href="?<?= $baseQuery ?>&page_num=<?= $totalPages ?>" class="btn btn-small"><?= $totalPages ?></a>
+    <?php endif; ?>
+
+    <?php if ($pageNum < $totalPages): ?>
+        <a href="?<?= $baseQuery ?>&page_num=<?= $pageNum + 1 ?>" class="btn btn-small">Вперёд &raquo;</a>
+    <?php endif; ?>
+</nav>
+<?php endif; ?>
 
 <?php
 $content = ob_get_clean();

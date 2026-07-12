@@ -5,6 +5,7 @@
 <?php endif; ?>
 
 <form method="POST" class="login-form">
+    <?= csrfField() ?>
     <div class="form-group">
         <label for="login">Логин</label>
         <input type="text" id="login" name="login" required autocomplete="username">

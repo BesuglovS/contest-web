@@ -258,16 +258,7 @@ ob_start();
 
 <h1>Импорт задач из JSON</h1>
 
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users">Пользователи</a>
-    <a href="?page=admin-groups">Группы</a>
-    <a href="?page=admin-tasks">Задачи</a>
-    <a href="?page=admin-task-groups">Группы задач</a>
-    <a href="?page=admin-contests">Контесты</a>
-    <a href="?page=admin-submissions">Решения</a>
-    <a href="?page=admin-import-tasks" class="active">Импорт задач</a>
-</div>
+<?php $activePage = 'import_tasks'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?>
     <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>
@@ -285,6 +276,7 @@ ob_start();
             <a href="?page=admin-import-format" target="_blank">Описание формата</a>
         </p>
         <form method="POST" enctype="multipart/form-data">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="preview">
 
             <div class="form-group">
@@ -341,6 +333,7 @@ ob_start();
     ?>
 
     <form method="POST" onsubmit="return confirm('Импортировать выбранные задачи в базу данных?');">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="import">
         <input type="hidden" name="json_raw" value="<?= htmlspecialchars($importJson) ?>">
 

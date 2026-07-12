@@ -100,62 +100,7 @@ ob_start();
 
 <h1>Управление задачами</h1>
 
-<?php
-// Проверка целостности схемы БД
-$schemaChecks = [];
-// Колонка execution_time в submissions
-$cols = $db->query("PRAGMA table_info(submissions)")->fetchAll();
-$hasExecTime = false;
-foreach ($cols as $col) { if ($col['name'] === 'execution_time') { $hasExecTime = true; break; } }
-if (!$hasExecTime) $schemaChecks[] = ['col' => 'execution_time', 'table' => 'submissions', 'sql' => 'ALTER TABLE submissions ADD COLUMN execution_time REAL DEFAULT 0'];
-
-// Обработка нажатия «Исправить схему»
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'fix_schema') {
-    foreach ($schemaChecks as $check) {
-        try {
-            $db->exec($check['sql']);
-            $message = "Схема БД исправлена: добавлена колонка {$check['col']} в таблицу {$check['table']}.";
-        } catch (Exception $e) {
-            $error = "Ошибка исправления схемы: " . $e->getMessage();
-        }
-    }
-    // Перезагружаем статус проверок
-    $schemaChecks = [];
-    $cols = $db->query("PRAGMA table_info(submissions)")->fetchAll();
-    $hasExecTime = false;
-    foreach ($cols as $col) { if ($col['name'] === 'execution_time') { $hasExecTime = true; break; } }
-    if (!$hasExecTime) $schemaChecks[] = ['col' => 'execution_time', 'table' => 'submissions', 'sql' => 'ALTER TABLE submissions ADD COLUMN execution_time REAL DEFAULT 0'];
-}
-?>
-
-<?php if (!empty($schemaChecks)): ?>
-<div class="card" style="margin-bottom:20px; border-left:4px solid var(--warning); padding:16px;">
-    <h3 style="margin-top:0;">⚠ Требуется обновление схемы БД</h3>
-    <?php foreach ($schemaChecks as $check): ?>
-    <p style="color:var(--text-muted);">
-        В таблице <code><?= htmlspecialchars($check['table']) ?></code> отсутствует колонка <code><?= htmlspecialchars($check['col']) ?></code>.
-        Это приведёт к ошибкам при отправке решений.
-    </p>
-    <?php endforeach; ?>
-    <form method="POST">
-        <input type="hidden" name="action" value="fix_schema">
-        <button type="submit" class="btn" style="background:var(--warning); color:#000; border-color:var(--warning);">
-            🔧 Исправить схему БД
-        </button>
-    </form>
-</div>
-<?php endif; ?>
-
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users">Пользователи</a>
-    <a href="?page=admin-groups">Группы</a>
-    <a href="?page=admin-tasks" class="active">Задачи</a>
-    <a href="?page=admin-task-groups">Группы задач</a>
-    <a href="?page=admin-contests">Контесты</a>
-    <a href="?page=admin-submissions">Решения</a>
-    <a href="?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'tasks'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?>
     <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>
@@ -189,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'fix_s
                 <td>
                     <a href="?page=admin-tasks&edit=<?= $task['id'] ?>" class="btn btn-sm">Ред.</a>
                     <form method="POST" style="display:inline" onsubmit="return confirm('Удалить задачу?')">
+                        <?= csrfField() ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= $task['id'] ?>">
                         <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
@@ -200,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'fix_s
     </table>
 <?php else: ?>
     <form method="POST" class="card">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="<?= isset($editTask['id']) ? 'update' : 'create' ?>">
         <?php if (isset($editTask['id'])): ?>
             <input type="hidden" name="id" value="<?= $editTask['id'] ?>">

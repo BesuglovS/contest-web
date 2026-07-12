@@ -131,16 +131,7 @@ ob_start();
 
 <h1>Управление пользователями</h1>
 
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users" class="active">Пользователи</a>
-    <a href="?page=admin-groups">Группы</a>
-    <a href="?page=admin-tasks">Задачи</a>
-    <a href="?page=admin-task-groups">Группы задач</a>
-    <a href="?page=admin-contests">Контесты</a>
-    <a href="?page=admin-submissions">Решения</a>
-    <a href="?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'users'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?>
     <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>
@@ -181,6 +172,7 @@ ob_start();
                         <a href="?page=admin-users&edit=<?= $user['id'] ?>" class="btn btn-sm">Ред.</a>
                         <?php if ($user['id'] != 1): ?>
                             <form method="POST" style="display:inline" onsubmit="return confirm('Удалить пользователя?')">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= $user['id'] ?>">
                                 <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
@@ -196,6 +188,7 @@ ob_start();
     <div class="card">
         <h3><?= $editUser ? 'Редактировать' : 'Создать' ?> пользователя</h3>
         <form method="POST">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="<?= $editUser ? 'update' : 'create' ?>">
             <?php if ($editUser): ?>
                 <input type="hidden" name="id" value="<?= $editUser['id'] ?>">
@@ -215,7 +208,7 @@ ob_start();
 
             <div class="form-group">
                 <label for="password">Пароль <?= $editUser ? '(оставьте пустым чтобы не менять)' : '' ?></label>
-                <input type="text" id="password" name="password" <?= $editUser ? '' : 'required' ?>>
+                <input type="password" id="password" name="password" <?= $editUser ? '' : 'required' ?>>
             </div>
 
             <div class="form-group">
@@ -258,6 +251,7 @@ ob_start();
         Разделители: табуляция, запятая или 2+ пробела. Либо загрузите текстовый файл (.txt, .csv).
     </p>
     <form method="POST" enctype="multipart/form-data">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="bulk_import">
 
         <div class="form-group">

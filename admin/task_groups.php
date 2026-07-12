@@ -43,7 +43,7 @@ if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM task_groups WHERE id=?");
     $stmt->execute([$gid]);
     $editGroup = $stmt->fetch();
-    $stmt = $db->prepare("SELECT t.* FROM tasks t JOIN task_to_groups ttg ON t.id=ttg.task_id WHERE ttg.task_group_id=? ORDER BY ttg.sort_order, t.id");
+    $stmt = $db->prepare("SELECT t.* FROM tasks t JOIN task_to_groups ttg ON t.id=ttg.task_id WHERE ttg.task_group_id=? ORDER BY t.id");
     $stmt->execute([$gid]);
     $groupTasks = $stmt->fetchAll() ?: [];
 }
@@ -53,16 +53,7 @@ ob_start();
 
 <h1>Группы задач</h1>
 
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users">Пользователи</a>
-    <a href="?page=admin-groups">Группы</a>
-    <a href="?page=admin-tasks">Задачи</a>
-    <a href="?page=admin-task-groups" class="active">Группы задач</a>
-    <a href="?page=admin-contests">Контесты</a>
-    <a href="?page=admin-submissions">Решения</a>
-    <a href="?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'task_groups'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
 
@@ -79,6 +70,7 @@ ob_start();
                 <td>
                     <a href="?page=admin-task-groups&edit=<?= $g['id'] ?>" class="btn btn-sm">Ред.</a>
                     <form method="POST" style="display:inline" onsubmit="return confirm('Удалить?')">
+                        <?= csrfField() ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= $g['id'] ?>">
                         <button class="btn btn-sm btn-danger">Удалить</button>
@@ -92,6 +84,7 @@ ob_start();
         <div class="card">
             <h3><?= $editGroup ? 'Редактировать' : 'Создать' ?> группу задач</h3>
             <form method="POST">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="<?= $editGroup ? 'update' : 'create' ?>">
                 <?php if ($editGroup): ?><input type="hidden" name="id" value="<?= $editGroup['id'] ?>"><?php endif; ?>
                 <div class="form-group">
@@ -116,6 +109,7 @@ ob_start();
                         <td><?= htmlspecialchars($gt['title']) ?></td>
                         <td>
                             <form method="POST">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action" value="remove_task">
                                 <input type="hidden" name="group_id" value="<?= $editGroup['id'] ?>">
                                 <input type="hidden" name="task_id" value="<?= $gt['id'] ?>">
@@ -130,6 +124,7 @@ ob_start();
             <?php endif; ?>
             <h4 class="mt-20">Добавить задачу</h4>
             <form method="POST">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="add_task">
                 <input type="hidden" name="group_id" value="<?= $editGroup['id'] ?>">
                 <select name="task_id">

@@ -36,17 +36,7 @@ ob_start();
 
 <h1>Панель администратора</h1>
 
-<div class="admin-nav">
-    <a href="<?= BASE_URL ?>/index.php?page=admin" class="active">Дашборд</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-users">Пользователи</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-groups">Группы</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-tasks">Задачи</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-task-groups">Группы задач</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-contests">Контесты</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-submissions">Решения</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-import-tasks">Импорт задач</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-change-password">Сменить пароль</a>
-</div>
+<?php $activePage = 'dashboard'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
     <div class="card" style="text-align: center;">
@@ -87,6 +77,7 @@ ob_start();
     <?php endif; ?>
 
     <form method="POST" action="">
+        <?= csrfField() ?>
         <input type="hidden" name="change_password" value="1">
 
         <div class="form-group">

@@ -1,0 +1,242 @@
+/* ===== Стили редактора кода ===== */
+
+/* Статус-бар редактора */
+.editor-statusbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 10px;
+    background: #141428;
+    border: 2px solid var(--primary);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: #6c6c8a;
+    user-select: none;
+}
+
+.cursor-position {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: #6c6c8a;
+}
+
+/* Контейнер редактора с line numbers */
+.editor-container {
+    position: relative;
+    border: 2px solid var(--primary);
+    border-top: 2px solid var(--primary);
+    border-radius: 8px 8px 0 0;
+    background: #1a1a2e;
+    overflow: hidden;
+}
+
+/* Номера строк */
+.editor-line-numbers {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 44px;
+    padding: 12px 8px 12px 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #6c6c8a;
+    background: #141428;
+    user-select: none;
+    overflow: hidden;
+    text-align: right;
+    border-right: 1px solid #2a2a4a;
+    white-space: pre;
+    pointer-events: none;
+    box-sizing: border-box;
+    z-index: 3;
+}
+
+/* Оверлей-обёртка для слоя подсветки + textarea */
+.editor-overlay-wrapper {
+    position: relative;
+    min-height: 300px;
+}
+
+/* Слой с подсвеченным кодом (фон) */
+.editor-highlight-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 12px 12px 56px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #ffffff;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+    pointer-events: none;
+    background: transparent;
+    z-index: 1;
+    /* Скрываем полосу прокрутки, так как textarea управляет скроллом */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.editor-highlight-layer::-webkit-scrollbar {
+    display: none;
+}
+
+/* Textarea (прозрачный ввод) */
+.form-group textarea.code-editor,
+.form-group textarea.code-editor:focus {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    min-height: 300px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    padding: 12px 12px 12px 56px;
+    border: none !important;
+    border-radius: 0;
+    background: transparent !important;
+    color: transparent !important;
+    caret-color: #ffffff;
+    resize: vertical;
+    tab-size: 4;
+    outline: none;
+    line-height: 1.5;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+/* Плейсхолдер для textarea виден, когда нет ввода */
+.form-group textarea.code-editor::placeholder {
+    color: #6c6c8a;
+}
+
+/* ===== Стили подсветки синтаксиса ===== */
+.hl-keyword {
+    color: #c678dd; /* фиолетовый — ключевые слова */
+    font-weight: 500;
+}
+
+.hl-builtin {
+    color: #e5c07b; /* жёлтый — встроенные функции */
+}
+
+.hl-string {
+    color: #98c379; /* зелёный — строки */
+}
+
+.hl-multiline {
+    color: #98c379; /* зелёный — многострочные строки */
+    font-style: italic;
+}
+
+.hl-fstring {
+    color: #98c379; /* зелёный — f-строки */
+}
+
+.hl-comment {
+    color: #5c6370; /* серый — комментарии */
+    font-style: italic;
+}
+
+.hl-number {
+    color: #d19a66; /* оранжевый — числа */
+}
+
+.hl-decorator {
+    color: #61afef; /* голубой — декораторы */
+    font-weight: 500;
+}
+
+/* ===== Блоки тестов и результатов ===== */
+.test-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+}
+
+.error-block {
+    background: #fff5f5;
+    color: var(--error);
+    border-color: var(--error);
+}
+
+.task-content {
+    line-height: 1.7;
+    font-size: 1.05em;
+}
+
+.result-item {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.result-item.pass {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+}
+
+.result-item.fail {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+}
+
+/* ===== Спиннер ===== */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== Кнопка копирования примеров ===== */
+.copy-block-wrapper {
+    position: relative;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 10;
+    background: var(--bg, #1a1a2e);
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 13px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s, background 0.2s;
+    line-height: 1.4;
+    color: var(--text-muted, #aaa);
+}
+
+.copy-btn:hover {
+    opacity: 1;
+    background: var(--primary, #4a6cf7);
+    color: #fff;
+}
+
+.copy-btn.copied {
+    background: #22c55e;
+    color: #fff;
+    opacity: 1;
+}

@@ -148,6 +148,8 @@ class Database
                 contest_id INTEGER,
                 code TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'pending',
+                execution_time REAL DEFAULT 0,
+                lint_errors TEXT DEFAULT NULL,
                 executed_at DATETIME NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
@@ -177,6 +179,57 @@ class Database
             $hash = password_hash('admin', PASSWORD_BCRYPT);
             $stmt = $db->prepare("INSERT INTO users (login, display_name, password_hash, is_admin) VALUES (?, ?, ?, 1)");
             $stmt->execute(['admin', 'Администратор', $hash]);
+        }
+
+        // Автоматическое добавление недостающих колонок и индексов
+        self::migrateSchema($db);
+    }
+
+    /**
+     * Автоматическая миграция схемы: добавляет недостающие колонки и индексы
+     */
+    private static function migrateSchema(PDO $db): void
+    {
+        // Проверяем и добавляем недостающие колонки в submissions
+        $columns = [];
+        foreach ($db->query("PRAGMA table_info(submissions)")->fetchAll() as $col) {
+            $columns[$col['name']] = true;
+        }
+
+        $migrations = [
+            'execution_time' => 'ALTER TABLE submissions ADD COLUMN execution_time REAL DEFAULT 0',
+            'lint_errors'    => 'ALTER TABLE submissions ADD COLUMN lint_errors TEXT DEFAULT NULL',
+        ];
+
+        foreach ($migrations as $col => $sql) {
+            if (!isset($columns[$col])) {
+                try {
+                    $db->exec($sql);
+                } catch (PDOException $e) {
+                    // Колонка уже существует или другая ошибка — продолжаем
+                }
+            }
+        }
+
+        // Индексы для производительности
+        $indexes = [
+            'idx_submissions_user_id'      => 'CREATE INDEX IF NOT EXISTS idx_submissions_user_id ON submissions(user_id)',
+            'idx_submissions_contest_id'   => 'CREATE INDEX IF NOT EXISTS idx_submissions_contest_id ON submissions(contest_id)',
+            'idx_submissions_status'       => 'CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status)',
+            'idx_contest_tasks_contest_id' => 'CREATE INDEX IF NOT EXISTS idx_contest_tasks_contest_id ON contest_tasks(contest_id)',
+            'idx_tests_task_id'            => 'CREATE INDEX IF NOT EXISTS idx_tests_task_id ON tests(task_id)',
+            'idx_contest_access_user'      => 'CREATE INDEX IF NOT EXISTS idx_contest_access_user ON contest_access(user_id)',
+            'idx_contest_access_group'     => 'CREATE INDEX IF NOT EXISTS idx_contest_access_group ON contest_access(group_id)',
+            'idx_user_groups_user'         => 'CREATE INDEX IF NOT EXISTS idx_user_groups_user ON user_groups(user_id)',
+            'idx_task_to_groups_group'     => 'CREATE INDEX IF NOT EXISTS idx_task_to_groups_group ON task_to_groups(task_group_id)',
+        ];
+
+        foreach ($indexes as $sql) {
+            try {
+                $db->exec($sql);
+            } catch (PDOException $e) {
+                // Индекс уже существует — продолжаем
+            }
         }
     }
 }

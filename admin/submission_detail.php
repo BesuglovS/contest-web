@@ -41,15 +41,7 @@ foreach ($taskTests as $tt) {
     $taskTestsByNumber[$tt['test_number']] = $tt;
 }
 
-$statusLabels = [
-    'pending' => 'Ожидает',
-    'lint_error' => 'Ошибка оформления',
-    'accepted' => 'Принято',
-    'wrong_answer' => 'Неверный ответ',
-    'runtime_error' => 'Ошибка выполнения',
-    'time_limit' => 'Превышен лимит времени',
-    'memory_limit' => 'Превышен лимит памяти',
-];
+require_once BASE_PATH . '/includes/labels.php';
 
 $resultStatusLabels = [
     'accepted' => 'Пройден',
@@ -65,17 +57,7 @@ ob_start();
 
 <h1>Просмотр решения #<?= $submission['id'] ?></h1>
 
-<div class="admin-nav">
-    <a href="<?= BASE_URL ?>/index.php?page=admin">Дашборд</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-users">Пользователи</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-groups">Группы</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-tasks">Задачи</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-task-groups">Группы задач</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-contests">Контесты</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-submissions">Решения</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-import-tasks">Импорт задач</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-submission-detail&id=<?= $submission['id'] ?>" class="active">#<?= $submission['id'] ?></a>
-</div>
+<?php $activePage = 'submissions'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <div class="card">
     <h2>Информация о решении</h2>

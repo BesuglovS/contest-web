@@ -14,13 +14,28 @@ $params = [$userId];
 if ($filterTask) { $where[] = "s.task_id = ?"; $params[] = (int)$filterTask; }
 if ($filterStatus) { $where[] = "s.status = ?"; $params[] = $filterStatus; }
 
+// Пагинация
+$perPage = 20;
+$pageNum = max(1, (int)($_GET['page_num'] ?? 1));
+$offset = ($pageNum - 1) * $perPage;
+
+// Подсчёт общего количества
+$countSql = "SELECT COUNT(*) FROM submissions s
+        JOIN tasks t ON s.task_id = t.id
+        LEFT JOIN contests c ON s.contest_id = c.id
+        WHERE " . implode(" AND ", $where);
+$stmt = $db->prepare($countSql);
+$stmt->execute($params);
+$totalCount = (int)$stmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalCount / $perPage));
+
 $sql = "SELECT s.*, t.title as task_title,
         c.id as contest_id, c.start_time as contest_start, c.end_time as contest_end
         FROM submissions s
         JOIN tasks t ON s.task_id = t.id
         LEFT JOIN contests c ON s.contest_id = c.id
         WHERE " . implode(" AND ", $where) . "
-        ORDER BY s.id DESC LIMIT 100";
+        ORDER BY s.id DESC LIMIT " . $perPage . " OFFSET " . $offset;
 
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -130,6 +145,45 @@ ob_start();
 
 <?php if (empty($submissions)): ?>
     <p style="color:var(--text-muted); text-align:center; padding:20px;">Нет решений. <a href="?page=tasks">Перейти к задачам</a></p>
+<?php endif; ?>
+
+<?php if ($totalPages > 1): ?>
+<?php
+// Build query string without page_num
+$queryParams = $_GET;
+unset($queryParams['page_num']);
+$baseQuery = http_build_query($queryParams);
+?>
+<nav class="pagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+    <?php if ($pageNum > 1): ?>
+        <a href="?<?= $baseQuery ?>&page_num=<?= $pageNum - 1 ?>" class="btn btn-small">&laquo; Назад</a>
+    <?php endif; ?>
+
+    <?php
+    $start = max(1, $pageNum - 3);
+    $end = min($totalPages, $pageNum + 3);
+    if ($start > 1): ?>
+        <a href="?<?= $baseQuery ?>&page_num=1" class="btn btn-small">1</a>
+        <?php if ($start > 2): ?><span style="padding: 4px;">...</span><?php endif; ?>
+    <?php endif; ?>
+
+    <?php for ($i = $start; $i <= $end; $i++): ?>
+        <?php if ($i == $pageNum): ?>
+            <span class="btn btn-primary btn-small"><?= $i ?></span>
+        <?php else: ?>
+            <a href="?<?= $baseQuery ?>&page_num=<?= $i ?>" class="btn btn-small"><?= $i ?></a>
+        <?php endif; ?>
+    <?php endfor; ?>
+
+    <?php if ($end < $totalPages): ?>
+        <?php if ($end < $totalPages - 1): ?><span style="padding: 4px;">...</span><?php endif; ?>
+        <a href="?<?= $baseQuery ?>&page_num=<?= $totalPages ?>" class="btn btn-small"><?= $totalPages ?></a>
+    <?php endif; ?>
+
+    <?php if ($pageNum < $totalPages): ?>
+        <a href="?<?= $baseQuery ?>&page_num=<?= $pageNum + 1 ?>" class="btn btn-small">Вперёд &raquo;</a>
+    <?php endif; ?>
+</nav>
 <?php endif; ?>
 
 <?php

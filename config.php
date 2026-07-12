@@ -23,8 +23,8 @@ define('MAX_OUTPUT_SIZE', 65536);
 define('FORBIDDEN_MODULES', ['os', 'subprocess', 'sys', 'shutil', 'ctypes', 'signal', 'multiprocessing', 'threading', 'socket']);
 
 // Отключаем вывод ошибок в браузер (на проде — логировать в файл)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 // Часовой пояс: всё храним в UTC, отображаем в UTC+4 (Europe/Samara)
@@ -86,4 +86,32 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
     session_start();
+}
+
+/**
+ * Генерирует или возвращает CSRF-токен для текущей сессии
+ */
+function csrfToken(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Генерирует HTML-поле с CSRF-токеном для форм
+ */
+function csrfField(): string {
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrfToken()) . '">';
+}
+
+/**
+ * Проверяет CSRF-токен из POST-запроса
+ */
+function validateCsrf(): bool {
+    $token = $_POST['csrf_token'] ?? '';
+    if (empty($token) || empty($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
 }

@@ -5,8 +5,6 @@ $db = Database::getInstance();
 $userId = Auth::getUserId();
 
 // Статистика пользователя
-$totalSubmissions = $db->prepare("SELECT COUNT(*) FROM submissions WHERE user_id=?")->execute([$userId]) ?
-    $db->prepare("SELECT COUNT(*) FROM submissions WHERE user_id=?")->fetchColumn() : 0;
 $stmt = $db->prepare("SELECT COUNT(*) FROM submissions WHERE user_id=?");
 $stmt->execute([$userId]);
 $totalSubmissions = $stmt->fetchColumn();

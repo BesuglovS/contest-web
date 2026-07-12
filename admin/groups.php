@@ -127,16 +127,7 @@ ob_start();
 
 <h1>Управление группами</h1>
 
-<div class="admin-nav">
-    <a href="?page=admin">Дашборд</a>
-    <a href="?page=admin-users">Пользователи</a>
-    <a href="?page=admin-groups" class="active">Группы</a>
-    <a href="?page=admin-tasks">Задачи</a>
-    <a href="?page=admin-task-groups">Группы задач</a>
-    <a href="?page=admin-contests">Контесты</a>
-    <a href="?page=admin-submissions">Решения</a>
-    <a href="?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'groups'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?>
     <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>
@@ -166,6 +157,7 @@ ob_start();
                     <td>
                         <a href="?page=admin-groups&edit=<?= $group['id'] ?>" class="btn btn-sm">Ред.</a>
                         <form method="POST" style="display:inline" onsubmit="return confirm('Удалить группу?')">
+                            <?= csrfField() ?>
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="id" value="<?= $group['id'] ?>">
                             <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
@@ -181,6 +173,7 @@ ob_start();
         <div class="card">
             <h3><?= $editGroup ? 'Редактировать' : 'Создать' ?> группу</h3>
             <form method="POST">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="<?= $editGroup ? 'update' : 'create' ?>">
                 <?php if ($editGroup): ?>
                     <input type="hidden" name="id" value="<?= $editGroup['id'] ?>">
@@ -221,6 +214,7 @@ ob_start();
                             <td><?= htmlspecialchars($gu['display_name']) ?></td>
                             <td>
                                 <form method="POST" style="display:inline">
+                                    <?= csrfField() ?>
                                     <input type="hidden" name="action" value="remove_user">
                                     <input type="hidden" name="group_id" value="<?= $editGroup['id'] ?>">
                                     <input type="hidden" name="user_id" value="<?= $gu['id'] ?>">
@@ -237,6 +231,7 @@ ob_start();
 
             <h4 class="mt-20">Добавить пользователя</h4>
             <form method="POST">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="add_user">
                 <input type="hidden" name="group_id" value="<?= $editGroup['id'] ?>">
                 <div class="form-group">
@@ -272,6 +267,7 @@ ob_start();
             <?php endif; ?>
 
             <form method="POST" style="margin-top:8px;">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="bulk_add_users">
                 <input type="hidden" name="group_id" value="<?= $editGroup['id'] ?>">
                 <div class="form-group">

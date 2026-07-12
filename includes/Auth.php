@@ -54,6 +54,8 @@ class Auth
             return ['success' => false, 'error' => 'Неверный пароль'];
         }
 
+        session_regenerate_id(true);
+
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['login'] = $user['login'];
         $_SESSION['display_name'] = $user['display_name'];
@@ -177,8 +179,8 @@ class Auth
             return ['success' => false, 'error' => 'Неверный текущий пароль'];
         }
         
-        if (strlen($newPassword) < 4) {
-            return ['success' => false, 'error' => 'Новый пароль должен быть не менее 4 символов'];
+        if (strlen($newPassword) < 6) {
+            return ['success' => false, 'error' => 'Новый пароль должен быть не менее 6 символов'];
         }
         
         $hash = password_hash($newPassword, PASSWORD_BCRYPT);

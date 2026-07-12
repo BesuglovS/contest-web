@@ -59,7 +59,6 @@ class Router
             'admin-contest-results' => require BASE_PATH . '/admin/contest_results.php',
             'admin-submissions' => require BASE_PATH . '/admin/submissions.php',
             'admin-submission-detail' => require BASE_PATH . '/admin/submission_detail.php',
-            'admin-generate-tasks' => require BASE_PATH . '/admin/generate_tasks.php',
             'admin-import-tasks' => require BASE_PATH . '/admin/import_tasks.php',
             'admin-import-format' => require BASE_PATH . '/admin/import_format.php',
             'admin-change-password' => require BASE_PATH . '/admin/change_password.php',
@@ -77,6 +76,7 @@ class Router
             'contest' => require BASE_PATH . '/user/contest.php',
             'submissions' => require BASE_PATH . '/user/submissions.php',
             'submission-detail' => require BASE_PATH . '/user/submission_detail.php',
+            'leaderboard' => require BASE_PATH . '/user/leaderboard.php',
             default => $this->render404(),
         };
     }
@@ -100,6 +100,15 @@ class Router
     {
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!validateCsrf()) {
+                $error = 'Недействительный CSRF-токен. Пожалуйста, обновите страницу и попробуйте снова.';
+                $pageTitle = 'Вход';
+                ob_start();
+                require BASE_PATH . '/templates/login.php';
+                $content = ob_get_clean();
+                require BASE_PATH . '/templates/layout.php';
+                return;
+            }
             $login = trim($_POST['login'] ?? '');
             $password = $_POST['password'] ?? '';
             $result = Auth::login($login, $password);

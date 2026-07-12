@@ -25,16 +25,7 @@ ob_start();
 
 <h1>Смена пароля</h1>
 
-<div class="admin-nav">
-    <a href="<?= BASE_URL ?>/index.php?page=admin">Дашборд</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-users">Пользователи</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-groups">Группы</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-tasks">Задачи</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-task-groups">Группы задач</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-contests">Контесты</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-submissions">Решения</a>
-    <a href="<?= BASE_URL ?>/index.php?page=admin-import-tasks">Импорт задач</a>
-</div>
+<?php $activePage = 'dashboard'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <div class="card" style="max-width: 500px;">
     <h2>Изменить пароль</h2>
@@ -48,6 +39,7 @@ ob_start();
     <?php endif; ?>
 
     <form method="POST" action="">
+        <?= csrfField() ?>
         <div class="form-group">
             <label for="current_password">Текущий пароль</label>
             <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
