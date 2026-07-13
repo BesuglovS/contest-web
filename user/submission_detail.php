@@ -242,6 +242,7 @@ if (!empty($submission['lint_errors'])) {
 }
 .test-output {
     background: #f5f5f5;
+    color: #000;
     padding: 8px;
     border-radius: 4px;
     font-size: 12px;
@@ -255,6 +256,17 @@ if (!empty($submission['lint_errors'])) {
     word-break: break-all;
 }
 </style>
+
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css">
+<script src="<?= BASE_URL ?>/assets/js/editor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var codeBlock = document.querySelector('.code-block code');
+    if (codeBlock && typeof SyntaxHighlight !== 'undefined') {
+        codeBlock.innerHTML = SyntaxHighlight.highlight(codeBlock.textContent);
+    }
+});
+</script>
 
 <?php
 $content = ob_get_clean();

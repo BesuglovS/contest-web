@@ -274,7 +274,7 @@
             { "input": "  привет  мир  ", "output": "привет  мир", "is_public": 0 },
             { "input": "no_spaces", "output": "no_spaces", "is_public": 0 },
             { "input": "   много пробелов   ", "output": "много пробелов", "is_public": 0 },
-            { "input": "\nновая строка\n", "output": "новая строка", "is_public": 0 },
+            { "input": "новая строка\n", "output": "новая строка", "is_public": 0 },
             { "input": "  a  ", "output": "a", "is_public": 0 },
             { "input": "left right ", "output": "left right", "is_public": 0 }
         ]
@@ -290,8 +290,8 @@
             { "input": "Hi\n6", "output": "--Hi--", "is_public": 1 },
             { "input": "A\n5", "output": "--A--", "is_public": 1 },
             { "input": "test\n10", "output": "---test---", "is_public": 1 },
-            { "input": "Привет\n9", "output": "--Привет--", "is_public": 0 },
-            { "input": "ab\n3", "output": "ab-", "is_public": 0 },
+            { "input": "Привет\n10", "output": "--Привет--", "is_public": 0 },
+            { "input": "ab\n4", "output": "-ab-", "is_public": 0 },
             { "input": "x\n1", "output": "x", "is_public": 0 },
             { "input": "word\n4", "output": "word", "is_public": 0 },
             { "input": "OK\n8", "output": "---OK---", "is_public": 0 },
@@ -333,7 +333,7 @@
             { "input": "привет мир\nмир", "output": "YES", "is_public": 0 },
             { "input": "abcdef\ngh", "output": "NO", "is_public": 0 },
             { "input": "test@mail.ru\n@", "output": "YES", "is_public": 0 },
-            { "input": "строка\nток", "output": "YES", "is_public": 0 },
+            { "input": "строка\nток", "output": "NO", "is_public": 0 },
             { "input": "empty\nx", "output": "NO", "is_public": 0 },
             { "input": "12345\n23", "output": "YES", "is_public": 0 },
             { "input": "hello\nH", "output": "NO", "is_public": 0 }

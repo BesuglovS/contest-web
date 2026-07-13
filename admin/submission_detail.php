@@ -41,6 +41,15 @@ foreach ($taskTests as $tt) {
     $taskTestsByNumber[$tt['test_number']] = $tt;
 }
 
+// Предыдущее и следующее решение этой задачи этим учеником
+$prevSubmission = $db->prepare("SELECT id FROM submissions WHERE user_id = ? AND task_id = ? AND id < ? ORDER BY id DESC LIMIT 1");
+$prevSubmission->execute([$submission['user_id'], $submission['task_id'], $submissionId]);
+$prevSubmission = $prevSubmission->fetch();
+
+$nextSubmission = $db->prepare("SELECT id FROM submissions WHERE user_id = ? AND task_id = ? AND id > ? ORDER BY id ASC LIMIT 1");
+$nextSubmission->execute([$submission['user_id'], $submission['task_id'], $submissionId]);
+$nextSubmission = $nextSubmission->fetch();
+
 require_once BASE_PATH . '/includes/labels.php';
 
 $resultStatusLabels = [
@@ -69,15 +78,26 @@ ob_start();
             </tr>
             <tr>
                 <th>Пользователь</th>
-                <td><?= htmlspecialchars($submission['display_name']) ?> (<?= htmlspecialchars($submission['login']) ?>)</td>
+                <td>
+                    <?= htmlspecialchars($submission['display_name']) ?> (<?= htmlspecialchars($submission['login']) ?>)
+                    <a href="?page=admin-submissions&user_id=<?= $submission['user_id'] ?>" title="Все решения этого пользователя" style="text-decoration:none; margin-left:6px;">🔍</a>
+                </td>
             </tr>
             <tr>
                 <th>Задача</th>
-                <td><?= htmlspecialchars($submission['task_title']) ?> (ID: <?= $submission['task_id'] ?>)</td>
+                <td>
+                    <?= htmlspecialchars($submission['task_title']) ?> (ID: <?= $submission['task_id'] ?>)
+                    <a href="?page=admin-submissions&task_id=<?= $submission['task_id'] ?>" title="Все решения этой задачи" style="text-decoration:none; margin-left:6px;">🔍</a>
+                </td>
             </tr>
             <tr>
                 <th>Контест</th>
-                <td><?= $submission['contest_title'] ? htmlspecialchars($submission['contest_title']) : '<em>Не указан</em>' ?></td>
+                <td>
+                    <?= $submission['contest_title'] ? htmlspecialchars($submission['contest_title']) : '<em>Не указан</em>' ?>
+                    <?php if ($submission['contest_id']): ?>
+                    <a href="?page=admin-submissions&contest_id=<?= $submission['contest_id'] ?>" title="Все решения этого контеста" style="text-decoration:none; margin-left:6px;">🔍</a>
+                    <?php endif; ?>
+                </td>
             </tr>
             <tr>
                 <th>Статус</th>
@@ -98,6 +118,19 @@ ob_start();
         </tbody>
     </table>
 </div>
+
+<?php if ($prevSubmission || $nextSubmission): ?>
+<div style="display:flex; justify-content:space-between; align-items:center; margin: 12px 0;">
+    <?php if ($prevSubmission): ?>
+        <a href="?page=admin-submission-detail&id=<?= $prevSubmission['id'] ?>" class="btn btn-small">&larr; Предыдущее решение</a>
+    <?php else: ?>
+        <span></span>
+    <?php endif; ?>
+    <?php if ($nextSubmission): ?>
+        <a href="?page=admin-submission-detail&id=<?= $nextSubmission['id'] ?>" class="btn btn-small">Следующее решение &rarr;</a>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <h2>Отправленный код</h2>
@@ -228,6 +261,7 @@ if (!empty($submission['lint_errors'])) {
 }
 .test-output {
     background: #f5f5f5;
+    color: #000;
     padding: 8px;
     border-radius: 4px;
     font-size: 12px;
@@ -241,6 +275,17 @@ if (!empty($submission['lint_errors'])) {
     word-break: break-all;
 }
 </style>
+
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css">
+<script src="<?= BASE_URL ?>/assets/js/editor.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var codeBlock = document.querySelector('.code-block code');
+    if (codeBlock && typeof SyntaxHighlight !== 'undefined') {
+        codeBlock.innerHTML = SyntaxHighlight.highlight(codeBlock.textContent);
+    }
+});
+</script>
 
 <?php
 $content = ob_get_clean();
