@@ -25,5 +25,3 @@ Desktop.ini
 # PHP error log
 php_errors.log
 
-# Environment
-.env
