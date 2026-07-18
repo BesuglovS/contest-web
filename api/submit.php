@@ -69,6 +69,40 @@ try {
         exit;
     }
 
+    // Проверка CSRF-токена
+    $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (empty($csrfToken) || !hash_equals($_SESSION['csrf_token'] ?? '', $csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Неверный CSRF-токен']);
+        ob_end_flush();
+        exit;
+    }
+
+    // Ограничение частоты отправки (максимум 10 решений в минуту)
+    $userId = Auth::getUserId();
+    $rateLimitDir = BASE_PATH . '/data/.ratelimit';
+    if (!is_dir($rateLimitDir)) {
+        mkdir($rateLimitDir, 0750, true);
+    }
+    $rateLimitFile = $rateLimitDir . '/submit_' . $userId . '.json';
+    $rateLimitData = ['timestamps' => []];
+    if (file_exists($rateLimitFile)) {
+        $raw = file_get_contents($rateLimitFile);
+        if ($raw !== false) {
+            $rateLimitData = json_decode($raw, true) ?: $rateLimitData;
+        }
+    }
+    $now = time();
+    $rateLimitData['timestamps'] = array_filter($rateLimitData['timestamps'], fn($t) => $t > $now - 60);
+    if (count($rateLimitData['timestamps']) >= 10) {
+        http_response_code(429);
+        echo json_encode(['error' => 'Слишком много отправок. Подождите минуту и попробуйте снова.']);
+        ob_end_flush();
+        exit;
+    }
+    $rateLimitData['timestamps'][] = $now;
+    file_put_contents($rateLimitFile, json_encode($rateLimitData), LOCK_EX);
+
     // Получаем данные
     $rawInput = file_get_contents('php://input');
     $input = json_decode($rawInput, true);
@@ -223,7 +257,6 @@ try {
         'total' => $totalCount,
         'total_time' => $totalTime,
         'public_results' => array_values($publicResults),
-        'all_results' => $results,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     ob_end_flush();
