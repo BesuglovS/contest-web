@@ -117,7 +117,7 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$groupId]);
     $editGroup = $stmt->fetch();
 
-    $stmt = $db->prepare("SELECT u.* FROM users u JOIN user_groups ug ON u.id = ug.user_id WHERE ug.group_id = ? ORDER BY u.login");
+$stmt = $db->prepare("SELECT u.* FROM users u INNER JOIN user_groups ug ON u.id = ug.user_id WHERE ug.group_id = ? ORDER BY u.login");
     $stmt->execute([$groupId]);
     $groupUsers = $stmt->fetchAll() ?: [];
 }

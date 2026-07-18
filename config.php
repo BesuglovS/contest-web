@@ -113,5 +113,24 @@ function validateCsrf(): bool {
     if (empty($token) || empty($_SESSION['csrf_token'])) {
         return false;
     }
-    return hash_equals($_SESSION['csrf_token'], $token);
+    $valid = hash_equals($_SESSION['csrf_token'], $token);
+    // Регенерация токена после успешной проверки — защита от повторной отправки
+    if ($valid) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $valid;
+}
+
+/**
+ * Санитизация строки: удаление NULL-байтов и приведение к UTF-8
+ */
+function sanitizeString(?string $value): string {
+    if ($value === null) return '';
+    // Удаляем NULL-байты
+    $value = str_replace("\0", '', $value);
+    // Приводим к UTF-8, удаляя невалидные последовательности
+    if (!mb_check_encoding($value, 'UTF-8')) {
+        $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+    }
+    return $value;
 }

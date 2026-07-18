@@ -16,7 +16,7 @@ class TestingEngine
      *   - lint_errors_json: string|null (JSON или null)
      *   - overall_status: string
      *   - total_time: float
-     *   - test_results: array (каждый: test_number, status, time, memory, output)
+     *   - test_results: TestResult[]
      */
     public static function runTests(string $code, int $taskId, PDO $db): array
     {
@@ -61,59 +61,62 @@ class TestingEngine
         $totalTime = 0;
         $results = [];
 
-        // Функция для очистки Python traceback от имён файлов
+        // Функция для очистки Python traceback от имён файлов (оптимизирована)
         $cleanTraceback = function (string $error): string {
             $lines = explode("\n", $error);
-            $filtered = [];
-            foreach ($lines as $line) {
-                if (strpos($line, 'Traceback (most recent call last)') !== false) {
-                    continue;
+            $filtered = array_map(function ($line) {
+                if (str_contains($line, 'Traceback (most recent call last)')) {
+                    return '';
                 }
-                $line = preg_replace('/^\s*File\s+"[^"]*",\s*/', '', $line);
-                $filtered[] = $line;
-            }
-            return trim(implode("\n", $filtered));
+                return preg_replace('/^\s*File\s+"[^"]*",\s*/', '', $line);
+            }, $lines);
+            return trim(implode("\n", array_filter($filtered, fn($line) => $line !== '')));
         };
 
         foreach ($tests as $test) {
             $runResult = $sandbox->run($code, $test['input'], $timeLimit, $memoryLimit);
 
-            $testResult = [
-                'test_number' => (int)$test['test_number'],
-                'is_public' => (bool)$test['is_public'],
-                'status' => '',
-                'input' => $test['input'],
-                'expected' => $test['expected_output'],
-                'output' => $runResult['output'] ?? '',
-                'error' => $cleanTraceback($runResult['error'] ?? ''),
-                'time' => $runResult['time'] ?? 0,
-                'memory' => $runResult['memory'] ?? 0,
-            ];
+            $status = '';
+            $output = $runResult['output'] ?? '';
+            $error = $cleanTraceback($runResult['error'] ?? '');
+            $time = $runResult['time'] ?? 0;
+            $memory = $runResult['memory'] ?? 0;
 
             if (($runResult['status'] ?? 'error') === 'time_limit') {
-                $testResult['status'] = 'time_limit';
+                $status = 'time_limit';
                 $overallStatus = 'time_limit';
             } elseif (($runResult['status'] ?? 'error') === 'memory_limit') {
-                $testResult['status'] = 'memory_limit';
+                $status = 'memory_limit';
                 if ($overallStatus === 'accepted') {
                     $overallStatus = 'memory_limit';
                 }
             } elseif (in_array(($runResult['status'] ?? 'error'), ['runtime_error', 'error'], true)) {
-                $testResult['status'] = 'runtime_error';
+                $status = 'runtime_error';
                 if ($overallStatus === 'accepted') {
                     $overallStatus = 'runtime_error';
                 }
-            } elseif (Sandbox::compareOutput($runResult['output'] ?? '', $test['expected_output'])) {
-                $testResult['status'] = 'accepted';
+            } elseif (Sandbox::compareOutput($output, $test['expected_output'])) {
+                $status = 'accepted';
             } else {
-                $testResult['status'] = 'wrong_answer';
+                $status = 'wrong_answer';
                 if ($overallStatus === 'accepted') {
                     $overallStatus = 'wrong_answer';
                 }
             }
 
-            $results[] = $testResult;
-            $totalTime += ($runResult['time'] ?? 0);
+            $results[] = new TestResult(
+                number: (int)$test['test_number'],
+                isPublic: (bool)$test['is_public'],
+                status: $status,
+                output: $output,
+                error: $error,
+                time: $time,
+                memory: $memory,
+                input: $test['input'],
+                expected: $test['expected_output'],
+            );
+
+            $totalTime += $time;
         }
 
         return [

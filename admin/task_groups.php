@@ -43,7 +43,7 @@ if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM task_groups WHERE id=?");
     $stmt->execute([$gid]);
     $editGroup = $stmt->fetch();
-    $stmt = $db->prepare("SELECT t.* FROM tasks t JOIN task_to_groups ttg ON t.id=ttg.task_id WHERE ttg.task_group_id=? ORDER BY t.id");
+$stmt = $db->prepare("SELECT t.* FROM tasks t INNER JOIN task_to_groups ttg ON t.id=ttg.task_id WHERE ttg.task_group_id=? ORDER BY t.id");
     $stmt->execute([$gid]);
     $groupTasks = $stmt->fetchAll() ?: [];
 }

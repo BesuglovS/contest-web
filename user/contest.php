@@ -28,7 +28,7 @@ $stmt->execute([$contestId, $userId]);
 $hasDirectAccess = (bool) $stmt->fetch();
 
 $stmt = $db->prepare("SELECT 1 FROM contest_access ca
-    JOIN user_groups ug ON ca.group_id = ug.group_id
+    INNER JOIN user_groups ug ON ca.group_id = ug.group_id
     WHERE ca.contest_id = ? AND ug.user_id = ?");
 $stmt->execute([$contestId, $userId]);
 $hasGroupAccess = (bool) $stmt->fetch();
@@ -61,7 +61,7 @@ if (!$hasDirectAccess && !$hasGroupAccess) {
 $stmt = $db->prepare("SELECT ct.*, t.title, t.time_limit, t.memory_limit,
     (SELECT COUNT(*) FROM submissions s WHERE s.task_id = t.id AND s.user_id = ? AND s.status = 'accepted') as solved
     FROM contest_tasks ct
-    JOIN tasks t ON ct.task_id = t.id
+    INNER JOIN tasks t ON ct.task_id = t.id
     WHERE ct.contest_id = ?
     ORDER BY ct.sort_order, t.id");
 $stmt->execute([$userId, $contestId]);

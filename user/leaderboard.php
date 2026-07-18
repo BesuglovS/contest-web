@@ -41,8 +41,8 @@ if ($contestId) {
                 COUNT(DISTINCT s.task_id) AS solved_count,
                 MAX(s.executed_at) AS last_solved_at
             FROM users u
-            JOIN submissions s ON s.user_id = u.id
-            JOIN contest_tasks ct ON ct.task_id = s.task_id AND ct.contest_id = s.contest_id
+            INNER JOIN submissions s ON s.user_id = u.id
+            INNER JOIN contest_tasks ct ON ct.task_id = s.task_id AND ct.contest_id = s.contest_id
             WHERE s.status = 'accepted' AND s.contest_id = ?
             GROUP BY u.id
             ORDER BY solved_count DESC, last_solved_at ASC

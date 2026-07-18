@@ -25,8 +25,8 @@ if (!$task) {
 // в которое входит эта задача, либо задача должна быть запрошена в контексте контеста
 $userId = Auth::getUserId();
 $stmt = $db->prepare("SELECT 1 FROM tasks t
-    JOIN contest_tasks ct ON t.id = ct.task_id
-    JOIN contest_access ca ON ct.contest_id = ca.contest_id
+    INNER JOIN contest_tasks ct ON t.id = ct.task_id
+    INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
     LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
     WHERE t.id = ? AND (ca.user_id = ? OR ug.group_id IS NOT NULL)
     LIMIT 1");
@@ -60,7 +60,7 @@ if (!$hasAccess) {
 // Получаем все задачи контеста для навигации
 $stmt = $db->prepare("SELECT ct.task_id, ct.sort_order, t.title
     FROM contest_tasks ct
-    JOIN tasks t ON ct.task_id = t.id
+    INNER JOIN tasks t ON ct.task_id = t.id
     WHERE ct.contest_id = ?
     ORDER BY ct.sort_order, ct.task_id");
 $stmt->execute([$contestId]);

@@ -172,8 +172,7 @@ async function submitSolution() {
         const response = await fetch('index.php?page=api&endpoint=submit', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 task_id: taskId,

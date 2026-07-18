@@ -24,7 +24,7 @@ if (!$contest) {
 // Получаем задачи контеста
 $stmt = $db->prepare("SELECT ct.task_id, ct.sort_order, t.title
     FROM contest_tasks ct
-    JOIN tasks t ON ct.task_id = t.id
+    INNER JOIN tasks t ON ct.task_id = t.id
     WHERE ct.contest_id = ?
     ORDER BY ct.sort_order, t.id");
 $stmt->execute([$contestId]);

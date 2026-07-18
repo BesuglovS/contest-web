@@ -151,7 +151,7 @@ if (isset($_GET['edit'])) {
         $editContest = $stmt->fetch();
 
         if ($editContest) {
-            $stmt = $db->prepare("SELECT ct.task_id, ct.sort_order, t.title FROM contest_tasks ct JOIN tasks t ON ct.task_id = t.id WHERE ct.contest_id=? ORDER BY ct.sort_order, t.id");
+$stmt = $db->prepare("SELECT ct.task_id, ct.sort_order, t.title FROM contest_tasks ct INNER JOIN tasks t ON ct.task_id = t.id WHERE ct.contest_id=? ORDER BY ct.sort_order, t.id");
             $stmt->execute([$cid]);
             $editContest['contest_tasks'] = $stmt->fetchAll() ?: [];
             $editContest['task_ids'] = array_column($editContest['contest_tasks'], 'task_id');

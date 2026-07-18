@@ -15,8 +15,8 @@ $solvedCount = $stmt->fetchColumn();
 
 // Получаем общее количество доступных задач (из контестов, к которым есть доступ)
 $stmt = $db->prepare("SELECT COUNT(DISTINCT t.id) FROM tasks t
-    JOIN contest_tasks ct ON t.id = ct.task_id
-    JOIN contest_access ca ON ct.contest_id = ca.contest_id
+    INNER JOIN contest_tasks ct ON t.id = ct.task_id
+    INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
     LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
     WHERE ca.user_id = ? OR ug.group_id IS NOT NULL");
 $stmt->execute([$userId, $userId]);

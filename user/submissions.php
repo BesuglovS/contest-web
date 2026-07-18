@@ -21,7 +21,7 @@ $offset = ($pageNum - 1) * $perPage;
 
 // Подсчёт общего количества
 $countSql = "SELECT COUNT(*) FROM submissions s
-        JOIN tasks t ON s.task_id = t.id
+        INNER JOIN tasks t ON s.task_id = t.id
         LEFT JOIN contests c ON s.contest_id = c.id
         WHERE " . implode(" AND ", $where);
 $stmt = $db->prepare($countSql);
@@ -32,7 +32,7 @@ $totalPages = max(1, (int)ceil($totalCount / $perPage));
 $sql = "SELECT s.*, t.title as task_title,
         c.id as contest_id, c.start_time as contest_start, c.end_time as contest_end
         FROM submissions s
-        JOIN tasks t ON s.task_id = t.id
+        INNER JOIN tasks t ON s.task_id = t.id
         LEFT JOIN contests c ON s.contest_id = c.id
         WHERE " . implode(" AND ", $where) . "
         ORDER BY s.id DESC LIMIT " . $perPage . " OFFSET " . $offset;
@@ -54,8 +54,8 @@ foreach ($submissions as &$s) {
 unset($s);
 
 $stmt = $db->prepare("SELECT DISTINCT t.id, t.title FROM tasks t
-    JOIN contest_tasks ct ON t.id = ct.task_id
-    JOIN contest_access ca ON ct.contest_id = ca.contest_id
+    INNER JOIN contest_tasks ct ON t.id = ct.task_id
+    INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
     LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
     WHERE ca.user_id = ? OR ug.group_id IS NOT NULL
     ORDER BY t.title");

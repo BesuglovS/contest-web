@@ -2,14 +2,15 @@
 $pageTitle = 'Администрирование';
 $db = Database::getInstance();
 
-$stats = [
-    'users' => $db->query("SELECT COUNT(*) FROM users")->fetchColumn(),
-    'groups' => $db->query("SELECT COUNT(*) FROM groups")->fetchColumn(),
-    'tasks' => $db->query("SELECT COUNT(*) FROM tasks")->fetchColumn(),
-    'task_groups' => $db->query("SELECT COUNT(*) FROM task_groups")->fetchColumn(),
-    'contests' => $db->query("SELECT COUNT(*) FROM contests")->fetchColumn(),
-    'submissions' => $db->query("SELECT COUNT(*) FROM submissions")->fetchColumn(),
-];
+$stats = $db->query("
+    SELECT
+        (SELECT COUNT(*) FROM users) as users,
+        (SELECT COUNT(*) FROM groups) as groups,
+        (SELECT COUNT(*) FROM tasks) as tasks,
+        (SELECT COUNT(*) FROM task_groups) as task_groups,
+        (SELECT COUNT(*) FROM contests) as contests,
+        (SELECT COUNT(*) FROM submissions) as submissions
+")->fetch();
 
 $passwordError = '';
 $passwordSuccess = '';

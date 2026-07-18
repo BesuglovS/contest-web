@@ -4,6 +4,40 @@
     --primary: #3498db;
 }
 
+/* === Skip Link (a11y) === */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #2c3e50;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 0 0 4px 4px;
+    font-size: 14px;
+    z-index: 1000;
+    text-decoration: none;
+    transition: top 0.2s;
+}
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid #3498db;
+    outline-offset: 2px;
+}
+
+/* === Focus-visible (a11y) === */
+:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
 /* === Base Styles === */
 * {
     box-sizing: border-box;

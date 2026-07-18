@@ -171,6 +171,14 @@ class Database
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS rate_limits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                timestamps TEXT NOT NULL DEFAULT '[]',
+                updated_at DATETIME NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
         ");
 
         // Создаём администратора по умолчанию, если пользователей нет

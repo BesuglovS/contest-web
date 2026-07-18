@@ -12,8 +12,8 @@ if (!$submissionId) {
 $stmt = $db->prepare("
     SELECT s.*, u.login, u.display_name, t.title as task_title, c.title as contest_title
     FROM submissions s
-    JOIN users u ON s.user_id = u.id
-    JOIN tasks t ON s.task_id = t.id
+    INNER JOIN users u ON s.user_id = u.id
+    INNER JOIN tasks t ON s.task_id = t.id
     LEFT JOIN contests c ON s.contest_id = c.id
     WHERE s.id = ?
 ");

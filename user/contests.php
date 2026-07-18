@@ -46,7 +46,7 @@ ob_start();
             $taskCount = $stmt2->fetchColumn();
 
             // Количество решённых пользователем
-            $stmt3 = $db->prepare("SELECT COUNT(DISTINCT s.task_id) FROM submissions s JOIN contest_tasks ct ON s.task_id = ct.task_id WHERE s.user_id = ? AND ct.contest_id = ? AND s.status = 'accepted'");
+            $stmt3 = $db->prepare("SELECT COUNT(DISTINCT s.task_id) FROM submissions s INNER JOIN contest_tasks ct ON s.task_id = ct.task_id WHERE s.user_id = ? AND ct.contest_id = ? AND s.status = 'accepted'");
             $stmt3->execute([$userId, $c['id']]);
             $solvedCount = $stmt3->fetchColumn();
         ?>

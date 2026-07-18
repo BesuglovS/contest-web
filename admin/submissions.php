@@ -133,8 +133,8 @@ $offset = ($pageNum - 1) * $perPage;
 
 // Подсчёт общего количества
 $countSql = "SELECT COUNT(*) FROM submissions s
-        JOIN users u ON s.user_id = u.id
-        JOIN tasks t ON s.task_id = t.id";
+        INNER JOIN users u ON s.user_id = u.id
+        INNER JOIN tasks t ON s.task_id = t.id";
 if ($where) {
     $countSql .= " WHERE " . implode(" AND ", $where);
 }
@@ -145,8 +145,8 @@ $totalPages = max(1, (int)ceil($totalCount / $perPage));
 
 $sql = "SELECT s.*, u.login, u.display_name, t.title as task_title
         FROM submissions s
-        JOIN users u ON s.user_id = u.id
-        JOIN tasks t ON s.task_id = t.id";
+        INNER JOIN users u ON s.user_id = u.id
+        INNER JOIN tasks t ON s.task_id = t.id";
 if ($where) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
