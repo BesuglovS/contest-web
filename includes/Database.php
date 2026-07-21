@@ -240,4 +240,79 @@ class Database
             }
         }
     }
+
+    /**
+     * Синхронизировать пользователей из auth-web
+     */
+    public static function syncUsers(): array
+    {
+        $db = self::getInstance();
+        $authUrl = 'https://auth.nayanovaacademy.ru/api/admin_users.php';
+
+        $cookieHeader = '';
+        if (!empty($_COOKIE['auth_session'])) {
+            $cookieHeader = 'auth_session=' . $_COOKIE['auth_session'];
+        }
+
+        $ch = curl_init($authUrl);
+        $opts = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+        ];
+        if ($cookieHeader !== '') {
+            $opts[CURLOPT_COOKIE] = $cookieHeader;
+        }
+        curl_setopt_array($ch, $opts);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false || $httpCode !== 200) {
+            return ['success' => false, 'error' => 'Не удалось получить данные из auth-web (HTTP ' . $httpCode . ')'];
+        }
+
+        $data = json_decode($response, true);
+        if (!is_array($data) || empty($data['users'])) {
+            return ['success' => false, 'error' => 'Неверный ответ от auth-web'];
+        }
+
+        $remoteIds = [];
+        $synced = 0;
+
+        $stmtInsert = $db->prepare(
+            "INSERT INTO users (id, login, display_name, is_admin, created_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               login = excluded.login,
+               display_name = excluded.display_name,
+               is_admin = excluded.is_admin,
+               created_at = excluded.created_at"
+        );
+
+        foreach ($data['users'] as $user) {
+            $id = (int) $user['id'];
+            $remoteIds[] = $id;
+            $stmtInsert->execute([
+                $id,
+                $user['login'],
+                $user['display_name'],
+                (int) ($user['is_admin'] ?? 0),
+                $user['created_at'] ?? gmdate('Y-m-d H:i:s'),
+            ]);
+            $synced++;
+        }
+
+        $deleted = 0;
+        if (!empty($remoteIds)) {
+            $placeholders = implode(',', array_fill(0, count($remoteIds), '?'));
+            $stmtDelete = $db->prepare("DELETE FROM users WHERE id NOT IN ($placeholders)");
+            $stmtDelete->execute($remoteIds);
+            $deleted = $stmtDelete->rowCount();
+        }
+
+        return ['success' => true, 'synced' => $synced, 'deleted' => $deleted];
+    }
 }

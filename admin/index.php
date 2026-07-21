@@ -2,6 +2,33 @@
 $pageTitle = 'Администрирование';
 $db = Database::getInstance();
 
+$syncMessage = '';
+$syncError = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'sync_users') {
+        if (!validateCsrf()) {
+            $syncError = 'Недействительный CSRF-токен';
+        } else {
+            $result = Database::syncUsers();
+            if ($result['success']) {
+                $syncMessage = 'Синхронизировано: ' . $result['synced'] . ', удалено: ' . $result['deleted'];
+            } else {
+                $syncError = $result['error'];
+            }
+        }
+    }
+}
+
+$userCount = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+if ($userCount == 0) {
+    $result = Database::syncUsers();
+    if ($result['success']) {
+        $syncMessage = 'Автосинхронизация: загружено ' . $result['synced'] . ' пользователей';
+        $userCount = $result['synced'];
+    }
+}
+
 $stats = $db->query("
     SELECT
         (SELECT COUNT(*) FROM users) as users,
@@ -11,26 +38,6 @@ $stats = $db->query("
         (SELECT COUNT(*) FROM contests) as contests,
         (SELECT COUNT(*) FROM submissions) as submissions
 ")->fetch();
-
-$passwordError = '';
-$passwordSuccess = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-
-    if ($newPassword !== $confirmPassword) {
-        $passwordError = 'Новый пароль и подтверждение не совпадают';
-    } else {
-        $result = Auth::changePassword($currentPassword, $newPassword);
-        if ($result['success']) {
-            $passwordSuccess = 'Пароль успешно изменён';
-        } else {
-            $passwordError = $result['error'];
-        }
-    }
-}
 
 ob_start();
 ?>
@@ -67,38 +74,24 @@ ob_start();
 </div>
 
 <div class="card" style="max-width: 500px; margin-top: 24px;">
-    <h2>Сменить пароль</h2>
+    <h2>Пользователи</h2>
+    <p style="color: var(--text-muted); margin-bottom: 16px;">
+        Управление пользователями осуществляется через
+        <a href="https://auth.nayanovaacademy.ru/index.php?page=admin-users" target="_blank">панель авторизации</a>.
+    </p>
 
-    <?php if ($passwordError): ?>
-        <div class="alert alert-error"><?= htmlspecialchars($passwordError) ?></div>
+    <?php if ($syncMessage): ?>
+        <div class="alert alert-success"><?= htmlspecialchars($syncMessage) ?></div>
     <?php endif; ?>
 
-    <?php if ($passwordSuccess): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($passwordSuccess) ?></div>
+    <?php if ($syncError): ?>
+        <div class="alert alert-error"><?= htmlspecialchars($syncError) ?></div>
     <?php endif; ?>
 
-    <form method="POST" action="">
+    <form method="POST">
         <?= csrfField() ?>
-        <input type="hidden" name="change_password" value="1">
-
-        <div class="form-group">
-            <label for="current_password">Текущий пароль</label>
-            <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
-        </div>
-
-        <div class="form-group">
-            <label for="new_password">Новый пароль</label>
-            <input type="password" id="new_password" name="new_password" required minlength="4" autocomplete="new-password">
-        </div>
-
-        <div class="form-group">
-            <label for="confirm_password">Подтвердите новый пароль</label>
-            <input type="password" id="confirm_password" name="confirm_password" required minlength="4" autocomplete="new-password">
-        </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Сменить пароль</button>
-        </div>
+        <input type="hidden" name="action" value="sync_users">
+        <button type="submit" class="btn btn-primary">Синхронизировать пользователей</button>
     </form>
 </div>
 

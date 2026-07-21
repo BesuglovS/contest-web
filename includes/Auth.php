@@ -1,92 +1,67 @@
 <?php
 /**
- * Класс для аутентификации и управления сессиями
+ * Класс для аутентификации — интеграция с auth-web
  */
 class Auth
 {
-    /**
-     * Проверка, авторизован ли пользователь
-     */
     public static function isLoggedIn(): bool
     {
-        return isset($_SESSION['user_id']);
+        $user = AuthClient::check();
+        return $user !== null;
     }
 
-    /**
-     * Проверка, администратор ли текущий пользователь
-     */
     public static function isAdmin(): bool
     {
-        return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] == 1;
+        $user = AuthClient::check();
+        return $user !== null && !empty($user['is_admin']);
     }
 
-    /**
-     * Получить ID текущего пользователя
-     */
     public static function getUserId(): ?int
     {
-        return $_SESSION['user_id'] ?? null;
+        $user = AuthClient::check();
+        return $user['id'] ?? null;
     }
 
-    /**
-     * Получить имя текущего пользователя
-     */
     public static function getUserName(): ?string
     {
-        return $_SESSION['display_name'] ?? null;
+        $user = AuthClient::check();
+        return $user['display_name'] ?? null;
     }
 
-    /**
-     * Попытка входа по логину и паролю
-     */
     public static function login(string $login, string $password): array
     {
-        $db = Database::getInstance();
-        $stmt = $db->prepare("SELECT * FROM users WHERE login = ?");
-        $stmt->execute([$login]);
-        $user = $stmt->fetch();
+        $response = self::apiPost('/api/login.php', [
+            'login' => $login,
+            'password' => $password,
+        ]);
 
-        if (!$user) {
-            return ['success' => false, 'error' => 'Пользователь не найден'];
+        if ($response === null) {
+            return ['success' => false, 'error' => 'Сервис авторизации недоступен'];
         }
 
-        if (!password_verify($password, $user['password_hash'])) {
-            return ['success' => false, 'error' => 'Неверный пароль'];
+        if (empty($response['success'])) {
+            return ['success' => false, 'error' => $response['error'] ?? 'Ошибка входа'];
         }
 
-        session_regenerate_id(true);
-
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['login'] = $user['login'];
-        $_SESSION['display_name'] = $user['display_name'];
-        $_SESSION['is_admin'] = (int) $user['is_admin'];
-
+        AuthClient::clearCache();
         return ['success' => true];
     }
 
-    /**
-     * Выход из системы
-     */
     public static function logout(): void
     {
+        AuthClient::clearCache();
         session_destroy();
     }
 
-    /**
-     * Требовать авторизацию, иначе редирект на страницу входа
-     */
     public static function requireLogin(): void
     {
         if (!self::isLoggedIn()) {
             $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
-            header('Location: ' . BASE_URL . '/index.php?page=login');
+            header('Location: ' . AuthClient::getLoginUrl(BASE_URL . '/index.php'));
             exit;
         }
     }
 
-    /**
-     * Требовать права администратора
-     */
     public static function requireAdmin(): void
     {
         self::requireLogin();
@@ -96,18 +71,12 @@ class Auth
         }
     }
 
-    /**
-     * Получить всех пользователей
-     */
     public static function getAllUsers(): array
     {
         $db = Database::getInstance();
         return $db->query("SELECT id, login, display_name, is_admin, created_at FROM users ORDER BY login")->fetchAll();
     }
 
-    /**
-     * Получить пользователя по ID
-     */
     public static function getUserById(int $id): ?array
     {
         $db = Database::getInstance();
@@ -116,91 +85,47 @@ class Auth
         return $stmt->fetch() ?: null;
     }
 
-    /**
-     * Создать пользователя
-     */
-    public static function createUser(string $login, string $displayName, string $password, bool $isAdmin = false): array
+    public static function getUserByLogin(string $login): ?array
     {
         $db = Database::getInstance();
-        try {
-            $hash = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = $db->prepare("INSERT INTO users (login, display_name, password_hash, is_admin) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$login, $displayName, $hash, (int) $isAdmin]);
-            return ['success' => true, 'id' => $db->lastInsertId()];
-        } catch (PDOException $e) {
-            if (str_contains($e->getMessage(), 'UNIQUE')) {
-                return ['success' => false, 'error' => 'Пользователь с таким логином уже существует'];
-            }
-            return ['success' => false, 'error' => 'Ошибка базы данных'];
-        }
+        $stmt = $db->prepare("SELECT id, login, display_name, is_admin, created_at FROM users WHERE login = ?");
+        $stmt->execute([$login]);
+        return $stmt->fetch() ?: null;
     }
 
-    /**
-     * Обновить пользователя
-     */
-    public static function updateUser(int $id, string $login, string $displayName, bool $isAdmin, ?string $password = null): array
-    {
-        $db = Database::getInstance();
-        try {
-            if ($password !== null && $password !== '') {
-                $hash = password_hash($password, PASSWORD_BCRYPT);
-                $stmt = $db->prepare("UPDATE users SET login = ?, display_name = ?, is_admin = ?, password_hash = ? WHERE id = ?");
-                $stmt->execute([$login, $displayName, (int) $isAdmin, $hash, $id]);
-            } else {
-                $stmt = $db->prepare("UPDATE users SET login = ?, display_name = ?, is_admin = ? WHERE id = ?");
-                $stmt->execute([$login, $displayName, (int) $isAdmin, $id]);
-            }
-            return ['success' => true];
-        } catch (PDOException $e) {
-            if (str_contains($e->getMessage(), 'UNIQUE')) {
-                return ['success' => false, 'error' => 'Пользователь с таким логином уже существует'];
-            }
-            return ['success' => false, 'error' => 'Ошибка базы данных'];
-        }
-    }
-
-    /**
-     * Сменить пароль текущему пользователю
-     */
-    public static function changePassword(string $currentPassword, string $newPassword): array
-    {
-        $db = Database::getInstance();
-        $userId = self::getUserId();
-        
-        $stmt = $db->prepare("SELECT password_hash FROM users WHERE id = ?");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch();
-        
-        if (!$user) {
-            return ['success' => false, 'error' => 'Пользователь не найден'];
-        }
-        
-        if (!password_verify($currentPassword, $user['password_hash'])) {
-            return ['success' => false, 'error' => 'Неверный текущий пароль'];
-        }
-        
-        if (strlen($newPassword) < 6) {
-            return ['success' => false, 'error' => 'Новый пароль должен быть не менее 6 символов'];
-        }
-        
-        $hash = password_hash($newPassword, PASSWORD_BCRYPT);
-        $stmt = $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
-        $stmt->execute([$hash, $userId]);
-        
-        return ['success' => true];
-    }
-
-    /**
-     * Удалить пользователя
-     */
     public static function deleteUser(int $id): bool
     {
         if ($id == 1) {
-            return false; // Нельзя удалить первого администратора
+            return false;
         }
         $db = Database::getInstance();
         $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
         $stmt->execute([$id]);
         return $stmt->rowCount() > 0;
+    }
+
+    private static function apiPost(string $path, array $data): ?array
+    {
+        $url = 'https://auth.nayanovaacademy.ru' . $path;
+        $json = json_encode($data);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $json,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_COOKIEFILE => '',
+            CURLOPT_COOKIEJAR => '',
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if ($response === false) return null;
+        $decoded = json_decode($response, true);
+        return is_array($decoded) ? $decoded : null;
     }
 }

@@ -15,35 +15,35 @@ class Router
 
     public function dispatch(): void
     {
-        // Публичные страницы (без авторизации)
         if ($this->page === 'login') {
-            $this->renderLoginPage();
-            return;
-        }
-
-        if ($this->page === 'logout') {
-            Auth::logout();
-            header('Location: ' . BASE_URL . '/index.php?page=login');
+            header('Location: ' . AuthClient::getLoginUrl(BASE_URL . '/index.php'));
             exit;
         }
 
-        // Требуем авторизацию для всех остальных страниц
+        if ($this->page === 'logout') {
+            AuthClient::clearCache();
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                $params = session_get_cookie_params();
+                session_destroy();
+                setcookie(session_name(), '', time() - 3600, $params['path'], $params['domain'] ?? '', $params['secure'], $params['httponly']);
+            }
+            header('Location: ' . AuthClient::getLogoutUrl('https://auth.nayanovaacademy.ru/index.php'));
+            exit;
+        }
+
         Auth::requireLogin();
 
-        // Роутинг административных страниц
         if (str_starts_with($this->page, 'admin')) {
             Auth::requireAdmin();
             $this->dispatchAdmin();
             return;
         }
 
-        // API эндпоинты
         if ($this->page === 'api') {
             $this->dispatchApi();
             return;
         }
 
-        // Пользовательские страницы
         $this->dispatchUser();
     }
 
@@ -51,7 +51,6 @@ class Router
     {
         match ($this->page) {
             'admin' => require BASE_PATH . '/admin/index.php',
-            'admin-users' => require BASE_PATH . '/admin/users.php',
             'admin-groups' => require BASE_PATH . '/admin/groups.php',
             'admin-tasks' => require BASE_PATH . '/admin/tasks.php',
             'admin-task-groups' => require BASE_PATH . '/admin/task_groups.php',
@@ -61,7 +60,6 @@ class Router
             'admin-submission-detail' => require BASE_PATH . '/admin/submission_detail.php',
             'admin-import-tasks' => require BASE_PATH . '/admin/import_tasks.php',
             'admin-import-format' => require BASE_PATH . '/admin/import_format.php',
-            'admin-change-password' => require BASE_PATH . '/admin/change_password.php',
             default => $this->render404(),
         };
     }
@@ -94,37 +92,6 @@ class Router
             echo json_encode(['error' => 'Unknown endpoint']);
         }
         exit;
-    }
-
-    private function renderLoginPage(): void
-    {
-        $error = '';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!validateCsrf()) {
-                $error = 'Недействительный CSRF-токен. Пожалуйста, обновите страницу и попробуйте снова.';
-                $pageTitle = 'Вход';
-                ob_start();
-                require BASE_PATH . '/templates/login.php';
-                $content = ob_get_clean();
-                require BASE_PATH . '/templates/layout.php';
-                return;
-            }
-            $login = trim($_POST['login'] ?? '');
-            $password = $_POST['password'] ?? '';
-            $result = Auth::login($login, $password);
-            if ($result['success']) {
-                $redirect = $_SESSION['redirect_after_login'] ?? (BASE_URL . '/index.php');
-                unset($_SESSION['redirect_after_login']);
-                header('Location: ' . $redirect);
-                exit;
-            }
-            $error = $result['error'];
-        }
-        $pageTitle = 'Вход';
-        ob_start();
-        require BASE_PATH . '/templates/login.php';
-        $content = ob_get_clean();
-        require BASE_PATH . '/templates/layout.php';
     }
 
     private function render404(): void
