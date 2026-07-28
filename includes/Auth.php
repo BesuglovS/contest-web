@@ -19,7 +19,13 @@ class Auth
     public static function getUserId(): ?int
     {
         $user = AuthClient::check();
-        return $user['id'] ?? null;
+        if (!$user || empty($user['login'])) return null;
+
+        $db = Database::getInstance();
+        $stmt = $db->prepare("SELECT id FROM users WHERE login = ?");
+        $stmt->execute([$user['login']]);
+        $row = $stmt->fetch();
+        return $row ? (int) $row['id'] : null;
     }
 
     public static function getUserName(): ?string

@@ -282,35 +282,62 @@ class Database
         $remoteIds = [];
         $synced = 0;
 
-        $stmtInsert = $db->prepare(
-            "INSERT INTO users (id, login, display_name, is_admin, created_at)
-             VALUES (?, ?, ?, ?, ?)
-             ON CONFLICT(id) DO UPDATE SET
-               login = excluded.login,
-               display_name = excluded.display_name,
-               is_admin = excluded.is_admin,
-               created_at = excluded.created_at"
-        );
+        $db->beginTransaction();
 
-        foreach ($data['users'] as $user) {
-            $id = (int) $user['id'];
-            $remoteIds[] = $id;
-            $stmtInsert->execute([
-                $id,
-                $user['login'],
-                $user['display_name'],
-                (int) ($user['is_admin'] ?? 0),
-                $user['created_at'] ?? gmdate('Y-m-d H:i:s'),
-            ]);
-            $synced++;
-        }
+        try {
+            foreach ($data['users'] as $user) {
+                $id = (int) $user['id'];
+                $login = $user['login'];
+                $displayName = $user['display_name'];
+                $isAdmin = (int) ($user['is_admin'] ?? 0);
+                $createdAt = $user['created_at'] ?? gmdate('Y-m-d H:i:s');
 
-        $deleted = 0;
-        if (!empty($remoteIds)) {
-            $placeholders = implode(',', array_fill(0, count($remoteIds), '?'));
-            $stmtDelete = $db->prepare("DELETE FROM users WHERE id NOT IN ($placeholders)");
-            $stmtDelete->execute($remoteIds);
-            $deleted = $stmtDelete->rowCount();
+                $existing = $db->prepare("SELECT id FROM users WHERE login = ?");
+                $existing->execute([$login]);
+                $existingRow = $existing->fetch();
+
+                if ($existingRow) {
+                    $existingId = (int) $existingRow['id'];
+                    if ($existingId !== $id) {
+                        $db->prepare("UPDATE OR IGNORE contest_access SET user_id = ? WHERE user_id = ?")
+                           ->execute([$id, $existingId]);
+                        $db->prepare("UPDATE OR IGNORE user_groups SET user_id = ? WHERE user_id = ?")
+                           ->execute([$id, $existingId]);
+                        $db->prepare("UPDATE OR IGNORE submissions SET user_id = ? WHERE user_id = ?")
+                           ->execute([$id, $existingId]);
+                        $db->prepare("UPDATE OR IGNORE rate_limits SET user_id = ? WHERE user_id = ?")
+                           ->execute([$id, $existingId]);
+                        $db->prepare("DELETE FROM users WHERE id = ?")
+                           ->execute([$existingId]);
+                    }
+                }
+
+                $db->prepare(
+                    "INSERT INTO users (id, login, display_name, is_admin, created_at)
+                     VALUES (?, ?, ?, ?, ?)
+                     ON CONFLICT(id) DO UPDATE SET
+                       login = excluded.login,
+                       display_name = excluded.display_name,
+                       is_admin = excluded.is_admin,
+                       created_at = excluded.created_at"
+                )->execute([$id, $login, $displayName, $isAdmin, $createdAt]);
+
+                $remoteIds[] = $id;
+                $synced++;
+            }
+
+            $deleted = 0;
+            if (!empty($remoteIds)) {
+                $placeholders = implode(',', array_fill(0, count($remoteIds), '?'));
+                $stmtDelete = $db->prepare("DELETE FROM users WHERE id NOT IN ($placeholders)");
+                $stmtDelete->execute($remoteIds);
+                $deleted = $stmtDelete->rowCount();
+            }
+
+            $db->commit();
+        } catch (\Exception $e) {
+            $db->rollBack();
+            return ['success' => false, 'error' => $e->getMessage()];
         }
 
         return ['success' => true, 'synced' => $synced, 'deleted' => $deleted];
