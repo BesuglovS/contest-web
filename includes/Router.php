@@ -88,6 +88,8 @@ class Router
             require BASE_PATH . '/api/submit.php';
         } elseif ($endpoint === 'status') {
             require BASE_PATH . '/api/status.php';
+        } elseif ($endpoint === 'contest_progress') {
+            require BASE_PATH . '/api/contest_progress.php';
         } else {
             echo json_encode(['error' => 'Unknown endpoint']);
         }
