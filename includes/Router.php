@@ -15,6 +15,17 @@ class Router
 
     public function dispatch(): void
     {
+        // CORS для API-запросов с python.nayanovaacademy.ru
+        header('Access-Control-Allow-Origin: https://python.nayanovaacademy.ru');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit;
+        }
+
         if ($this->page === 'login') {
             header('Location: ' . AuthClient::getLoginUrl(BASE_URL . '/index.php'));
             exit;
