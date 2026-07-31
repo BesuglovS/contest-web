@@ -49,7 +49,6 @@ contest-web/
 │
 ├── templates/                 # Шаблоны
 │   ├── layout.php             # Основной макет
-│   ├── login.php              # Форма входа
 │   └── admin_nav.php          # Навигация админки
 │
 ├── assets/
@@ -77,10 +76,11 @@ index.php (фронт-контроллер)
     │
     ├── Router.php ─── Определяет страницу и действие
     │       │
-    │       ├── ?page=login        → templates/login.php
+    │       ├── ?page=login        → редирект на auth-web (вход)
+    │       ├── ?page=logout       → редирект на auth-web (выход)
     │       ├── ?page=admin-*      → admin/*.php
-    │       ├── ?page=user-*       → user/*.php
-    │       └── ?page=api          → api/*.php
+    │       ├── ?page=api          → api/*.php (?endpoint=submit|status|contest_progress)
+    │       └── иначе              → user/*.php
     │
     ├── Auth.php ─── Проверка авторизации и роли
     │
@@ -93,29 +93,37 @@ index.php (фронт-контроллер)
 
 - Автоматическое создание БД и таблиц при первом запуске
 - Автоматические миграции (добавление недостающих колонок/индексов)
-- 12 таблиц: `users`, `groups`, `user_groups`, `tasks`, `task_groups`, `task_to_groups`, `tests`, `contests`, `contest_tasks`, `contest_task_groups`, `contest_access`, `submissions`, `submission_test_results`, `settings`
+- 14 таблиц: `groups`, `user_groups`, `tasks`, `task_groups`, `task_to_groups`, `tests`, `contests`, `contest_tasks`, `contest_task_groups`, `contest_access`, `submissions`, `submission_test_results`, `settings`, `rate_limits` (таблицы пользователей нет — см. Auth.php)
 - Подготовленные выражения PDO для защиты от SQL-инъекций
 
 #### Auth.php — Аутентификация и авторизация
 
-- Сессии с флагами `httponly`, `use_only_cookies`
-- Регенерация сессии при входе
-- Роли: `admin`, `user`
+- Единый источник данных о пользователях — сервис `auth.nayanovaacademy.ru` (auth-web)
+- Проверка сессии через auth-web API (`AuthClient::check()`), кэширование в PHP-сессии
+- Роли: `admin`, `user` (флаг `is_admin` приходит из auth-web)
 - CSRF-токены для форм
-- Хэширование паролей через `password_hash()` (bcrypt)
+- Список пользователей для админки и лидерборда запрашивается из `auth-web/api/public_users.php`
 
 #### Router.php — Маршрутизация
 
-Query-string маршрутизация на основе `$_GET['page']`:
+Query-string маршрутизация на основе `$_GET['page']`; для API — `$_GET['endpoint']`:
 
 ```php
+// dispatchAdmin(): match($page)
 match($page) {
-    'login'         => 'templates/login.php',
-    'admin-users'   => 'admin/users.php',
-    'task'          => 'user/task.php',
-    'api-submit'    => 'api/submit.php',
+    'admin'                => 'admin/index.php',
+    'admin-groups'         => 'admin/groups.php',
+    'admin-tasks'          => 'admin/tasks.php',
+    'admin-contests'       => 'admin/contests.php',
+    'admin-submissions'    => 'admin/submissions.php',
     // ...
 }
+
+// dispatchUser(): match($page)
+'home', 'tasks', 'task', 'contests', 'contest', 'submissions',
+'submission-detail', 'leaderboard'
+
+// dispatchApi(): $endpoint = 'submit' | 'status' | 'contest_progress'
 ```
 
 #### Sandbox.php — Песочница для Python-кода
@@ -145,11 +153,12 @@ match($page) {
 
 ### Схема БД
 
+Таблицы пользователей в contest-web нет. Везде, где нужен `user_id`, хранится глобальный id пользователя из auth-web. Имена пользователей подтягиваются из auth-web на лету.
+
 ```
-users ──────────── user_groups ──────────── groups
-   │                    │
-   │                    │
-   └── submissions ─────┘
+user_groups ──────────── groups
+   │
+   └── submissions (user_id из auth-web)
          │
          └── submission_test_results
          
@@ -161,7 +170,7 @@ contests ────── contest_tasks ────── tasks
    │
    ├── contest_task_groups ── task_groups
    │
-   └── contest_access ── users/groups
+   └── contest_access (user_id/group_id)
 ```
 
 ### Безопасность

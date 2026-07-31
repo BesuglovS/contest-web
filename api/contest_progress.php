@@ -37,18 +37,36 @@ if (!$contestId) {
 $userId = Auth::getUserId();
 $db = Database::getInstance();
 
+// Проверка доступа к контесту
+$stmtAccess = $db->prepare("
+    SELECT 1 FROM contest_access ca
+    LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
+    WHERE ca.contest_id = ? AND (ca.user_id = ? OR ug.group_id IS NOT NULL)
+    LIMIT 1
+");
+$stmtAccess->execute([$userId, $contestId, $userId]);
+if (!$stmtAccess->fetch()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Нет доступа к контесту']);
+    exit;
+}
+
 $stmt = $db->prepare("
-    SELECT t.id, t.title
+    SELECT t.id, t.title,
+           MAX(CASE WHEN s.status = 'accepted' THEN 1 ELSE 0 END) AS solved
     FROM contest_tasks ct
     JOIN tasks t ON t.id = ct.task_id
+    LEFT JOIN submissions s
+           ON s.task_id = t.id AND s.contest_id = ct.contest_id AND s.user_id = ?
     WHERE ct.contest_id = ?
+    GROUP BY t.id, t.title
     ORDER BY ct.sort_order
 ");
-$stmt->execute([$contestId]);
+$stmt->execute([$userId, $contestId]);
 $tasks = $stmt->fetchAll();
 
 if (empty($tasks)) {
-    echo json_encode(['completed' => false, 'solved' => 0, 'total' => 0, 'tasks' => []]);
+    echo json_encode(['completed' => true, 'solved' => 0, 'total' => 0, 'tasks' => []]);
     exit;
 }
 
@@ -56,13 +74,7 @@ $taskStatuses = [];
 $solvedCount = 0;
 
 foreach ($tasks as $task) {
-    $stmtCheck = $db->prepare("
-        SELECT 1 FROM submissions
-        WHERE user_id = ? AND task_id = ? AND contest_id = ? AND status = 'accepted'
-        LIMIT 1
-    ");
-    $stmtCheck->execute([$userId, $task['id'], $contestId]);
-    $isSolved = (bool) $stmtCheck->fetch();
+    $isSolved = (bool) $task['solved'];
 
     $taskStatuses[] = [
         'task_id' => (int) $task['id'],

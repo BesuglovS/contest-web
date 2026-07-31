@@ -10,9 +10,8 @@ if (!$submissionId) {
 
 // Получаем данные посылки
 $stmt = $db->prepare("
-    SELECT s.*, u.login, u.display_name, t.title as task_title, c.title as contest_title
+    SELECT s.*, t.title as task_title, c.title as contest_title
     FROM submissions s
-    INNER JOIN users u ON s.user_id = u.id
     INNER JOIN tasks t ON s.task_id = t.id
     LEFT JOIN contests c ON s.contest_id = c.id
     WHERE s.id = ?
@@ -79,7 +78,12 @@ ob_start();
             <tr>
                 <th>Пользователь</th>
                 <td>
-                    <?= htmlspecialchars($submission['display_name']) ?> (<?= htmlspecialchars($submission['login']) ?>)
+                    <?php
+                    $subUser = Auth::getUserById((int)$submission['user_id']);
+                    $subUserName = $subUser ? ($subUser['display_name'] ?: $subUser['login']) : ('Пользователь #' . $submission['user_id']);
+                    ?>
+                    <?= htmlspecialchars($subUserName) ?>
+                    <?php if ($subUser): ?> (<?= htmlspecialchars($subUser['login']) ?>)<?php endif; ?>
                     <a href="?page=admin-submissions&user_id=<?= $submission['user_id'] ?>" title="Все решения этого пользователя" style="text-decoration:none; margin-left:6px;">🔍</a>
                 </td>
             </tr>

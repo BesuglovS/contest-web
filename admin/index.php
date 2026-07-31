@@ -2,42 +2,15 @@
 $pageTitle = 'Администрирование';
 $db = Database::getInstance();
 
-$syncMessage = '';
-$syncError = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'sync_users') {
-        if (!validateCsrf()) {
-            $syncError = 'Недействительный CSRF-токен';
-        } else {
-            $result = Database::syncUsers();
-            if ($result['success']) {
-                $syncMessage = 'Синхронизировано: ' . $result['synced'] . ', удалено: ' . $result['deleted'];
-            } else {
-                $syncError = $result['error'];
-            }
-        }
-    }
-}
-
-$userCount = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-if ($userCount == 0) {
-    $result = Database::syncUsers();
-    if ($result['success']) {
-        $syncMessage = 'Автосинхронизация: загружено ' . $result['synced'] . ' пользователей';
-        $userCount = $result['synced'];
-    }
-}
-
 $stats = $db->query("
     SELECT
-        (SELECT COUNT(*) FROM users) as users,
         (SELECT COUNT(*) FROM groups) as groups,
         (SELECT COUNT(*) FROM tasks) as tasks,
         (SELECT COUNT(*) FROM task_groups) as task_groups,
         (SELECT COUNT(*) FROM contests) as contests,
         (SELECT COUNT(*) FROM submissions) as submissions
 ")->fetch();
+$stats['users'] = count(Auth::getAllUsers());
 
 ob_start();
 ?>
@@ -78,21 +51,8 @@ ob_start();
     <p style="color: var(--text-muted); margin-bottom: 16px;">
         Управление пользователями осуществляется через
         <a href="https://auth.nayanovaacademy.ru/index.php?page=admin-users" target="_blank">панель авторизации</a>.
+        Единый источник данных о пользователях — сервис auth.nayanovaacademy.ru.
     </p>
-
-    <?php if ($syncMessage): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($syncMessage) ?></div>
-    <?php endif; ?>
-
-    <?php if ($syncError): ?>
-        <div class="alert alert-error"><?= htmlspecialchars($syncError) ?></div>
-    <?php endif; ?>
-
-    <form method="POST">
-        <?= csrfField() ?>
-        <input type="hidden" name="action" value="sync_users">
-        <button type="submit" class="btn btn-primary">Синхронизировать пользователей</button>
-    </form>
 </div>
 
 <?php

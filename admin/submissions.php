@@ -133,7 +133,6 @@ $offset = ($pageNum - 1) * $perPage;
 
 // Подсчёт общего количества
 $countSql = "SELECT COUNT(*) FROM submissions s
-        INNER JOIN users u ON s.user_id = u.id
         INNER JOIN tasks t ON s.task_id = t.id";
 if ($where) {
     $countSql .= " WHERE " . implode(" AND ", $where);
@@ -143,9 +142,8 @@ $stmt->execute($params);
 $totalCount = (int)$stmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalCount / $perPage));
 
-$sql = "SELECT s.*, u.login, u.display_name, t.title as task_title
+$sql = "SELECT s.*, t.title as task_title
         FROM submissions s
-        INNER JOIN users u ON s.user_id = u.id
         INNER JOIN tasks t ON s.task_id = t.id";
 if ($where) {
     $sql .= " WHERE " . implode(" AND ", $where);
@@ -158,6 +156,10 @@ $submissions = $stmt->fetchAll() ?: [];
 
 $tasks = $db->query("SELECT id, title FROM tasks ORDER BY title")->fetchAll();
 $users = Auth::getAllUsers();
+$userNames = [];
+foreach ($users as $u) {
+    $userNames[(int)$u['id']] = $u['display_name'] ?: $u['login'];
+}
 $contests = $db->query("SELECT id, title FROM contests ORDER BY title")->fetchAll();
 
 ob_start();
@@ -315,7 +317,7 @@ if ($filterContest !== '') {
         <tr>
             <td><?= $s['id'] ?></td>
             <td class="cell-with-filter">
-                <?= htmlspecialchars($s['display_name']) ?>
+                <?= htmlspecialchars($userNames[(int)$s['user_id']] ?? 'Пользователь #' . $s['user_id']) ?>
                 <a class="filter-icon" href="?page=admin-submissions<?php
                     $params = array_merge($filterParams, ['user_id' => $s['user_id']]);
                     foreach ($params as $k => $v) echo '&' . $k . '=' . urlencode($v);

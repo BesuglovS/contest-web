@@ -78,9 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
 
-                $stmt = $db->prepare("SELECT id, login, display_name FROM users WHERE login = ?");
-                $stmt->execute([$login]);
-                $user = $stmt->fetch();
+                $user = Auth::getUserByLogin($login);
 
                 if (!$user) {
                     $bulkGroupResults['failed'][] = "Строка " . ($lineNum + 1) . ": пользователь '" . htmlspecialchars($login) . "' не найден";
@@ -117,9 +115,25 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$groupId]);
     $editGroup = $stmt->fetch();
 
-$stmt = $db->prepare("SELECT u.* FROM users u INNER JOIN user_groups ug ON u.id = ug.user_id WHERE ug.group_id = ? ORDER BY u.login");
+$stmt = $db->prepare("SELECT user_id FROM user_groups WHERE group_id = ? ORDER BY user_id");
     $stmt->execute([$groupId]);
-    $groupUsers = $stmt->fetchAll() ?: [];
+    $groupUserIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+    $usersById = [];
+    foreach ($allUsers as $u) {
+        $usersById[(int)$u['id']] = $u;
+    }
+
+    $groupUsers = [];
+    foreach ($groupUserIds as $gid) {
+        $uid = (int)$gid;
+        if (!isset($usersById[$uid])) continue;
+        $groupUsers[] = [
+            'id' => $uid,
+            'login' => $usersById[$uid]['login'],
+            'display_name' => $usersById[$uid]['display_name'],
+        ];
+    }
 }
 
 ob_start();

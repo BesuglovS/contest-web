@@ -40,15 +40,35 @@ if (empty($tasks)) {
 $taskIds = array_column($tasks, 'task_id');
 
 // Получаем всех участников (пользователей, имеющих доступ к контесту)
-$stmt = $db->prepare("SELECT DISTINCT u.id, u.login, u.display_name
-    FROM users u
-    LEFT JOIN contest_access ca_user ON ca_user.contest_id = ? AND ca_user.user_id = u.id
-    LEFT JOIN user_groups ug ON ug.user_id = u.id
-    LEFT JOIN contest_access ca_group ON ca_group.contest_id = ? AND ca_group.group_id = ug.group_id
-    WHERE ca_user.user_id IS NOT NULL OR ca_group.group_id IS NOT NULL
-    ORDER BY u.display_name, u.login");
+$stmt = $db->prepare("SELECT DISTINCT ca.user_id AS id FROM contest_access ca
+    WHERE ca.contest_id = ? AND ca.user_id IS NOT NULL
+    UNION
+    SELECT DISTINCT ug.user_id AS id FROM user_groups ug
+    INNER JOIN contest_access ca ON ca.group_id = ug.group_id
+    WHERE ca.contest_id = ?");
 $stmt->execute([$contestId, $contestId]);
-$participants = $stmt->fetchAll() ?: [];
+$participantIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+// Получаем данные участников из auth-web
+$usersById = [];
+foreach (Auth::getAllUsers() as $u) {
+    $usersById[(int)$u['id']] = $u;
+}
+
+$participants = [];
+foreach ($participantIds as $uid) {
+    $uid = (int)$uid;
+    if (!isset($usersById[$uid])) continue;
+    $participants[] = [
+        'id' => $uid,
+        'login' => $usersById[$uid]['login'],
+        'display_name' => $usersById[$uid]['display_name'] ?: $usersById[$uid]['login'],
+    ];
+}
+
+usort($participants, function ($a, $b) {
+    return strcmp($a['display_name'], $b['display_name']) ?: strcmp($a['login'], $b['login']);
+});
 
 if (empty($participants)) {
     echo '<p>Нет участников с доступом к контесту.</p>';
@@ -87,10 +107,12 @@ $participantStats = [];
 foreach ($participants as $p) {
     $uid = $p['id'];
     $solved = 0;
+    $attempts = 0;
     $hasAttempts = false;
     foreach ($taskIds as $tid) {
         if (isset($userResults[$uid][$tid])) {
             $hasAttempts = true;
+            $attempts += $userResults[$uid][$tid]['attempts'];
             if ($userResults[$uid][$tid]['solved']) {
                 $solved++;
             }
@@ -102,14 +124,18 @@ foreach ($participants as $p) {
     $participantStats[] = [
         'user' => $p,
         'solved' => $solved,
+        'attempts' => $attempts,
         'total' => count($taskIds),
     ];
 }
 
-// Сортировка: по убыванию решённых задач, затем по имени
+// Сортировка: по убыванию решённых задач, затем по возрастанию попыток, затем по имени
 usort($participantStats, function ($a, $b) {
     if ($a['solved'] !== $b['solved']) {
         return $b['solved'] - $a['solved'];
+    }
+    if ($a['attempts'] !== $b['attempts']) {
+        return $a['attempts'] - $b['attempts'];
     }
     return strcmp($a['user']['display_name'], $b['user']['display_name']);
 });

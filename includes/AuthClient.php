@@ -29,6 +29,26 @@ class AuthClient
     }
 
     /**
+     * Получить список всех пользователей из auth-web (без паролей).
+     * Кэшируется в сессии на cacheTtl.
+     */
+    public static function getUsers(bool $force = false): ?array
+    {
+        $cached = self::getCachedUsers();
+        if ($cached !== null && !$force) {
+            return $cached;
+        }
+
+        $response = self::apiGet('/api/public_users.php');
+        if ($response === null || !isset($response['users'])) {
+            return null;
+        }
+
+        self::setCachedUsers($response['users']);
+        return $response['users'];
+    }
+
+    /**
      * Получить URL для входа с редиректом обратно
      */
     public static function getLoginUrl(string $returnUrl): string
@@ -86,6 +106,9 @@ class AuthClient
         if (time() - $cachedAt > self::$cacheTtl) {
             return null;
         }
+        if (($_SESSION['auth_cookie_hash'] ?? '') !== self::getCookieHash()) {
+            return null;
+        }
         return $_SESSION['auth_user'];
     }
 
@@ -93,10 +116,34 @@ class AuthClient
     {
         $_SESSION['auth_user'] = $user;
         $_SESSION['auth_user_cached_at'] = time();
+        $_SESSION['auth_cookie_hash'] = self::getCookieHash();
+    }
+
+    private static function getCachedUsers(): ?array
+    {
+        if (empty($_SESSION['auth_users'])) {
+            return null;
+        }
+        $cachedAt = $_SESSION['auth_users_cached_at'] ?? 0;
+        if (time() - $cachedAt > self::$cacheTtl) {
+            return null;
+        }
+        return $_SESSION['auth_users'];
+    }
+
+    private static function setCachedUsers(array $users): void
+    {
+        $_SESSION['auth_users'] = $users;
+        $_SESSION['auth_users_cached_at'] = time();
     }
 
     public static function clearCache(): void
     {
-        unset($_SESSION['auth_user'], $_SESSION['auth_user_cached_at']);
+        unset($_SESSION['auth_user'], $_SESSION['auth_user_cached_at'], $_SESSION['auth_users'], $_SESSION['auth_users_cached_at'], $_SESSION['auth_cookie_hash']);
+    }
+
+    private static function getCookieHash(): string
+    {
+        return hash('sha256', $_COOKIE['auth_session'] ?? '');
     }
 }

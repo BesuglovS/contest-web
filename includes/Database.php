@@ -47,15 +47,6 @@ class Database
         $db = self::getInstance();
 
         $db->exec("
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                login TEXT UNIQUE NOT NULL,
-                display_name TEXT NOT NULL,
-                password_hash TEXT NOT NULL,
-                is_admin INTEGER NOT NULL DEFAULT 0,
-                created_at DATETIME NOT NULL DEFAULT (datetime('now'))
-            );
-
             CREATE TABLE IF NOT EXISTS groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
@@ -66,7 +57,6 @@ class Database
                 user_id INTEGER NOT NULL,
                 group_id INTEGER NOT NULL,
                 PRIMARY KEY (user_id, group_id),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
             );
 
@@ -137,7 +127,6 @@ class Database
                 user_id INTEGER,
                 group_id INTEGER,
                 FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
             );
 
@@ -151,7 +140,6 @@ class Database
                 execution_time REAL DEFAULT 0,
                 lint_errors TEXT DEFAULT NULL,
                 executed_at DATETIME NOT NULL DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE SET NULL
             );
@@ -176,18 +164,9 @@ class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL UNIQUE,
                 timestamps TEXT NOT NULL DEFAULT '[]',
-                updated_at DATETIME NOT NULL DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
             );
         ");
-
-        // Создаём администратора по умолчанию, если пользователей нет
-        $count = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-        if ($count == 0) {
-            $hash = password_hash('admin', PASSWORD_BCRYPT);
-            $stmt = $db->prepare("INSERT INTO users (login, display_name, password_hash, is_admin) VALUES (?, ?, ?, 1)");
-            $stmt->execute(['admin', 'Администратор', $hash]);
-        }
 
         // Автоматическое добавление недостающих колонок и индексов
         self::migrateSchema($db);
@@ -239,107 +218,5 @@ class Database
                 // Индекс уже существует — продолжаем
             }
         }
-    }
-
-    /**
-     * Синхронизировать пользователей из auth-web
-     */
-    public static function syncUsers(): array
-    {
-        $db = self::getInstance();
-        $authUrl = 'https://auth.nayanovaacademy.ru/api/admin_users.php';
-
-        $cookieHeader = '';
-        if (!empty($_COOKIE['auth_session'])) {
-            $cookieHeader = 'auth_session=' . $_COOKIE['auth_session'];
-        }
-
-        $ch = curl_init($authUrl);
-        $opts = [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_FOLLOWLOCATION => false,
-        ];
-        if ($cookieHeader !== '') {
-            $opts[CURLOPT_COOKIE] = $cookieHeader;
-        }
-        curl_setopt_array($ch, $opts);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($response === false || $httpCode !== 200) {
-            return ['success' => false, 'error' => 'Не удалось получить данные из auth-web (HTTP ' . $httpCode . ')'];
-        }
-
-        $data = json_decode($response, true);
-        if (!is_array($data) || empty($data['users'])) {
-            return ['success' => false, 'error' => 'Неверный ответ от auth-web'];
-        }
-
-        $remoteIds = [];
-        $synced = 0;
-
-        $db->beginTransaction();
-
-        try {
-            foreach ($data['users'] as $user) {
-                $id = (int) $user['id'];
-                $login = $user['login'];
-                $displayName = $user['display_name'];
-                $isAdmin = (int) ($user['is_admin'] ?? 0);
-                $createdAt = $user['created_at'] ?? gmdate('Y-m-d H:i:s');
-
-                $existing = $db->prepare("SELECT id FROM users WHERE login = ?");
-                $existing->execute([$login]);
-                $existingRow = $existing->fetch();
-
-                if ($existingRow) {
-                    $existingId = (int) $existingRow['id'];
-                    if ($existingId !== $id) {
-                        $db->prepare("UPDATE OR IGNORE contest_access SET user_id = ? WHERE user_id = ?")
-                           ->execute([$id, $existingId]);
-                        $db->prepare("UPDATE OR IGNORE user_groups SET user_id = ? WHERE user_id = ?")
-                           ->execute([$id, $existingId]);
-                        $db->prepare("UPDATE OR IGNORE submissions SET user_id = ? WHERE user_id = ?")
-                           ->execute([$id, $existingId]);
-                        $db->prepare("UPDATE OR IGNORE rate_limits SET user_id = ? WHERE user_id = ?")
-                           ->execute([$id, $existingId]);
-                        $db->prepare("DELETE FROM users WHERE id = ?")
-                           ->execute([$existingId]);
-                    }
-                }
-
-                $db->prepare(
-                    "INSERT INTO users (id, login, display_name, is_admin, created_at)
-                     VALUES (?, ?, ?, ?, ?)
-                     ON CONFLICT(id) DO UPDATE SET
-                       login = excluded.login,
-                       display_name = excluded.display_name,
-                       is_admin = excluded.is_admin,
-                       created_at = excluded.created_at"
-                )->execute([$id, $login, $displayName, $isAdmin, $createdAt]);
-
-                $remoteIds[] = $id;
-                $synced++;
-            }
-
-            $deleted = 0;
-            if (!empty($remoteIds)) {
-                $placeholders = implode(',', array_fill(0, count($remoteIds), '?'));
-                $stmtDelete = $db->prepare("DELETE FROM users WHERE id NOT IN ($placeholders)");
-                $stmtDelete->execute($remoteIds);
-                $deleted = $stmtDelete->rowCount();
-            }
-
-            $db->commit();
-        } catch (\Exception $e) {
-            $db->rollBack();
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
-
-        return ['success' => true, 'synced' => $synced, 'deleted' => $deleted];
     }
 }

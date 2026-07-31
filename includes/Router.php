@@ -15,17 +15,6 @@ class Router
 
     public function dispatch(): void
     {
-        // CORS для API-запросов с python.nayanovaacademy.ru
-        header('Access-Control-Allow-Origin: https://python.nayanovaacademy.ru');
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
-
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
-            exit;
-        }
-
         if ($this->page === 'login') {
             header('Location: ' . AuthClient::getLoginUrl(BASE_URL . '/index.php'));
             exit;
@@ -39,6 +28,16 @@ class Router
                 setcookie(session_name(), '', time() - 3600, $params['path'], $params['domain'] ?? '', $params['secure'], $params['httponly']);
             }
             header('Location: ' . AuthClient::getLogoutUrl('https://auth.nayanovaacademy.ru/index.php'));
+            exit;
+        }
+
+        // OPTIONS-префлайт для кросс-доменных API-запросов (не требует авторизации)
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            header('Access-Control-Allow-Origin: https://python.nayanovaacademy.ru');
+            header('Access-Control-Allow-Credentials: true');
+            header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type');
+            http_response_code(200);
             exit;
         }
 

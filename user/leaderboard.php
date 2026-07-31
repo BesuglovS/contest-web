@@ -36,19 +36,30 @@ if ($contestId) {
         // Подсчитываем для каждого пользователя количество уникальных решённых задач в контесте
         $stmt = $db->prepare("
             SELECT
-                u.id AS user_id,
-                u.display_name,
+                s.user_id,
                 COUNT(DISTINCT s.task_id) AS solved_count,
                 MAX(s.executed_at) AS last_solved_at
-            FROM users u
-            INNER JOIN submissions s ON s.user_id = u.id
+            FROM submissions s
             INNER JOIN contest_tasks ct ON ct.task_id = s.task_id AND ct.contest_id = s.contest_id
             WHERE s.status = 'accepted' AND s.contest_id = ?
-            GROUP BY u.id
+            GROUP BY s.user_id
             ORDER BY solved_count DESC, last_solved_at ASC
         ");
         $stmt->execute([$contestId]);
         $leaderboard = $stmt->fetchAll() ?: [];
+
+        // Добавляем display_name из auth-web
+        if ($leaderboard) {
+            $usersById = [];
+            foreach (Auth::getAllUsers() as $u) {
+                $usersById[(int)$u['id']] = $u;
+            }
+            foreach ($leaderboard as &$entry) {
+                $u = $usersById[(int)$entry['user_id']] ?? null;
+                $entry['display_name'] = $u ? ($u['display_name'] ?: $u['login']) : ('Пользователь #' . $entry['user_id']);
+            }
+            unset($entry);
+        }
 
         // Получаем общее количество задач в контесте
         $stmt = $db->prepare("SELECT COUNT(*) FROM contest_tasks WHERE contest_id = ?");
