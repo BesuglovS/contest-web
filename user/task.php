@@ -24,13 +24,14 @@ if (!$task) {
 // Проверяем доступ к задаче: пользователь должен иметь доступ к контесту,
 // в которое входит эта задача, либо задача должна быть запрошена в контексте контеста
 $userId = Auth::getUserId();
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 $stmt = $db->prepare("SELECT 1 FROM tasks t
     INNER JOIN contest_tasks ct ON t.id = ct.task_id
     INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
-    LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
-    WHERE t.id = ? AND (ca.user_id = ? OR ug.group_id IS NOT NULL)
+    WHERE t.id = ? AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
     LIMIT 1");
-$stmt->execute([$userId, $taskId, $userId]);
+$stmt->execute(array_merge([$taskId, $userId], $userGroupIds));
 $hasAccess = (bool) $stmt->fetch();
 
 if (!$hasAccess) {

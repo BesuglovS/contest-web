@@ -7,7 +7,6 @@
 $base = defined('BASE_URL') ? BASE_URL : '';
 $navItems = [
     'dashboard'      => ['label' => 'Дашборд',        'href' => "$base/index.php?page=admin"],
-    'groups'         => ['label' => 'Группы',          'href' => "$base/index.php?page=admin-groups"],
     'tasks'          => ['label' => 'Задачи',          'href' => "$base/index.php?page=admin-tasks"],
     'task_groups'    => ['label' => 'Группы задач',    'href' => "$base/index.php?page=admin-task-groups"],
     'contests'       => ['label' => 'Контесты',        'href' => "$base/index.php?page=admin-contests"],
@@ -21,4 +20,5 @@ $navItems = [
         <a href="<?= $item['href'] ?>"<?= ($activePage ?? '') === $key ? ' class="active"' : '' ?>><?= htmlspecialchars($item['label']) ?></a>
     <?php endforeach; ?>
     <a href="https://auth.nayanovaacademy.ru/index.php?page=admin-users" target="_blank" class="external">Пользователи ↗</a>
+    <a href="https://auth.nayanovaacademy.ru/index.php?page=admin-groups" target="_blank" class="external">Группы ↗</a>
 </div>

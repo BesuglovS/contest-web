@@ -36,15 +36,16 @@ if (!$contestId) {
 
 $userId = Auth::getUserId();
 $db = Database::getInstance();
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
 // Проверка доступа к контесту
 $stmtAccess = $db->prepare("
     SELECT 1 FROM contest_access ca
-    LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
-    WHERE ca.contest_id = ? AND (ca.user_id = ? OR ug.group_id IS NOT NULL)
+    WHERE ca.contest_id = ? AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
     LIMIT 1
 ");
-$stmtAccess->execute([$userId, $contestId, $userId]);
+$stmtAccess->execute(array_merge([$contestId, $userId], $userGroupIds));
 if (!$stmtAccess->fetch()) {
     http_response_code(403);
     echo json_encode(['error' => 'Нет доступа к контесту']);

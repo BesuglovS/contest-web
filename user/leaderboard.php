@@ -7,13 +7,15 @@ require_once BASE_PATH . '/includes/labels.php';
 // Определяем активный контест: из GET-параметра или берём ближайший активный
 $contestId = isset($_GET['contest_id']) ? (int)$_GET['contest_id'] : null;
 
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
+
 // Список контестов, к которым у пользователя есть доступ
 $stmt = $db->prepare("SELECT DISTINCT c.* FROM contests c
     LEFT JOIN contest_access ca ON c.id = ca.contest_id
-    LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
-    WHERE ca.user_id = ? OR ug.group_id IS NOT NULL
+    WHERE ca.user_id = ? OR ca.group_id IN ($groupPlaceholders)
     ORDER BY c.start_time DESC");
-$stmt->execute([$userId, $userId]);
+$stmt->execute(array_merge([$userId], $userGroupIds));
 $availableContests = $stmt->fetchAll() ?: [];
 
 // Если contest_id не передан, берём первый доступный
@@ -26,10 +28,9 @@ $leaderboard = [];
 if ($contestId) {
     // Проверяем доступ к контесту
     $stmt = $db->prepare("SELECT 1 FROM contest_access ca
-        LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
-        WHERE ca.contest_id = ? AND (ca.user_id = ? OR ug.group_id IS NOT NULL)
+        WHERE ca.contest_id = ? AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
         LIMIT 1");
-    $stmt->execute([$userId, $contestId, $userId]);
+    $stmt->execute(array_merge([$contestId, $userId], $userGroupIds));
     $hasAccess = (bool)$stmt->fetch();
 
     if ($hasAccess) {

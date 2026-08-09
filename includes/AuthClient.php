@@ -49,6 +49,47 @@ class AuthClient
     }
 
     /**
+     * Получить список всех групп (классов) из auth-web.
+     * Кэшируется в сессии на cacheTtl.
+     */
+    public static function getGroups(bool $force = false): ?array
+    {
+        $cached = self::getCachedGroups();
+        if ($cached !== null && !$force) {
+            return $cached;
+        }
+
+        $response = self::apiGet('/api/groups.php');
+        if ($response === null || !isset($response['groups'])) {
+            return null;
+        }
+
+        self::setCachedGroups($response['groups']);
+        return $response['groups'];
+    }
+
+    /**
+     * Получить принадлежность пользователей к группам из auth-web.
+     * Возвращает список пар ['user_id' => N, 'group_id' => N].
+     * Кэшируется в сессии на cacheTtl.
+     */
+    public static function getMemberships(bool $force = false): ?array
+    {
+        $cached = self::getCachedMemberships();
+        if ($cached !== null && !$force) {
+            return $cached;
+        }
+
+        $response = self::apiGet('/api/user_groups.php');
+        if ($response === null || !isset($response['memberships'])) {
+            return null;
+        }
+
+        self::setCachedMemberships($response['memberships']);
+        return $response['memberships'];
+    }
+
+    /**
      * Получить URL для входа с редиректом обратно
      */
     public static function getLoginUrl(string $returnUrl): string
@@ -137,9 +178,55 @@ class AuthClient
         $_SESSION['auth_users_cached_at'] = time();
     }
 
+    private static function getCachedGroups(): ?array
+    {
+        if (empty($_SESSION['auth_groups'])) {
+            return null;
+        }
+        $cachedAt = $_SESSION['auth_groups_cached_at'] ?? 0;
+        if (time() - $cachedAt > self::$cacheTtl) {
+            return null;
+        }
+        return $_SESSION['auth_groups'];
+    }
+
+    private static function setCachedGroups(array $groups): void
+    {
+        $_SESSION['auth_groups'] = $groups;
+        $_SESSION['auth_groups_cached_at'] = time();
+    }
+
+    private static function getCachedMemberships(): ?array
+    {
+        if (empty($_SESSION['auth_memberships'])) {
+            return null;
+        }
+        $cachedAt = $_SESSION['auth_memberships_cached_at'] ?? 0;
+        if (time() - $cachedAt > self::$cacheTtl) {
+            return null;
+        }
+        return $_SESSION['auth_memberships'];
+    }
+
+    private static function setCachedMemberships(array $memberships): void
+    {
+        $_SESSION['auth_memberships'] = $memberships;
+        $_SESSION['auth_memberships_cached_at'] = time();
+    }
+
     public static function clearCache(): void
     {
-        unset($_SESSION['auth_user'], $_SESSION['auth_user_cached_at'], $_SESSION['auth_users'], $_SESSION['auth_users_cached_at'], $_SESSION['auth_cookie_hash']);
+        unset(
+            $_SESSION['auth_user'],
+            $_SESSION['auth_user_cached_at'],
+            $_SESSION['auth_users'],
+            $_SESSION['auth_users_cached_at'],
+            $_SESSION['auth_groups'],
+            $_SESSION['auth_groups_cached_at'],
+            $_SESSION['auth_memberships'],
+            $_SESSION['auth_memberships_cached_at'],
+            $_SESSION['auth_cookie_hash']
+        );
     }
 
     private static function getCookieHash(): string

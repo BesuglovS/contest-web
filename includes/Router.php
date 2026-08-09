@@ -61,7 +61,6 @@ class Router
     {
         match ($this->page) {
             'admin' => require BASE_PATH . '/admin/index.php',
-            'admin-groups' => require BASE_PATH . '/admin/groups.php',
             'admin-tasks' => require BASE_PATH . '/admin/tasks.php',
             'admin-task-groups' => require BASE_PATH . '/admin/task_groups.php',
             'admin-contests' => require BASE_PATH . '/admin/contests.php',

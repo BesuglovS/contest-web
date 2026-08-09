@@ -4,13 +4,13 @@ $db = Database::getInstance();
 
 $stats = $db->query("
     SELECT
-        (SELECT COUNT(*) FROM groups) as groups,
         (SELECT COUNT(*) FROM tasks) as tasks,
         (SELECT COUNT(*) FROM task_groups) as task_groups,
         (SELECT COUNT(*) FROM contests) as contests,
         (SELECT COUNT(*) FROM submissions) as submissions
 ")->fetch();
 $stats['users'] = count(Auth::getAllUsers());
+$stats['groups'] = count(Auth::getAllGroups());
 
 ob_start();
 ?>

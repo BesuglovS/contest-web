@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $contests = $db->query("SELECT * FROM contests ORDER BY id DESC")->fetchAll();
 $allTasks = $db->query("SELECT id, title FROM tasks ORDER BY title")->fetchAll();
 $allTaskGroups = $db->query("SELECT id, name FROM task_groups ORDER BY name")->fetchAll();
-$allGroups = $db->query("SELECT id, name FROM groups ORDER BY name")->fetchAll();
+$allGroups = Auth::getAllGroups();
 $allUsers = Auth::getAllUsers();
 
 $editContest = null;

@@ -1,7 +1,6 @@
 <?php
 $pageTitle = 'Контест';
 $db = Database::getInstance();
-$userId = Auth::getUserId();
 
 $contestId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
@@ -9,6 +8,10 @@ if (!$contestId) {
     header('Location: ?page=home');
     exit;
 }
+
+$userId = Auth::getUserId();
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
 // Получаем информацию о контесте
 $stmt = $db->prepare("SELECT * FROM contests WHERE id = ?");
@@ -22,18 +25,14 @@ if (!$contest) {
     exit;
 }
 
-// Проверяем доступ
-$stmt = $db->prepare("SELECT 1 FROM contest_access WHERE contest_id = ? AND user_id = ?");
-$stmt->execute([$contestId, $userId]);
-$hasDirectAccess = (bool) $stmt->fetch();
+// Проверяем доступ (напрямую или через группу/класс)
+$stmt = $db->prepare("SELECT 1 FROM contest_access
+    WHERE contest_id = ? AND (user_id = ? OR group_id IN ($groupPlaceholders))
+    LIMIT 1");
+$stmt->execute(array_merge([$contestId, $userId], $userGroupIds));
+$hasAccess = (bool) $stmt->fetch();
 
-$stmt = $db->prepare("SELECT 1 FROM contest_access ca
-    INNER JOIN user_groups ug ON ca.group_id = ug.group_id
-    WHERE ca.contest_id = ? AND ug.user_id = ?");
-$stmt->execute([$contestId, $userId]);
-$hasGroupAccess = (bool) $stmt->fetch();
-
-if (!$hasDirectAccess && !$hasGroupAccess) {
+if (!$hasAccess) {
     ob_start();
     ?>
     <div class="access-denied">

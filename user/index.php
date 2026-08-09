@@ -3,6 +3,8 @@ $pageTitle = 'Главная';
 $db = Database::getInstance();
 
 $userId = Auth::getUserId();
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
 // Статистика пользователя
 $stmt = $db->prepare("SELECT COUNT(*) FROM submissions WHERE user_id=?");
@@ -17,18 +19,17 @@ $solvedCount = $stmt->fetchColumn();
 $stmt = $db->prepare("SELECT COUNT(DISTINCT t.id) FROM tasks t
     INNER JOIN contest_tasks ct ON t.id = ct.task_id
     INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
-    LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
-    WHERE ca.user_id = ? OR ug.group_id IS NOT NULL");
-$stmt->execute([$userId, $userId]);
+    WHERE ca.user_id = ? OR ca.group_id IN ($groupPlaceholders)");
+$stmt->execute(array_merge([$userId], $userGroupIds));
 $totalTasks = $stmt->fetchColumn();
 
 // Ближайшие контесты
 $stmt = $db->prepare("SELECT DISTINCT c.* FROM contests c
     LEFT JOIN contest_access ca ON c.id = ca.contest_id
-    WHERE (ca.user_id = ? OR ca.group_id IN (SELECT group_id FROM user_groups WHERE user_id=?))
+    WHERE (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
     AND (c.end_time IS NULL OR c.end_time > datetime('now'))
     ORDER BY c.start_time LIMIT 5");
-$stmt->execute([$userId, $userId]);
+$stmt->execute(array_merge([$userId], $userGroupIds));
 $contests = $stmt->fetchAll() ?: [];
 
 ob_start();

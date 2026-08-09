@@ -3,6 +3,8 @@ $pageTitle = 'Мои решения';
 $db = Database::getInstance();
 
 $userId = Auth::getUserId();
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
 // Фильтры
 $filterTask = $_GET['task_id'] ?? '';
@@ -56,10 +58,9 @@ unset($s);
 $stmt = $db->prepare("SELECT DISTINCT t.id, t.title FROM tasks t
     INNER JOIN contest_tasks ct ON t.id = ct.task_id
     INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
-    LEFT JOIN user_groups ug ON ug.user_id = ? AND ca.group_id = ug.group_id
-    WHERE ca.user_id = ? OR ug.group_id IS NOT NULL
+    WHERE ca.user_id = ? OR ca.group_id IN ($groupPlaceholders)
     ORDER BY t.title");
-$stmt->execute([$userId, $userId]);
+$stmt->execute(array_merge([$userId], $userGroupIds));
 $tasks = $stmt->fetchAll() ?: [];
 
 $statusLabels = [

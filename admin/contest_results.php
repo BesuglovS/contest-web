@@ -39,15 +39,19 @@ if (empty($tasks)) {
 
 $taskIds = array_column($tasks, 'task_id');
 
-// Получаем всех участников (пользователей, имеющих доступ к контесту)
-$stmt = $db->prepare("SELECT DISTINCT ca.user_id AS id FROM contest_access ca
-    WHERE ca.contest_id = ? AND ca.user_id IS NOT NULL
-    UNION
-    SELECT DISTINCT ug.user_id AS id FROM user_groups ug
-    INNER JOIN contest_access ca ON ca.group_id = ug.group_id
-    WHERE ca.contest_id = ?");
-$stmt->execute([$contestId, $contestId]);
+// Получаем всех участников: прямые назначения + пользователи из групп (группы — из auth-web)
+$stmt = $db->prepare("SELECT DISTINCT user_id FROM contest_access WHERE contest_id = ? AND user_id IS NOT NULL");
+$stmt->execute([$contestId]);
 $participantIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+$stmt = $db->prepare("SELECT DISTINCT group_id FROM contest_access WHERE contest_id = ? AND group_id IS NOT NULL");
+$stmt->execute([$contestId]);
+$groupIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+if ($groupIds) {
+    $groupUsers = Auth::getGroupUsersByGroupIds(array_map('intval', $groupIds));
+    $participantIds = array_values(array_unique(array_merge($participantIds, $groupUsers)));
+}
 
 // Получаем данные участников из auth-web
 $usersById = [];

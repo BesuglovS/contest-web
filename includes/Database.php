@@ -47,19 +47,6 @@ class Database
         $db = self::getInstance();
 
         $db->exec("
-            CREATE TABLE IF NOT EXISTS groups (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT DEFAULT ''
-            );
-
-            CREATE TABLE IF NOT EXISTS user_groups (
-                user_id INTEGER NOT NULL,
-                group_id INTEGER NOT NULL,
-                PRIMARY KEY (user_id, group_id),
-                FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
-            );
-
             CREATE TABLE IF NOT EXISTS task_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -126,8 +113,7 @@ class Database
                 contest_id INTEGER NOT NULL,
                 user_id INTEGER,
                 group_id INTEGER,
-                FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE,
-                FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+                FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS submissions (
@@ -169,7 +155,50 @@ class Database
         ");
 
         // Автоматическое добавление недостающих колонок и индексов
+        self::migrateLegacyClassTables($db);
         self::migrateSchema($db);
+    }
+
+    /**
+     * Миграция после переноса групп (классов) в auth-web.
+     * Удаляет локальные таблицы groups/user_groups и внешний ключ
+     * contest_access.group_id -> groups(id), т.к. группы теперь
+     * хранятся и редактируются только в auth.nayanovaacademy.ru.
+     */
+    private static function migrateLegacyClassTables(PDO $db): void
+    {
+        $tables = [];
+        foreach ($db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")->fetchAll() as $row) {
+            $tables[$row['name']] = true;
+        }
+
+        if (!isset($tables['groups']) && !isset($tables['user_groups'])) {
+            return; // Уже мигрировано
+        }
+
+        if (isset($tables['contest_access'])) {
+            // Пересоздаём contest_access без внешнего ключа на groups
+            $db->exec('PRAGMA foreign_keys = OFF');
+            try {
+                $db->exec('DROP TABLE IF EXISTS _legacy_contest_access');
+                $db->exec('ALTER TABLE contest_access RENAME TO _legacy_contest_access');
+                $db->exec('CREATE TABLE contest_access (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    contest_id INTEGER NOT NULL,
+                    user_id INTEGER,
+                    group_id INTEGER,
+                    FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE
+                )');
+                $db->exec('INSERT INTO contest_access (id, contest_id, user_id, group_id)
+                    SELECT id, contest_id, user_id, group_id FROM _legacy_contest_access');
+                $db->exec('DROP TABLE _legacy_contest_access');
+            } finally {
+                $db->exec('PRAGMA foreign_keys = ON');
+            }
+        }
+
+        $db->exec('DROP TABLE IF EXISTS user_groups');
+        $db->exec('DROP TABLE IF EXISTS groups');
     }
 
     /**
@@ -207,7 +236,6 @@ class Database
             'idx_tests_task_id'            => 'CREATE INDEX IF NOT EXISTS idx_tests_task_id ON tests(task_id)',
             'idx_contest_access_user'      => 'CREATE INDEX IF NOT EXISTS idx_contest_access_user ON contest_access(user_id)',
             'idx_contest_access_group'     => 'CREATE INDEX IF NOT EXISTS idx_contest_access_group ON contest_access(group_id)',
-            'idx_user_groups_user'         => 'CREATE INDEX IF NOT EXISTS idx_user_groups_user ON user_groups(user_id)',
             'idx_task_to_groups_group'     => 'CREATE INDEX IF NOT EXISTS idx_task_to_groups_group ON task_to_groups(task_group_id)',
         ];
 

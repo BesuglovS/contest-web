@@ -2,13 +2,15 @@
 $pageTitle = 'Контесты';
 $db = Database::getInstance();
 $userId = Auth::getUserId();
+$userGroupIds = Auth::getUserGroupIds($userId);
+$groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
 // Получаем все доступные контесты
 $stmt = $db->prepare("SELECT DISTINCT c.* FROM contests c
     LEFT JOIN contest_access ca ON c.id = ca.contest_id
-    WHERE (ca.user_id = ? OR ca.group_id IN (SELECT group_id FROM user_groups WHERE user_id=?))
+    WHERE (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
     ORDER BY c.start_time DESC");
-$stmt->execute([$userId, $userId]);
+$stmt->execute(array_merge([$userId], $userGroupIds));
 $contests = $stmt->fetchAll() ?: [];
 
 ob_start();
