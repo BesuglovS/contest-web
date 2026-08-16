@@ -1,6 +1,5 @@
-const CACHE_NAME = 'contest-cache-v1';
-const ASSETS_TO_CACHE = [
-    '/index.php',
+const CACHE_NAME = 'contest-cache-v2';
+const STATIC_ASSETS = [
     '/assets/css/style.css?v=5',
     '/assets/js/main.js',
     '/assets/js/editor.js',
@@ -15,7 +14,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(ASSETS_TO_CACHE))
+            .then(cache => cache.addAll(STATIC_ASSETS))
             .then(() => self.skipWaiting())
     );
 });
@@ -36,19 +35,41 @@ self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     if (event.request.url.includes('/api/') || event.request.url.includes('/admin/')) return;
 
-    event.respondWith(
-        caches.match(event.request).then(cached => {
-            const fetchPromise = fetch(event.request).then(response => {
-                if (!response || response.status !== 200 || response.type !== 'basic') {
-                    return response;
-                }
-                const responseClone = response.clone();
-                caches.open(CACHE_NAME).then(cache => {
-                    cache.put(event.request, responseClone);
-                });
-                return response;
-            }).catch(() => cached);
-            return cached || fetchPromise;
-        })
-    );
+    const isNavigation = event.request.mode === 'navigate';
+    const isStaticAsset = STATIC_ASSETS.some(path => event.request.url.includes(path));
+
+    if (isNavigation) {
+        event.respondWith(networkFirst(event.request));
+    } else if (isStaticAsset) {
+        event.respondWith(staleWhileRevalidate(event.request));
+    }
 });
+
+async function networkFirst(request) {
+    try {
+        const response = await fetch(request);
+        if (response && response.status === 200) {
+            const clone = response.clone();
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, clone);
+        }
+        return response;
+    } catch (error) {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        throw error;
+    }
+}
+
+async function staleWhileRevalidate(request) {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+    const fetchPromise = fetch(request).then(response => {
+        if (response && response.status === 200) {
+            const clone = response.clone();
+            cache.put(request, clone);
+        }
+        return response;
+    }).catch(() => cached);
+    return cached || fetchPromise;
+}

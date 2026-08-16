@@ -63,14 +63,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Сохраняем результат каждого теста
                         foreach ($testingResult['test_results'] as $tr) {
+                            $testNumber = $tr instanceof TestResult ? $tr->number : (int)$tr['test_number'];
+                            $testStatus = $tr instanceof TestResult ? $tr->status : $tr['status'];
+                            $testTime = $tr instanceof TestResult ? round($tr->time, 3) : round((float)($tr['time'] ?? 0), 3);
+                            $testMemory = $tr instanceof TestResult ? $tr->memory : (int)($tr['memory'] ?? 0);
+                            $testOutput = $tr instanceof TestResult ? $tr->output : ($tr['output'] ?? '');
+
                             $stmt = $db->prepare("INSERT INTO submission_test_results (submission_id, test_number, status, execution_time, memory_used, output) VALUES (?, ?, ?, ?, ?, ?)");
                             $stmt->execute([
                                 $id,
-                                (int)$tr['test_number'],
-                                $tr['status'],
-                                round((float)($tr['time'] ?? 0), 3),
-                                (int)($tr['memory'] ?? 0),
-                                $tr['output'] ?? ''
+                                $testNumber,
+                                $testStatus,
+                                $testTime,
+                                $testMemory,
+                                $testOutput
                             ]);
                         }
 
