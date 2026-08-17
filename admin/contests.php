@@ -249,6 +249,7 @@ ob_start();
                 </div>
                 <p style="font-size:0.9em; color:var(--text-muted); margin-top:8px;">
                     Добавить задачу:
+                    <input type="text" id="task-search" placeholder="Поиск задач..." style="margin-top:4px; width:100%;">
                     <select id="task-selector" style="margin-top:4px; width:100%;">
                         <option value="">— выберите задачу —</option>
                         <?php foreach ($allTasks as $t): ?>
@@ -284,9 +285,10 @@ ob_start();
                     <?php endforeach; ?>
                 </div>
                 <p style="font-size:0.9em; color:var(--text-muted); margin-top:12px;">Дать доступ отдельным пользователям:</p>
-                <div style="max-height:200px; overflow-y:auto;">
+                <input type="text" id="user-search" placeholder="Поиск учеников..." style="margin-bottom:4px; width:100%;">
+                <div style="max-height:200px; overflow-y:auto;" id="user-checkbox-list">
                     <?php foreach ($allUsers as $u): ?>
-                    <label style="display:block; padding:4px 0;">
+                    <label style="display:block; padding:4px 0;" data-search="<?= htmlspecialchars($u['login']) . ' ' . htmlspecialchars($u['display_name']) ?>">
                         <input type="checkbox" name="user_ids[]" value="<?= $u['id'] ?>"
                             <?= (isset($editContest['user_ids']) && in_array($u['id'], $editContest['user_ids'])) ? 'checked' : '' ?>>
                         <?= htmlspecialchars($u['login']) ?> (<?= htmlspecialchars($u['display_name']) ?>)
@@ -419,6 +421,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial update
     updateOptions();
+
+    // Task search filter
+    var taskSearch = document.getElementById('task-search');
+    if (taskSearch) {
+        taskSearch.addEventListener('input', function() {
+            var q = taskSearch.value.trim().toLowerCase();
+            selector.querySelectorAll('option').forEach(function(opt) {
+                if (opt.value === '') return;
+                opt.hidden = q !== '' && opt.text.toLowerCase().indexOf(q) === -1;
+            });
+        });
+    }
+
+    // User search filter
+    var userSearch = document.getElementById('user-search');
+    if (userSearch) {
+        userSearch.addEventListener('input', function() {
+            var q = userSearch.value.trim().toLowerCase();
+            document.querySelectorAll('#user-checkbox-list label').forEach(function(lbl) {
+                var hay = (lbl.getAttribute('data-search') || '').toLowerCase();
+                lbl.style.display = (q !== '' && hay.indexOf(q) === -1) ? 'none' : 'block';
+            });
+        });
+    }
 });
 </script>
 <?php
