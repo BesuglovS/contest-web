@@ -194,7 +194,7 @@
             { "input": "6\n-1\n0\n3\n8\n-2\n1\n0\n6",    "output": "-1 0 3 8 -2 1","is_public": 0 },
             { "input": "10\n5\n10\n15\n20\n25\n30\n35\n40\n45\n50\n3\n8","output": "20 25 30 35 40","is_public": 0 },
             { "input": "4\n100\n200\n300\n400\n1\n4",     "output": "200 300 400",  "is_public": 0 },
-            { "input": "8\n9\n8\n7\n6\n5\n4\n3\n4\n7",    "output": "5 4 3",       "is_public": 0 },
+            { "input": "7\n9\n8\n7\n6\n5\n4\n3\n4\n7",    "output": "5 4 3",       "is_public": 0 },
             { "input": "3\n-5\n10\n-2\n0\n3",            "output": "-5 10 -2",      "is_public": 0 },
             { "input": "2\n42\n43\n1\n2",                "output": "43",            "is_public": 0 }
         ]

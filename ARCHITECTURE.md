@@ -12,30 +12,31 @@ contest-web/
 ├── index.php                  # Фронт-контроллер (точка входа)
 │
 ├── includes/                  # Ядро приложения
+│   ├── AuthClient.php         # Клиент SSO auth-web (каноническая копия)
+│   ├── Auth.php               # Аутентификация и роли поверх AuthClient
+│   ├── Autoloader.php         # Автозагрузка (includes/ и includes/DTO/)
 │   ├── Database.php           # SQLite-синглтон, схема, миграции
-│   ├── Auth.php               # Аутентификация, сессии, роли
 │   ├── Router.php             # Маршрутизация (query-string)
 │   ├── Sandbox.php            # Изолированный запуск Python-кода
 │   ├── TestingEngine.php      # Движок тестирования (линт + тесты)
-│   └── labels.php             # Тексты интерфейса
+│   ├── labels.php             # Канонические статусы и метки
+│   └── DTO/TestResult.php     # DTO результата одного теста
 │
-├── admin/                     # Панель администратора (12 файлов)
-│   ├── users.php              # Управление пользователями
-│   ├── groups.php             # Управление группами
+├── admin/                     # Панель администратора (9 файлов)
+│   ├── index.php              # Дашборд
 │   ├── tasks.php              # Управление задачами
 │   ├── task_groups.php        # Группировка задач
 │   ├── contests.php           # Управление контестами
 │   ├── contest_results.php    # Результаты контестов
-│   ├── submissions.php        # Все решения
+│   ├── submissions.php        # Все решения (+ retest)
 │   ├── submission_detail.php  # Детали решения
 │   ├── import_tasks.php       # Импорт задач из JSON
-│   ├── import_format.php      # Формат импорта
-│   ├── generate_tasks.php     # Генератор тестов
-│   └── change_password.php    # Смена пароля
+│   └── import_format.php      # Формат импорта
 │
 ├── api/                       # JSON API
 │   ├── submit.php             # Приём кода, запуск тестов
-│   └── status.php             # Статус проверки
+│   ├── status.php             # Статус проверки (для интеграций)
+│   └── contest_progress.php   # Прогресс по контесту (копия из auth-web)
 │
 ├── user/                      # Пользовательская часть (8 файлов)
 │   ├── index.php              # Личный кабинет
@@ -92,8 +93,12 @@ index.php (фронт-контроллер)
 #### Database.php — Синглтон для работы с SQLite
 
 - Автоматическое создание БД и таблиц при первом запуске
-- Автоматические миграции (добавление недостающих колонок/индексов)
-- 14 таблиц: `groups`, `user_groups`, `tasks`, `task_groups`, `task_to_groups`, `tests`, `contests`, `contest_tasks`, `contest_task_groups`, `contest_access`, `submissions`, `submission_test_results`, `settings`, `rate_limits` (таблицы пользователей нет — см. Auth.php)
+- Автоматические миграции (добавление недостающих колонок/индексов; версия схемы — `Database::SCHEMA_VERSION`)
+- 12 таблиц: `tasks`, `task_groups`, `task_to_groups` (+`sort_order`), `tests`, `contests`,
+  `contest_tasks`, `contest_task_groups`, `contest_access`, `submissions`,
+  `submission_test_results`, `settings`, `rate_limits`.
+  Таблиц пользователей/групп (`users`, `groups`, `user_groups`) нет и быть не должно:
+  источник истины — auth-web, миграция `migrateLegacyClassTables()` дропает легаси-таблицы
 - Подготовленные выражения PDO для защиты от SQL-инъекций
 
 #### Auth.php — Аутентификация и авторизация
@@ -112,7 +117,6 @@ Query-string маршрутизация на основе `$_GET['page']`; дл�
 // dispatchAdmin(): match($page)
 match($page) {
     'admin'                => 'admin/index.php',
-    'admin-groups'         => 'admin/groups.php',
     'admin-tasks'          => 'admin/tasks.php',
     'admin-contests'       => 'admin/contests.php',
     'admin-submissions'    => 'admin/submissions.php',
@@ -130,11 +134,11 @@ match($page) {
 
 1. Генерация уникального wrapper-скрипта Python
 2. Запуск через `proc_open` с ограничениями:
-   - Время: `DEFAULT_TIME_LIMIT` (2.0 сек)
-   - Память: `DEFAULT_MEMORY_LIMIT` (128 МБ)
+   - Время: лимит задачи (`tasks.time_limit`, дефолт 2.0 сек)
+   - Память: лимит задачи (`tasks.memory_limit`, дефолт 128 МБ; на Linux — RLIMIT_AS с запасом + вердикт по пику RSS, на Windows мягкий режим)
 3. Парсинг выходных данных (stdout, stderr, exit code)
 4. Очистка traceback для скрытия путей к файлам
-5. PEP8-линтинг через pycodestyle
+5. PEP8-линтинг через pycodestyle (fail-closed: без линтера все посылки = `lint_error`)
 
 #### TestingEngine.php — Движок тестирования
 
@@ -148,7 +152,8 @@ match($page) {
     │   ├── Сравнение вывода с эталоном
     │   └── Запись результата
     └── Возврат итогового статуса
-        (accepted/wrong_answer/runtime_error/time_limit/lint_error)
+        (accepted/wrong_answer/runtime_error/time_limit/memory_limit/no_function/lint_error;
+         вердикт определяется ПЕРВЫМ непройденным тестом, последующие его не перебивают)
 ```
 
 ### Схема БД
@@ -156,14 +161,14 @@ match($page) {
 Таблицы пользователей в contest-web нет. Везде, где нужен `user_id`, хранится глобальный id пользователя из auth-web. Имена пользователей подтягиваются из auth-web на лету.
 
 ```
-user_groups ──────────── groups
-   │
-   └── submissions (user_id из auth-web)
-         │
-         └── submission_test_results
-         
+contest_access (user_id из auth-web / group_id из auth-web)
+    │
+    └── submissions (user_id из auth-web)
+          │
+          └── submission_test_results
+          
 tasks ────────── task_to_groups ────── task_groups
-   │
+   │                (+ sort_order)
    └── tests
    
 contests ────── contest_tasks ────── tasks

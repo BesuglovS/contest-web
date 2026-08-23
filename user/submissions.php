@@ -1,6 +1,14 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Мои решения';
 $db = Database::getInstance();
+
+require_once BASE_PATH . '/includes/labels.php';
 
 $userId = Auth::getUserId();
 $userGroupIds = Auth::getUserGroupIds($userId);
@@ -63,16 +71,6 @@ $stmt = $db->prepare("SELECT DISTINCT t.id, t.title FROM tasks t
 $stmt->execute(array_merge([$userId], $userGroupIds));
 $tasks = $stmt->fetchAll() ?: [];
 
-$statusLabels = [
-    'pending' => 'Ожидает',
-    'lint_error' => 'Ошибка оформления',
-    'accepted' => 'Принято',
-    'wrong_answer' => 'Неверный ответ',
-    'runtime_error' => 'Ошибка выполнения',
-    'time_limit' => 'Превышен лимит времени',
-    'memory_limit' => 'Превышен лимит памяти',
-];
-
 ob_start();
 ?>
 
@@ -119,9 +117,10 @@ ob_start();
         <tr>
             <td><?= $s['id'] ?></td>
             <td>
-                <a href="?page=task&id=<?= $s['task_id'] ?>"><?= htmlspecialchars($s['task_title']) ?></a>
-                <?php if ($s['contest_id']): ?>
-                    <span style="font-size:0.8em; color:var(--text-muted);">(контест #<?= $s['contest_id'] ?>)</span>
+                <?php if (!empty($s['contest_id'])): ?>
+                    <a href="?page=task&id=<?= $s['task_id'] ?>&contest=<?= $s['contest_id'] ?>"><?= htmlspecialchars($s['task_title']) ?></a>
+                <?php else: ?>
+                    <?= htmlspecialchars($s['task_title']) ?>
                 <?php endif; ?>
             </td>
             <td>
@@ -133,10 +132,14 @@ ob_start();
              <td><?= htmlspecialchars(toDisplayTime($s['executed_at'] ?? '')) ?></td>
             <td style="display:flex; gap:8px;">
                 <a href="?page=submission-detail&id=<?= $s['id'] ?>" class="btn btn-small">Просмотр</a>
-                <?php if (!empty($s['contest_id']) && $s['contest_active']): ?>
-                    <a href="?page=task&id=<?= $s['task_id'] ?>&contest=<?= $s['contest_id'] ?>" class="btn btn-small">Решать снова</a>
+                <?php if (!empty($s['contest_id'])): ?>
+                    <?php if ($s['contest_active']): ?>
+                        <a href="?page=task&id=<?= $s['task_id'] ?>&contest=<?= $s['contest_id'] ?>" class="btn btn-small">Решать снова</a>
+                    <?php else: ?>
+                        <span class="btn btn-small" style="opacity:0.5; cursor:not-allowed;" title="Контест завершён">Решать снова</span>
+                    <?php endif; ?>
                 <?php else: ?>
-                    <a href="?page=task&id=<?= $s['task_id'] ?>" class="btn btn-small">Решать снова</a>
+                    <a href="?page=contests" class="btn btn-small">К контестам</a>
                 <?php endif; ?>
             </td>
         </tr>
@@ -145,7 +148,7 @@ ob_start();
 </table>
 
 <?php if (empty($submissions)): ?>
-    <p style="color:var(--text-muted); text-align:center; padding:20px;">Нет решений. <a href="?page=tasks">Перейти к задачам</a></p>
+    <p style="color:var(--text-muted); text-align:center; padding:20px;">Нет решений. <a href="?page=contests">Перейти к контестам</a></p>
 <?php endif; ?>
 
 <?php if ($totalPages > 1): ?>

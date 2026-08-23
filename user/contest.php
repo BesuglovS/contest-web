@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Контест';
 $db = Database::getInstance();
 
@@ -19,6 +25,7 @@ $stmt->execute([$contestId]);
 $contest = $stmt->fetch();
 
 if (!$contest) {
+    ob_start();
     echo '<p>Контест не найден.</p>';
     $content = ob_get_clean();
     require BASE_PATH . '/templates/layout.php';
@@ -58,7 +65,8 @@ if (!$hasAccess) {
 
 // Получаем задачи контеста
 $stmt = $db->prepare("SELECT ct.*, t.title, t.time_limit, t.memory_limit,
-    (SELECT COUNT(*) FROM submissions s WHERE s.task_id = t.id AND s.user_id = ? AND s.status = 'accepted') as solved
+    (SELECT COUNT(*) FROM submissions s
+     WHERE s.task_id = t.id AND s.contest_id = ct.contest_id AND s.user_id = ? AND s.status = 'accepted') as solved
     FROM contest_tasks ct
     INNER JOIN tasks t ON ct.task_id = t.id
     WHERE ct.contest_id = ?
@@ -72,7 +80,7 @@ $isActive = $contest['start_time'] <= $now && ($contest['end_time'] === null || 
 $isUpcoming = $contest['start_time'] > $now;
 $isFinished = $contest['end_time'] !== null && $contest['end_time'] < $now;
 
-$pageTitle = htmlspecialchars($contest['title']);
+$pageTitle = $contest['title']; // layout сам экранирует title
 
 ob_start();
 ?>

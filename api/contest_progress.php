@@ -5,10 +5,19 @@
  * Возвращает JSON: { completed, solved, total, tasks }
  */
 
+// Защита от прямого доступа к файлу — только через роутер (index.php?page=api).
+// ВАЖНО: это каноническая копия из auth-web — при синхронизации перенесите guard туда же.
+if (!defined('BASE_PATH')) {
+    header('Content-Type: application/json; charset=utf-8');
+    http_response_code(403);
+    echo json_encode(['error' => 'Forbidden'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 header('Access-Control-Allow-Origin: https://python.nayanovaacademy.ru');
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-TOKEN');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -23,14 +32,14 @@ header('Content-Type: application/json; charset=utf-8');
 
 if (!Auth::isLoggedIn()) {
     http_response_code(401);
-    echo json_encode(['error' => 'Требуется авторизация']);
+    echo json_encode(['error' => 'Требуется авторизация'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 $contestId = isset($_GET['contest_id']) ? (int) $_GET['contest_id'] : 0;
 if (!$contestId) {
     http_response_code(400);
-    echo json_encode(['error' => 'Не указан contest_id']);
+    echo json_encode(['error' => 'Не указан contest_id'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -48,7 +57,7 @@ $stmtAccess = $db->prepare("
 $stmtAccess->execute(array_merge([$contestId, $userId], $userGroupIds));
 if (!$stmtAccess->fetch()) {
     http_response_code(403);
-    echo json_encode(['error' => 'Нет доступа к контесту']);
+    echo json_encode(['error' => 'Нет доступа к контесту'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

@@ -41,8 +41,24 @@ class TestingEngine
         require_once __DIR__ . '/Sandbox.php';
         $sandbox = new Sandbox();
 
-        // Линтинг
-        $lintResult = $sandbox->lint($code, '--select=E,E226,W');
+        // Проверка запрещённых модулей (os, subprocess, socket, ...) —
+        // до запуска кода; оформляется как ошибки линтинга
+        $forbiddenErrors = self::findForbiddenModules($code);
+        if (!empty($forbiddenErrors)) {
+            return [
+                'lint_errors' => true,
+                'lint_errors_json' => json_encode($forbiddenErrors, JSON_UNESCAPED_UNICODE),
+                'lint_errors_array' => $forbiddenErrors,
+                'overall_status' => 'lint_error',
+                'total_time' => 0,
+                'test_results' => [],
+            ];
+        }
+
+        // Линтинг — с настройками pycodestyle по умолчанию (без --select,
+        // чтобы не включать коды, которые pycodestyle игнорирует по умолчанию:
+        // E121/E123/E126/E226/E24/E704/W503/W504)
+        $lintResult = $sandbox->lint($code);
 
         if ($lintResult['has_errors']) {
             return [
@@ -57,6 +73,9 @@ class TestingEngine
 
         $timeLimit = (float)($task['time_limit'] ?? 2.0);
         $memoryLimit = (int)($task['memory_limit'] ?? 128);
+        $checkMode = (string)($task['check_mode'] ?? 'program');
+        $functionName = isset($task['function_name']) ? trim((string)$task['function_name']) : '';
+        $functionMode = $checkMode === 'function' && $functionName !== '';
         $overallStatus = 'accepted';
         $totalTime = 0;
         $results = [];
@@ -74,34 +93,44 @@ class TestingEngine
         };
 
         foreach ($tests as $test) {
-            $runResult = $sandbox->run($code, $test['input'], $timeLimit, $memoryLimit);
+            if ($functionMode) {
+                $runResult = $sandbox->runFunctionTest($code, $functionName, $test['input'], $test['expected_output'], $timeLimit, $memoryLimit);
+            } else {
+                $runResult = $sandbox->run($code, $test['input'], $timeLimit, $memoryLimit);
+            }
 
             $status = '';
             $output = $runResult['output'] ?? '';
-            $error = $cleanTraceback($runResult['error'] ?? '');
+            $error = $functionMode
+                ? ($runResult['error'] ?? '')
+                : $cleanTraceback($runResult['error'] ?? '');
             $time = $runResult['time'] ?? 0;
             $memory = $runResult['memory'] ?? 0;
 
             if (($runResult['status'] ?? 'error') === 'time_limit') {
                 $status = 'time_limit';
-                $overallStatus = 'time_limit';
             } elseif (($runResult['status'] ?? 'error') === 'memory_limit') {
                 $status = 'memory_limit';
-                if ($overallStatus === 'accepted') {
-                    $overallStatus = 'memory_limit';
-                }
             } elseif (in_array(($runResult['status'] ?? 'error'), ['runtime_error', 'error'], true)) {
                 $status = 'runtime_error';
-                if ($overallStatus === 'accepted') {
-                    $overallStatus = 'runtime_error';
-                }
+            } elseif (($runResult['status'] ?? 'error') === 'no_function') {
+                $status = 'no_function';
+            } elseif ($functionMode && ($runResult['status'] ?? 'error') === 'accepted') {
+                $status = 'accepted';
+                $output = $runResult['result'] ?? '';
+            } elseif ($functionMode) {
+                $status = 'wrong_answer';
+                $output = $runResult['result'] ?? '';
             } elseif (Sandbox::compareOutput($output, $test['expected_output'])) {
                 $status = 'accepted';
             } else {
                 $status = 'wrong_answer';
-                if ($overallStatus === 'accepted') {
-                    $overallStatus = 'wrong_answer';
-                }
+            }
+
+            // Итоговый вердикт — по первому провальному тесту: последующие
+            // тесты не «перебивают» уже выставленный статус (в т.ч. time_limit)
+            if ($overallStatus === 'accepted' && $status !== 'accepted') {
+                $overallStatus = $status;
             }
 
             $results[] = new TestResult(
@@ -127,5 +156,59 @@ class TestingEngine
             'total_time' => round($totalTime, 3),
             'test_results' => $results,
         ];
+    }
+
+    /**
+     * Ищет импорты запрещённых модулей (FORBIDDEN_MODULES) в коде решения.
+     * Возвращает массив ошибок в формате lint-ошибок:
+     * ['line' => int, 'column' => int, 'code' => 'FORBIDDEN', 'message' => string]
+     */
+    private static function findForbiddenModules(string $code): array
+    {
+        $errors = [];
+        $forbidden = array_map('strtolower', FORBIDDEN_MODULES);
+        $lines = explode("\n", $code);
+
+        foreach ($lines as $i => $line) {
+            // Разбираем все сегменты строки (ловит "x = 1; import os")
+            foreach (explode(';', $line) as $segment) {
+                // import os, sys  |  import os.path as osp  |  from os.path import join
+                if (!preg_match('/^\s*(?:from\s+([.\w]+)\s+import\b|import\s+([^#\n]+))/', $segment, $m)) {
+                    continue;
+                }
+
+                $roots = [];
+                if (($m[1] ?? '') !== '') {
+                    $roots[] = $m[1];
+                } else {
+                    foreach (explode(',', (string) $m[2]) as $part) {
+                        $part = trim($part);
+                        if ($part === '') {
+                            continue;
+                        }
+                        // Убираем алиас: "os as o"
+                        $part = trim(preg_split('/\s+as\s+/i', $part)[0]);
+                        if ($part !== '') {
+                            $roots[] = $part;
+                        }
+                    }
+                }
+
+                foreach ($roots as $root) {
+                    // Берём корневой модуль до первой точки ("os.path" -> "os")
+                    $root = strtolower(explode('.', $root)[0]);
+                    if (in_array($root, $forbidden, true)) {
+                        $errors[] = [
+                            'line' => $i + 1,
+                            'column' => 0,
+                            'code' => 'FORBIDDEN',
+                            'message' => "Запрещённый модуль: {$root} — его использование в решениях не допускается",
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $errors;
     }
 }

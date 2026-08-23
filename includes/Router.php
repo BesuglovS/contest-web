@@ -27,7 +27,7 @@ class Router
                 session_destroy();
                 setcookie(session_name(), '', time() - 3600, $params['path'], $params['domain'] ?? '', $params['secure'], $params['httponly']);
             }
-            header('Location: ' . AuthClient::getLogoutUrl('https://auth.nayanovaacademy.ru/index.php'));
+            header('Location: ' . AuthClient::getLogoutUrl(nayanova_auth_url() . '/index.php'));
             exit;
         }
 
@@ -36,9 +36,17 @@ class Router
             header('Access-Control-Allow-Origin: https://python.nayanovaacademy.ru');
             header('Access-Control-Allow-Credentials: true');
             header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-            header('Access-Control-Allow-Headers: Content-Type');
+            header('Access-Control-Allow-Headers: Content-Type, X-CSRF-TOKEN');
             http_response_code(200);
             exit;
+        }
+
+        // API обрабатывается до requireLogin: каждый эндпоинт сам проверяет
+        // авторизацию и возвращает JSON {"error": ...} с кодом 401,
+        // а не редирект на HTML-логин (важно для кросс-доменных клиентов)
+        if ($this->page === 'api') {
+            $this->dispatchApi();
+            return;
         }
 
         Auth::requireLogin();
@@ -46,11 +54,6 @@ class Router
         if (str_starts_with($this->page, 'admin')) {
             Auth::requireAdmin();
             $this->dispatchAdmin();
-            return;
-        }
-
-        if ($this->page === 'api') {
-            $this->dispatchApi();
             return;
         }
 
@@ -100,7 +103,8 @@ class Router
         } elseif ($endpoint === 'contest_progress') {
             require BASE_PATH . '/api/contest_progress.php';
         } else {
-            echo json_encode(['error' => 'Unknown endpoint']);
+            http_response_code(404);
+            echo json_encode(['error' => 'Unknown endpoint'], JSON_UNESCAPED_UNICODE);
         }
         exit;
     }

@@ -12,6 +12,7 @@ $statusLabels = [
     'runtime_error' => 'Ошибка выполнения',
     'time_limit'    => 'Превышен лимит времени',
     'memory_limit'  => 'Превышен лимит памяти',
+    'no_function'   => 'Функция не найдена',
 ];
 
 $resultStatusLabels = [
@@ -21,4 +22,5 @@ $resultStatusLabels = [
     'time_limit'    => 'Превышен лимит времени',
     'memory_limit'  => 'Превышен лимит памяти',
     'pending'       => 'Ожидает',
+    'no_function'   => 'Функция не найдена',
 ];

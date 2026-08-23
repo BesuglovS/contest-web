@@ -1,10 +1,24 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Группы задач';
 $db = Database::getInstance();
 $message = '';
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    // CSRF-защита обязательна для всех POST-действий
+    if (!validateCsrf()) {
+        $error = 'Недействительный CSRF-токен. Обновите страницу и повторите действие.';
+        $action = null;
+    }
+
     if ($action === 'create') {
         $name = trim($_POST['name']);
         if ($name) {
@@ -39,7 +53,6 @@ $editGroup = null;
 $groupTasks = [];
 if (isset($_GET['edit'])) {
     $gid = (int)$_GET['edit'];
-    $editGroup = $db->prepare("SELECT * FROM task_groups WHERE id=?")->execute([$gid]) ? $db->prepare("SELECT * FROM task_groups WHERE id=?")->fetch() : null;
     $stmt = $db->prepare("SELECT * FROM task_groups WHERE id=?");
     $stmt->execute([$gid]);
     $editGroup = $stmt->fetch();
@@ -56,6 +69,7 @@ ob_start();
 <?php $activePage = 'task_groups'; require BASE_PATH . '/templates/admin_nav.php'; ?>
 
 <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
 <div style="display: grid; grid-template-columns: 1fr 400px; gap: 24px;">
     <div>

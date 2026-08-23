@@ -12,10 +12,6 @@ define('DB_PATH', BASE_PATH . '/data/contest.db');
 // Директория для временных файлов песочницы
 define('SANDBOX_DIR', BASE_PATH . '/sandbox');
 
-// Лимиты по умолчанию
-define('DEFAULT_TIME_LIMIT', 2.0);    // секунд
-define('DEFAULT_MEMORY_LIMIT', 128);   // МБ
-
 // Максимальный размер вывода теста (байт)
 define('MAX_OUTPUT_SIZE', 65536);
 
@@ -83,8 +79,13 @@ function utcNow(): string {
 
 // Стартуем сессию
 if (session_status() === PHP_SESSION_NONE) {
+    // secure-флаг только для HTTPS: за nginx-прокси смотрим X-Forwarded-Proto,
+    // локальный dev по http остаётся работоспособным
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'
+        || ($_SERVER['SERVER_PORT'] ?? '') == 443;
     ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', 1);
+    ini_set('session.cookie_secure', $isHttps ? 1 : 0);
     ini_set('session.cookie_samesite', 'Lax');
     ini_set('session.use_only_cookies', 1);
     session_start();

@@ -1,5 +1,13 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Импорт задач из JSON';
+// Предпросмотр рендерит HTML условий задач — может содержать LaTeX
+$useKaTeX = true;
 $db = Database::getInstance();
 $message = '';
 $error = '';
@@ -35,6 +43,13 @@ function validateTask(array $task, int $index): array
     // output_format
     if (!isset($task['output_format']) || !is_string($task['output_format'])) {
         $task['output_format'] = '';
+    }
+
+    // check_mode / function_name
+    $checkMode = ($task['check_mode'] ?? 'program') === 'function' ? 'function' : 'program';
+    $functionName = isset($task['function_name']) ? trim((string) $task['function_name']) : '';
+    if ($checkMode === 'function' && $functionName === '') {
+        $errors[] = "Задача #{$index}: в режиме 'function' обязательно поле 'function_name'.";
     }
 
     // time_limit
@@ -90,6 +105,8 @@ function validateTask(array $task, int $index): array
         'output_format'   => (string) ($task['output_format'] ?? ''),
         'time_limit'      => (float) ($timeLimit ?: 1.0),
         'memory_limit'    => (int) ($memoryLimit ?: 64),
+        'check_mode'      => $checkMode,
+        'function_name'   => $functionName,
         'tests'           => $validatedTests,
         'errors'          => $errors,
     ];
@@ -102,7 +119,7 @@ function validateTask(array $task, int $index): array
  */
 function importTasks(array $tasksData, int $groupId, PDO $db): array
 {
-    $stmtTask = $db->prepare("INSERT INTO tasks (title, given, input_format, output_format, time_limit, memory_limit) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmtTask = $db->prepare("INSERT INTO tasks (title, given, input_format, output_format, time_limit, memory_limit, check_mode, function_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     $stmtTest = $db->prepare("INSERT INTO tests (task_id, test_number, input, expected_output, is_public) VALUES (?, ?, ?, ?, ?)");
 
     // Если группа указана — подготовим запрос на привязку
@@ -131,6 +148,8 @@ function importTasks(array $tasksData, int $groupId, PDO $db): array
                 $task['output_format'],
                 $task['time_limit'],
                 $task['memory_limit'],
+                $task['check_mode'],
+                $task['function_name'],
             ]);
             $taskId = $db->lastInsertId();
 
@@ -180,7 +199,9 @@ function importTasks(array $tasksData, int $groupId, PDO $db): array
 // ---------------------------------------------------------------------------
 
 // Загрузка файла и показ предпросмотра
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !validateCsrf()) {
+    $error = 'Недействительный CSRF-токен. Обновите страницу и повторите операцию.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
     if (!isset($_FILES['json_file']) || $_FILES['json_file']['error'] !== UPLOAD_ERR_OK) {
         $error = 'Ошибка загрузки файла. Попробуйте ещё раз.';
     } else {
@@ -325,6 +346,8 @@ ob_start();
                 'output_format' => $t['output_format'],
                 'time_limit'    => $t['time_limit'],
                 'memory_limit'  => $t['memory_limit'],
+                'check_mode'    => $t['check_mode'],
+                'function_name' => $t['function_name'],
                 'tests'         => $t['tests'],
             ];
         }, $validTasks),
@@ -372,6 +395,10 @@ ob_start();
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:12px;">
                     <div><strong>Лимит времени:</strong> <?= $task['time_limit'] ?> сек</div>
                     <div><strong>Лимит памяти:</strong> <?= $task['memory_limit'] ?> МБ</div>
+                    <div><strong>Тип проверки:</strong>
+                        <?= $task['check_mode'] === 'function' ? 'Функция' : 'Программа (ввод/вывод)' ?>
+                        <?= $task['check_mode'] === 'function' ? '— функция <code>' . htmlspecialchars($task['function_name']) . '</code>' : '' ?>
+                    </div>
                 </div>
                 <div style="margin-bottom:8px;">
                     <strong>Тестов:</strong> <?= count($task['tests']) ?>

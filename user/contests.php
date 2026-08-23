@@ -1,16 +1,29 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Контесты';
 $db = Database::getInstance();
 $userId = Auth::getUserId();
 $userGroupIds = Auth::getUserGroupIds($userId);
 $groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
-// Получаем все доступные контесты
-$stmt = $db->prepare("SELECT DISTINCT c.* FROM contests c
-    LEFT JOIN contest_access ca ON c.id = ca.contest_id
-    WHERE (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
+// Получаем все доступные контесты (с количеством задач и решённых — одним запросом)
+$stmt = $db->prepare("SELECT c.*,
+    (SELECT COUNT(*) FROM contest_tasks ct WHERE ct.contest_id = c.id) AS task_count,
+    (SELECT COUNT(DISTINCT s.task_id) FROM submissions s
+        INNER JOIN contest_tasks cts ON s.task_id = cts.task_id
+        WHERE s.user_id = ? AND cts.contest_id = c.id AND s.status = 'accepted') AS solved_count
+    FROM contests c
+    WHERE EXISTS (
+        SELECT 1 FROM contest_access ca
+        WHERE ca.contest_id = c.id AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
+    )
     ORDER BY c.start_time DESC");
-$stmt->execute(array_merge([$userId], $userGroupIds));
+$stmt->execute(array_merge([$userId, $userId], $userGroupIds));
 $contests = $stmt->fetchAll() ?: [];
 
 ob_start();
@@ -42,15 +55,8 @@ ob_start();
             $isUpcoming = $c['start_time'] > $now;
             $isFinished = $c['end_time'] !== null && $c['end_time'] < $now;
 
-            // Количество задач
-            $stmt2 = $db->prepare("SELECT COUNT(*) FROM contest_tasks WHERE contest_id = ?");
-            $stmt2->execute([$c['id']]);
-            $taskCount = $stmt2->fetchColumn();
-
-            // Количество решённых пользователем
-            $stmt3 = $db->prepare("SELECT COUNT(DISTINCT s.task_id) FROM submissions s INNER JOIN contest_tasks ct ON s.task_id = ct.task_id WHERE s.user_id = ? AND ct.contest_id = ? AND s.status = 'accepted'");
-            $stmt3->execute([$userId, $c['id']]);
-            $solvedCount = $stmt3->fetchColumn();
+            $taskCount = (int) $c['task_count'];
+            $solvedCount = (int) $c['solved_count'];
         ?>
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:start;">

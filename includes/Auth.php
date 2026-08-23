@@ -32,7 +32,6 @@ class Auth
     public static function requireLogin(): void
     {
         if (!self::isLoggedIn()) {
-            $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
             header('Location: ' . AuthClient::getLoginUrl(BASE_URL . '/index.php'));
             exit;
         }
@@ -57,16 +56,6 @@ class Auth
     {
         foreach (self::getAllUsers() as $user) {
             if ((int) $user['id'] === $id) {
-                return $user;
-            }
-        }
-        return null;
-    }
-
-    public static function getUserByLogin(string $login): ?array
-    {
-        foreach (self::getAllUsers() as $user) {
-            if ($user['login'] === $login) {
                 return $user;
             }
         }

@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Решения пользователей';
 $db = Database::getInstance();
 $message = '';
@@ -6,9 +12,15 @@ $error = '';
 
 require_once BASE_PATH . '/includes/labels.php';
 
-// Обработка POST-действий (удаление)
+// Обработка POST-действий (удаление, перетест)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    // CSRF-защита обязательна для всех POST-действий
+    if (!validateCsrf()) {
+        $error = 'Недействительный CSRF-токен. Обновите страницу и повторите действие.';
+        $action = null;
+    }
 
     if ($action === 'delete_submission') {
         $id = (int)$_POST['id'];
@@ -40,49 +52,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tests = $stmt->fetchAll();
 
                 if (!empty($tests)) {
-                    // Удаляем старые результаты тестов
-                    $db->prepare("DELETE FROM submission_test_results WHERE submission_id = ?")->execute([$id]);
-
                     require_once BASE_PATH . '/includes/TestingEngine.php';
 
-                    // Запускаем тестирование
-                    $testingResult = TestingEngine::runTests($code, $taskId, $db);
+                    // Запускаем тестирование (старые результаты удаляем только
+                    // после успешного прогона — иначе при сбое посылка останется
+                    // вообще без результатов)
+                    $testingResult = null;
+                    try {
+                        $testingResult = TestingEngine::runTests($code, $taskId, $db);
+                    } catch (Throwable $e) {
+                        $error = 'Ошибка перетестирования: ' . $e->getMessage();
+                    }
 
-                    if (isset($testingResult['error'])) {
-                        $error = $testingResult['error'];
-                    } elseif ($testingResult['lint_errors']) {
-                        // Ошибки линтинга
-                        $db->prepare("UPDATE submissions SET status = 'lint_error', lint_errors = ?, execution_time = 0 WHERE id = ?")->execute([$testingResult['lint_errors_json'], $id]);
-                        $message = 'Решение #' . $id . ' перетестировано — ошибка оформления';
-                    } else {
-                        // Очищаем ошибки линтинга
-                        $db->prepare("UPDATE submissions SET lint_errors = NULL WHERE id = ?")->execute([$id]);
+                    if ($error === '') {
+                        if (isset($testingResult['error'])) {
+                            $error = $testingResult['error'];
+                        } elseif ($testingResult['lint_errors']) {
+                            // Ошибки линтинга
+                            $db->prepare("DELETE FROM submission_test_results WHERE submission_id = ?")->execute([$id]);
+                            $db->prepare("UPDATE submissions SET status = 'lint_error', lint_errors = ?, execution_time = 0 WHERE id = ?")->execute([$testingResult['lint_errors_json'], $id]);
+                            $message = 'Решение #' . $id . ' перетестировано — ошибка оформления';
+                        } else {
+                            // Очищаем ошибки линтинга
+                            $db->prepare("UPDATE submissions SET lint_errors = NULL WHERE id = ?")->execute([$id]);
 
-                        $overallStatus = $testingResult['overall_status'];
-                        $totalTime = $testingResult['total_time'];
+                            $overallStatus = $testingResult['overall_status'];
+                            $totalTime = $testingResult['total_time'];
 
-                        // Сохраняем результат каждого теста
-                        foreach ($testingResult['test_results'] as $tr) {
-                            $testNumber = $tr instanceof TestResult ? $tr->number : (int)$tr['test_number'];
-                            $testStatus = $tr instanceof TestResult ? $tr->status : $tr['status'];
-                            $testTime = $tr instanceof TestResult ? round($tr->time, 3) : round((float)($tr['time'] ?? 0), 3);
-                            $testMemory = $tr instanceof TestResult ? $tr->memory : (int)($tr['memory'] ?? 0);
-                            $testOutput = $tr instanceof TestResult ? $tr->output : ($tr['output'] ?? '');
+                            // Удаляем старые результаты и сохраняем новые
+                            $db->prepare("DELETE FROM submission_test_results WHERE submission_id = ?")->execute([$id]);
 
-                            $stmt = $db->prepare("INSERT INTO submission_test_results (submission_id, test_number, status, execution_time, memory_used, output) VALUES (?, ?, ?, ?, ?, ?)");
-                            $stmt->execute([
-                                $id,
-                                $testNumber,
-                                $testStatus,
-                                $testTime,
-                                $testMemory,
-                                $testOutput
-                            ]);
+                            // Сохраняем результат каждого теста
+                            foreach ($testingResult['test_results'] as $tr) {
+                                $testNumber = $tr instanceof TestResult ? $tr->number : (int)$tr['test_number'];
+                                $testStatus = $tr instanceof TestResult ? $tr->status : $tr['status'];
+                                $testTime = $tr instanceof TestResult ? round($tr->time, 3) : round((float)($tr['time'] ?? 0), 3);
+                                $testMemory = $tr instanceof TestResult ? $tr->memory : (int)($tr['memory'] ?? 0);
+                                $testOutput = $tr instanceof TestResult ? $tr->output : ($tr['output'] ?? '');
+
+                                $stmt = $db->prepare("INSERT INTO submission_test_results (submission_id, test_number, status, execution_time, memory_used, output) VALUES (?, ?, ?, ?, ?, ?)");
+                                $stmt->execute([
+                                    $id,
+                                    $testNumber,
+                                    $testStatus,
+                                    $testTime,
+                                    $testMemory,
+                                    $testOutput
+                                ]);
+                            }
+
+                            // Обновляем статус и время посылки
+                            $db->prepare("UPDATE submissions SET status = ?, execution_time = ? WHERE id = ?")->execute([$overallStatus, round($totalTime, 3), $id]);
+                            $message = 'Решение #' . $id . ' перетестировано — ' . ($statusLabels[$overallStatus] ?? $overallStatus);
                         }
-
-                        // Обновляем статус и время посылки
-                        $db->prepare("UPDATE submissions SET status = ?, execution_time = ? WHERE id = ?")->execute([$overallStatus, round($totalTime, 3), $id]);
-                        $message = 'Решение #' . $id . ' перетестировано — ' . ($statusLabels[$overallStatus] ?? $overallStatus);
                     }
                 } else {
                     $error = 'У задачи нет тестов';

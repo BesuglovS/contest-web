@@ -5,6 +5,14 @@
  * Возвращает JSON с результатами тестов
  */
 
+// Защита от прямого доступа к файлу — только через роутер (index.php?page=api&endpoint=submit)
+if (!defined('BASE_PATH')) {
+    header('Content-Type: application/json; charset=utf-8');
+    http_response_code(403);
+    echo json_encode(['error' => 'Forbidden'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // Буферизация вывода для предотвращения случайного HTML от PHP-ошибок
 ob_start();
 
@@ -79,7 +87,13 @@ try {
 
 // --- Получение и валидация входных данных ---
 try {
-    $rawInput = file_get_contents('php://input');
+    $rawInput = (string) file_get_contents('php://input');
+
+    // Защита от гигантских тел запроса (код всё равно ограничен ниже)
+    if (strlen($rawInput) > 512 * 1024) {
+        sendJsonError('Слишком большой запрос', 413);
+    }
+
     $input = json_decode($rawInput, true);
     if (!$input) {
         sendJsonError('Неверный формат данных', 400);
@@ -93,6 +107,10 @@ try {
         sendJsonError('Не указана задача или код', 400);
     }
 
+    if (strlen($code) > 100 * 1024) {
+        sendJsonError('Код решения слишком большой (максимум 100 КБ)', 400);
+    }
+
     if (!$contestId) {
         sendJsonError('Решение можно отправлять только в рамках контеста', 400);
     }
@@ -104,28 +122,46 @@ try {
 $userId = Auth::getUserId();
 try {
     $dbRL = Database::getInstance();
-    $stmt = $dbRL->prepare("SELECT timestamps FROM rate_limits WHERE user_id = ?");
-    $stmt->execute([$userId]);
-    $row = $stmt->fetch();
-    $now = time();
-    $windowStart = $now - 60;
+    // ВАЖНО: BEGIN через exec() — PDO не знает о транзакции, поэтому
+    // завершаем только явными COMMIT/ROLLBACK (commit()/rollBack() здесь бросят).
+    // BEGIN IMMEDIATE захватывает блокировку записи ДО SELECT: пара
+    // SELECT+UPSERT атомарна, параллельные запросы не превысят лимит.
+    $dbRL->exec('BEGIN IMMEDIATE');
+    try {
+        $stmt = $dbRL->prepare("SELECT timestamps FROM rate_limits WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        $now = time();
+        $windowStart = $now - 60;
 
-    $timestamps = $row ? json_decode($row['timestamps'], true) : [];
-    if (!is_array($timestamps)) {
-        $timestamps = [];
+        $timestamps = $row ? json_decode($row['timestamps'], true) : [];
+        if (!is_array($timestamps)) {
+            $timestamps = [];
+        }
+
+        $timestamps = array_values(array_filter($timestamps, fn($t) => $t > $windowStart));
+        if (count($timestamps) >= 10) {
+            $dbRL->exec('ROLLBACK');
+            sendJsonError('Слишком много отправок. Подождите минуту и попробуйте снова.', 429);
+        }
+        $timestamps[] = $now;
+
+        $stmt = $dbRL->prepare("INSERT INTO rate_limits (user_id, timestamps, updated_at) VALUES (?, ?, datetime('now'))
+            ON CONFLICT(user_id) DO UPDATE SET timestamps = excluded.timestamps, updated_at = datetime('now')");
+        $stmt->execute([$userId, json_encode($timestamps)]);
+        $dbRL->exec('COMMIT');
+    } catch (Throwable $inner) {
+        try {
+            $dbRL->exec('ROLLBACK');
+        } catch (Throwable $ignored) {
+            // транзакция уже закрыта
+        }
+        throw $inner;
     }
-
-    $timestamps = array_values(array_filter($timestamps, fn($t) => $t > $windowStart));
-    if (count($timestamps) >= 10) {
-        sendJsonError('Слишком много отправок. Подождите минуту и попробуйте снова.', 429);
-    }
-    $timestamps[] = $now;
-
-    $stmt = $dbRL->prepare("INSERT INTO rate_limits (user_id, timestamps, updated_at) VALUES (?, ?, datetime('now'))
-        ON CONFLICT(user_id) DO UPDATE SET timestamps = excluded.timestamps, updated_at = datetime('now')");
-    $stmt->execute([$userId, json_encode($timestamps)]);
 } catch (PDOException $e) {
     sendJsonError('Ошибка базы данных (rate limit): ' . cleanErrorMessage($e), 500);
+} catch (Throwable $e) {
+    sendJsonError('Ошибка проверки rate limit: ' . cleanErrorMessage($e), 500);
 }
 
 // --- Проверка задачи ---
@@ -161,15 +197,24 @@ try {
     sendJsonError('Ошибка базы данных (доступ): ' . cleanErrorMessage($e), 500);
 }
 
-// --- Проверка завершения контеста ---
+// --- Проверка статуса контеста (не начался / завершён) ---
 try {
-    $stmt = $db->prepare("SELECT end_time FROM contests WHERE id = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT start_time, end_time FROM contests WHERE id = ? LIMIT 1");
     $stmt->execute([$contestId]);
     $contest = $stmt->fetch();
-    if ($contest && $contest['end_time']) {
-        $endTime = strtotime($contest['end_time']);
-        if ($endTime && $endTime < time()) {
-            sendJsonError('Контест завершён', 403);
+    if ($contest) {
+        $now = time();
+        if ($contest['start_time']) {
+            $startTime = strtotime($contest['start_time']);
+            if ($startTime && $startTime > $now) {
+                sendJsonError('Контест ещё не начался', 403);
+            }
+        }
+        if ($contest['end_time']) {
+            $endTime = strtotime($contest['end_time']);
+            if ($endTime && $endTime < $now) {
+                sendJsonError('Контест завершён', 403);
+            }
         }
     }
 } catch (PDOException $e) {
@@ -203,10 +248,13 @@ try {
     require_once BASE_PATH . '/includes/TestingEngine.php';
     $testResult = TestingEngine::runTests($code, $taskId, $db);
 } catch (Throwable $e) {
+    // Убираем «висящую» попытку, чтобы она не осталась навсегда в статусе pending
+    discardPendingSubmission($db, (int) $submissionId);
     sendJsonError('Ошибка выполнения тестов: ' . cleanErrorMessage($e), 500);
 }
 
 if (isset($testResult['error'])) {
+    discardPendingSubmission($db, (int) $submissionId);
     sendJsonError($testResult['error'], 500);
 }
 
@@ -344,4 +392,18 @@ function cleanErrorMessage(Throwable $e): string
     $msg = preg_replace('/ in .+?(\d+)$/', ' at line $1', $msg);
     $msg = preg_replace('/ in .+? (on line \d+)$/', ' $1', $msg);
     return sanitizeString($msg);
+}
+
+/**
+ * Удаляет только что созданную попытку в статусе pending (используется,
+ * если тестирование не удалось запустить — чтобы не копить «висящие» записи).
+ */
+function discardPendingSubmission(PDO $db, int $submissionId): void
+{
+    try {
+        $stmt = $db->prepare("DELETE FROM submissions WHERE id = ? AND status = 'pending'");
+        $stmt->execute([$submissionId]);
+    } catch (Throwable $ignored) {
+        // не мешаем отправке основной ошибки клиенту
+    }
 }

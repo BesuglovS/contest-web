@@ -240,3 +240,79 @@
     color: #fff;
     opacity: 1;
 }
+
+/* ===== Модальное окно (PEP 8) ===== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.modal-box {
+    background: #fff;
+    color: #333;
+    border-radius: 8px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: auto;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    padding: 0 4px;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.modal-body ul {
+    margin: 0;
+    padding-left: 22px;
+}
+
+.modal-body li {
+    margin-bottom: 8px;
+}
+
+.modal-body code {
+    background: #f4f4f5;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.modal-note {
+    color: var(--text-muted, #666);
+    font-size: 0.9em;
+    margin-top: 14px;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
+}

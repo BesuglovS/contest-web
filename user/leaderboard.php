@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Таблица лидеров';
 $db = Database::getInstance();
 $userId = Auth::getUserId();
@@ -11,9 +17,11 @@ $userGroupIds = Auth::getUserGroupIds($userId);
 $groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 
 // Список контестов, к которым у пользователя есть доступ
-$stmt = $db->prepare("SELECT DISTINCT c.* FROM contests c
-    LEFT JOIN contest_access ca ON c.id = ca.contest_id
-    WHERE ca.user_id = ? OR ca.group_id IN ($groupPlaceholders)
+$stmt = $db->prepare("SELECT c.* FROM contests c
+    WHERE EXISTS (
+        SELECT 1 FROM contest_access ca
+        WHERE ca.contest_id = c.id AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
+    )
     ORDER BY c.start_time DESC");
 $stmt->execute(array_merge([$userId], $userGroupIds));
 $availableContests = $stmt->fetchAll() ?: [];
@@ -34,17 +42,20 @@ if ($contestId) {
     $hasAccess = (bool)$stmt->fetch();
 
     if ($hasAccess) {
-        // Подсчитываем для каждого пользователя количество уникальных решённых задач в контесте
+        // Подсчитываем для каждого пользователя количество уникальных решённых задач в контесте.
+        // Сортировка как в ICPC-правиле: больше решённых → выше; при равенстве выше тот,
+        // кто решил раньше (время ПЕРВОГО принятого решения по каждой задаче не трекаем,
+        // поэтому используем MIN(executed_at) — время первого AC-запроса участника).
         $stmt = $db->prepare("
             SELECT
                 s.user_id,
                 COUNT(DISTINCT s.task_id) AS solved_count,
-                MAX(s.executed_at) AS last_solved_at
+                MIN(s.executed_at) AS first_solved_at
             FROM submissions s
             INNER JOIN contest_tasks ct ON ct.task_id = s.task_id AND ct.contest_id = s.contest_id
             WHERE s.status = 'accepted' AND s.contest_id = ?
             GROUP BY s.user_id
-            ORDER BY solved_count DESC, last_solved_at ASC
+            ORDER BY solved_count DESC, first_solved_at ASC
         ");
         $stmt->execute([$contestId]);
         $leaderboard = $stmt->fetchAll() ?: [];
@@ -106,7 +117,7 @@ ob_start();
                         <th>Участник</th>
                         <th style="width: 100px;">Решено</th>
                         <th style="width: 120px;">Всего задач</th>
-                        <th style="width: 160px;">Последнее решение</th>
+                        <th style="width: 160px;">Первое решение</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -124,7 +135,7 @@ ob_start();
                             <td style="text-align: center;"><?= $entry['solved_count'] ?></td>
                             <td style="text-align: center;"><?= $totalTasksInContest ?? '-' ?></td>
                             <td style="font-size: 0.9em; color: var(--text-muted);">
-                                <?= $entry['last_solved_at'] ? htmlspecialchars($entry['last_solved_at']) : '-' ?>
+                                <?= $entry['first_solved_at'] ? htmlspecialchars(toDisplayTime($entry['first_solved_at']) ?? '-') : '-' ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -6,6 +6,12 @@ class Database
 {
     private static ?PDO $instance = null;
 
+    /**
+     * Версия схемы БД. При ЛЮБОМ изменении схемы/миграций ниже — поднять
+     * (например, добавить суффикс -2), чтобы миграции применились на сервере.
+     */
+    private const SCHEMA_VERSION = '2026-08-23-2';
+
     public static function getInstance(): PDO
     {
         if (self::$instance === null) {
@@ -35,16 +41,31 @@ class Database
             ]);
             self::$instance->exec('PRAGMA journal_mode=WAL');
             self::$instance->exec('PRAGMA foreign_keys=ON');
+            // Ждём блокировку до 5 секунд вместо мгновенного SQLITE_BUSY
+            self::$instance->exec('PRAGMA busy_timeout=5000');
         }
         return self::$instance;
     }
 
     /**
-     * Инициализация схемы БД — создаёт таблицы, если их нет
+     * Инициализация схемы БД — создаёт таблицы, если их нет.
+     * Быстрый путь (актуальная схема в settings.schema_version) — один SELECT.
      */
     public static function initialize(): void
     {
         $db = self::getInstance();
+
+        // settings нужна до проверки версии схемы
+        $db->exec("CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )");
+
+        $stmt = $db->prepare("SELECT value FROM settings WHERE key = 'schema_version'");
+        $stmt->execute();
+        if ($stmt->fetchColumn() === self::SCHEMA_VERSION) {
+            return; // Схема актуальна
+        }
 
         $db->exec("
             CREATE TABLE IF NOT EXISTS task_groups (
@@ -67,6 +88,7 @@ class Database
             CREATE TABLE IF NOT EXISTS task_to_groups (
                 task_id INTEGER NOT NULL,
                 task_group_id INTEGER NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (task_id, task_group_id),
                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 FOREIGN KEY (task_group_id) REFERENCES task_groups(id) ON DELETE CASCADE
@@ -141,11 +163,6 @@ class Database
                 FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE
             );
 
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            );
-
             CREATE TABLE IF NOT EXISTS rate_limits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL UNIQUE,
@@ -157,6 +174,11 @@ class Database
         // Автоматическое добавление недостающих колонок и индексов
         self::migrateLegacyClassTables($db);
         self::migrateSchema($db);
+
+        // Фиксируем применённую версию схемы
+        $stmt = $db->prepare("INSERT INTO settings (key, value) VALUES ('schema_version', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+        $stmt->execute([self::SCHEMA_VERSION]);
     }
 
     /**
@@ -222,8 +244,47 @@ class Database
                 try {
                     $db->exec($sql);
                 } catch (PDOException $e) {
-                    // Колонка уже существует или другая ошибка — продолжаем
+                    // Колонка уже существует или другая ошибка — логируем и продолжаем
+                    error_log('[Database] migration submissions.' . $col . ': ' . $e->getMessage());
                 }
+            }
+        }
+
+        // Проверяем и добавляем недостающие колонки в tasks
+        $taskColumns = [];
+        foreach ($db->query("PRAGMA table_info(tasks)")->fetchAll() as $col) {
+            $taskColumns[$col['name']] = true;
+        }
+
+        $taskMigrations = [
+            'check_mode'    => "ALTER TABLE tasks ADD COLUMN check_mode TEXT NOT NULL DEFAULT 'program'",
+            'function_name' => 'ALTER TABLE tasks ADD COLUMN function_name TEXT DEFAULT NULL',
+        ];
+
+        foreach ($taskMigrations as $col => $sql) {
+            if (!isset($taskColumns[$col])) {
+                try {
+                    $db->exec($sql);
+                } catch (PDOException $e) {
+                    // Колонка уже существует или другая ошибка — логируем и продолжаем
+                    error_log('[Database] migration tasks.' . $col . ': ' . $e->getMessage());
+                }
+            }
+        }
+
+        // Проверяем и добавляем недостающие колонки в task_to_groups.
+        // sort_order пишется импортом задач (import_tasks.php); в старых БД
+        // колонки может не быть — добавляем, иначе импорт с привязкой к группе падает.
+        $ttgColumns = [];
+        foreach ($db->query("PRAGMA table_info(task_to_groups)")->fetchAll() as $col) {
+            $ttgColumns[$col['name']] = true;
+        }
+
+        if (!isset($ttgColumns['sort_order'])) {
+            try {
+                $db->exec("ALTER TABLE task_to_groups ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0");
+            } catch (PDOException $e) {
+                error_log('[Database] migration task_to_groups.sort_order: ' . $e->getMessage());
             }
         }
 
@@ -243,7 +304,8 @@ class Database
             try {
                 $db->exec($sql);
             } catch (PDOException $e) {
-                // Индекс уже существует — продолжаем
+                // Индекс уже существует или другая ошибка — логируем и продолжаем
+                error_log('[Database] index: ' . $e->getMessage());
             }
         }
     }

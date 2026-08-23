@@ -1,9 +1,11 @@
-const CACHE_NAME = 'contest-cache-v2';
+// Единая версия: bump при изменении статики — обновит и имя кэша, и URL ассетов
+const ASSETS_VERSION = 'v6';
+const CACHE_NAME = 'contest-cache-' + ASSETS_VERSION;
 const STATIC_ASSETS = [
-    '/assets/css/style.css?v=5',
-    '/assets/js/main.js',
-    '/assets/js/editor.js',
-    '/assets/css/editor.css',
+    '/assets/css/style.css?' + ASSETS_VERSION,
+    '/assets/js/main.js?' + ASSETS_VERSION,
+    '/assets/js/editor.js?' + ASSETS_VERSION,
+    '/assets/css/editor.css?' + ASSETS_VERSION,
     '/assets/favicon-256x256.png',
     '/assets/favicon-48x48.png',
     '/assets/favicon-32x32.png',

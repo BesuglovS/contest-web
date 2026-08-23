@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Результаты контеста';
 $db = Database::getInstance();
 
@@ -15,6 +21,7 @@ $stmt->execute([$contestId]);
 $contest = $stmt->fetch();
 
 if (!$contest) {
+    ob_start();
     echo '<p>Контест не найден.</p>';
     $content = ob_get_clean();
     require BASE_PATH . '/templates/layout.php';
@@ -75,6 +82,7 @@ usort($participants, function ($a, $b) {
 });
 
 if (empty($participants)) {
+    ob_start();
     echo '<p>Нет участников с доступом к контесту.</p>';
     $content = ob_get_clean();
     require BASE_PATH . '/templates/layout.php';
@@ -144,7 +152,7 @@ usort($participantStats, function ($a, $b) {
     return strcmp($a['user']['display_name'], $b['user']['display_name']);
 });
 
-$pageTitle = 'Результаты: ' . htmlspecialchars($contest['title']);
+$pageTitle = 'Результаты: ' . $contest['title']; // layout сам экранирует title
 
 ob_start();
 ?>

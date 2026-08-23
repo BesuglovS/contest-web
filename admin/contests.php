@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Управление контестами';
 $db = Database::getInstance();
 $message = '';
@@ -6,6 +12,12 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    // CSRF-защита обязательна для всех POST-действий
+    if (!validateCsrf()) {
+        $error = 'Недействительный CSRF-токен. Обновите страницу и повторите действие.';
+        $action = null;
+    }
 
     if ($action === 'create') {
         $title = trim($_POST['title']);
@@ -74,7 +86,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)$_POST['id'];
         $title = trim($_POST['title']);
         $description = $_POST['description'] ?? '';
-        $startTime = $_POST['start_time'] ? toUtcTime($_POST['start_time']) : utcNow();
+        // Пустое поле начала при редактировании НЕ сбрасывает дату на «сейчас»,
+        // а сохраняет прежнее значение
+        if ($_POST['start_time']) {
+            $startTime = toUtcTime($_POST['start_time']);
+        } else {
+            $stmtOld = $db->prepare("SELECT start_time FROM contests WHERE id = ?");
+            $stmtOld->execute([$id]);
+            $startTime = $stmtOld->fetchColumn() ?: utcNow();
+        }
         $endTime = $_POST['end_time'] ? toUtcTime($_POST['end_time']) : null;
 
         $db->prepare("UPDATE contests SET title=?, description=?, start_time=?, end_time=? WHERE id=?")

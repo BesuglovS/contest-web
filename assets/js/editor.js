@@ -145,6 +145,19 @@ const SyntaxHighlight = {
 
 let isRunning = false;
 
+// Отложенное сохранение черновика кода в localStorage — чтобы ввод не терялся
+// при ошибке сети, rate-limit или случайном закрытии вкладки
+let draftSaveTimer = null;
+function scheduleDraftSave() {
+    if (!window.TASK_ID) return;
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(function() {
+        try {
+            localStorage.setItem('last_code_' + window.TASK_ID, document.getElementById('code-editor').value);
+        } catch (e) { /* localStorage недоступен — не критично */ }
+    }, 400);
+}
+
 async function submitSolution() {
     if (isRunning) return;
 
@@ -184,7 +197,7 @@ async function submitSolution() {
         const data = await response.json();
 
         if (data.error) {
-            status.innerHTML = '<span style="color:red;">Ошибка: ' + data.error + '</span>';
+            status.innerHTML = '<span style="color:red;">Ошибка: ' + escapeHtml(data.error) + '</span>';
             btn.disabled = false;
             btn.textContent = '▶ Отправить';
             isRunning = false;
@@ -202,7 +215,7 @@ async function submitSolution() {
         btn.textContent = '▶ Отправить ещё раз';
 
     } catch (err) {
-        status.innerHTML = '<span style="color:red;">Ошибка соединения: ' + err.message + '</span>';
+        status.innerHTML = '<span style="color:red;">Ошибка соединения: ' + escapeHtml(err.message) + '</span>';
     }
 
     btn.disabled = false;
@@ -239,13 +252,16 @@ function showResults(data) {
     let summaryHtml = '';
     if (data.all_passed) {
         summaryHtml = '<div class="alert alert-success" style="font-size:1.1em;">✓ Все тесты пройдены (' + data.passed + '/' + data.total + ') за ' + data.total_time + ' сек</div>';
+    } else if (data.status === 'no_function') {
+        summaryHtml = '<div class="alert alert-error">⚠ В решении не найдена функция, которую требовалось написать. Проверьте, что функция определена на верхнем уровне кода и названа точно так, как в условии задачи.</div>';
     } else {
         const statusLabels = {
             'accepted': '✓ Принято',
             'wrong_answer': '✗ Неверный ответ',
             'runtime_error': '⚠ Ошибка выполнения',
             'time_limit': '⏱ Превышен лимит времени',
-            'memory_limit': '📦 Превышен лимит памяти'
+            'memory_limit': '📦 Превышен лимит памяти',
+            'no_function': 'Функция не найдена'
         };
         const statusLabel = statusLabels[data.status] || data.status;
         summaryHtml = '<div class="alert alert-error">' + statusLabel + ' — пройдено ' + data.passed + '/' + data.total + ' тестов за ' + data.total_time + ' сек</div>';
@@ -267,7 +283,8 @@ function showResults(data) {
             'wrong_answer': '✗ Неверный ответ',
             'runtime_error': '⚠ Ошибка выполнения',
             'time_limit': '⏱ Превышен лимит времени',
-            'memory_limit': '📦 Превышен лимит памяти'
+            'memory_limit': '📦 Превышен лимит памяти',
+            'no_function': 'Функция не найдена'
         };
         const label = statusLabels[test.status] || test.status;
 
@@ -370,6 +387,57 @@ function copyToClipboard(btn, idx) {
     });
 }
 
+// Вставка отступа 4 пробела (или увеличение отступа выделенных строк)
+function insertIndent(textarea) {
+    const indent = '    ';
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+
+    if (start === end && value.substring(0, start).lastIndexOf('\n') !== -1) {
+        // Без выделения — просто вставляем пробелы
+        textarea.value = value.substring(0, start) + indent + value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + indent.length;
+    } else if (start !== end) {
+        // С выделением — увеличиваем отступ каждой затронутой строки
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const block = value.substring(lineStart, end).replace(/^/gm, indent);
+        textarea.value = value.substring(0, lineStart) + block + value.substring(end);
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart + block.length;
+    } else {
+        textarea.value = value.substring(0, start) + indent + value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + indent.length;
+    }
+    updateLineNumbers();
+    updateCursorPosition();
+    SyntaxHighlight.update();
+    scheduleDraftSave();
+}
+
+// Модальное окно со справкой по PEP 8
+function showPep8Help() {
+    const modal = document.getElementById('pep8-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const closeBtn = modal.querySelector('.modal-close');
+    if (closeBtn) closeBtn.focus();
+}
+
+function closePep8Help() {
+    const modal = document.getElementById('pep8-modal');
+    if (!modal) return;
+    modal.style.display = 'none';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    const modal = document.getElementById('pep8-modal');
+    if (modal && modal.style.display !== 'none') {
+        closePep8Help();
+    }
+});
+
 /**
  * Инициализация редактора: синхронизация скролла, номеров строк, подсветки.
  * Вызывается после загрузки DOM.
@@ -386,17 +454,23 @@ function initEditor() {
         updateLineNumbers();
         updateCursorPosition();
         SyntaxHighlight.update();
+        scheduleDraftSave();
     });
 
     // Обновляем позицию курсора при клике, навигации с клавиатуры и изменениях выделения
     textarea.addEventListener('click', updateCursorPosition);
     textarea.addEventListener('keyup', updateCursorPosition);
 
-    // Ctrl+Enter → отправка решения
+    // Ctrl+Enter → отправка решения; Tab → отступ 4 пробела (PEP 8)
     textarea.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
             submitSolution();
+            return;
+        }
+        if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            insertIndent(textarea);
         }
     });
 
@@ -414,6 +488,7 @@ function initEditor() {
             updateLineNumbers();
             updateCursorPosition();
             SyntaxHighlight.update();
+            scheduleDraftSave();
         }, 0);
     });
 
@@ -423,6 +498,7 @@ function initEditor() {
             updateLineNumbers();
             updateCursorPosition();
             SyntaxHighlight.update();
+            scheduleDraftSave();
         }, 0);
     });
 

@@ -14,23 +14,20 @@
     <link rel="icon" type="image/png" sizes="256x256" href="/assets/favicon-256x256.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180x180.png">
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=5">
-    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=6">
+    <?php if (!empty($useKaTeX)): ?>
+    <!-- KaTeX для LaTeX-рендеринга (грузим только на страницах с формулами) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <?php endif; ?>
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "Контест",
         "url": "https://contest.nayanovaacademy.ru",
-        "description": "Платформа для проведения соревнований и олимпиад по программированию на Python",
-        "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://contest.nayanovaacademy.ru/index.php?page=tasks&search={search_term_string}",
-            "query-input": "required name=search_term_string"
-        }
+        "description": "Платформа для проведения соревнований и олимпиад по программированию на Python"
     }
     </script>
 </head>
@@ -64,7 +61,8 @@
         </div>
     </footer>
 
-    <script src="<?= BASE_URL ?>/assets/js/main.js"></script>
+    <script src="<?= BASE_URL ?>/assets/js/main.js?v=6"></script>
+    <script src="<?= BASE_URL ?>/assets/js/tracking-client.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
@@ -76,6 +74,7 @@
             });
         }
         document.addEventListener("DOMContentLoaded", function() {
+            if (typeof renderMathInElement !== 'function') return;
             renderMathInElement(document.body, {
                 delimiters: [
                     {left: "\\(", right: "\\)", display: false},

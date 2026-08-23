@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Задача';
 $db = Database::getInstance();
 
@@ -15,23 +21,23 @@ $stmt->execute([$taskId]);
 $task = $stmt->fetch();
 
 if (!$task) {
+    ob_start();
     echo '<p>Задача не найдена.</p>';
     $content = ob_get_clean();
     require BASE_PATH . '/templates/layout.php';
     exit;
 }
 
-// Проверяем доступ к задаче: пользователь должен иметь доступ к контесту,
-// в которое входит эта задача, либо задача должна быть запрошена в контексте контеста
+// Проверяем доступ к задаче строго в контексте указанного контеста
 $userId = Auth::getUserId();
 $userGroupIds = Auth::getUserGroupIds($userId);
 $groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
 $stmt = $db->prepare("SELECT 1 FROM tasks t
     INNER JOIN contest_tasks ct ON t.id = ct.task_id
     INNER JOIN contest_access ca ON ct.contest_id = ca.contest_id
-    WHERE t.id = ? AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
+    WHERE t.id = ? AND ct.contest_id = ? AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
     LIMIT 1");
-$stmt->execute(array_merge([$taskId, $userId], $userGroupIds));
+$stmt->execute(array_merge([$taskId, $contestId, $userId], $userGroupIds));
 $hasAccess = (bool) $stmt->fetch();
 
 if (!$hasAccess) {
@@ -89,7 +95,10 @@ $stmt = $db->prepare("SELECT * FROM tests WHERE task_id = ? AND is_public = 1 OR
 $stmt->execute([$taskId]);
 $publicTests = $stmt->fetchAll() ?: [];
 
-$pageTitle = htmlspecialchars($task['title']);
+$pageTitle = $task['title']; // layout сам экранирует title
+
+// Условия задач могут содержать LaTeX — подключаем KaTeX
+$useKaTeX = true;
 
 ob_start();
 ?>
@@ -188,7 +197,7 @@ ob_start();
                     <div class="editor-line-numbers" id="line-numbers">1</div>
                     <div class="editor-overlay-wrapper">
                         <div class="editor-highlight-layer" id="highlight-layer"></div>
-                        <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"><?= htmlspecialchars($_SESSION['last_code_' . $taskId] ?? '') ?></textarea>
+                        <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
                     </div>
                 </div>
                 <div class="editor-statusbar">
@@ -196,12 +205,15 @@ ob_start();
                 </div>
             </div>
 
-            <div class="form-actions" style="display:flex; gap:12px;">
-                <button id="submit-btn" class="btn btn-primary" onclick="submitSolution()">
-                    ▶ Отправить
-                </button>
-                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-                <span id="submit-status" style="display:flex; align-items:center; gap:8px; color:var(--text-muted);"></span>
+            <div class="form-actions" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button id="submit-btn" class="btn btn-primary" onclick="submitSolution()">
+                        ▶ Отправить
+                    </button>
+                    <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                    <span id="submit-status" style="display:flex; align-items:center; gap:8px; color:var(--text-muted);"></span>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="showPep8Help()">PEP 8</button>
             </div>
         </div>
 
@@ -214,8 +226,34 @@ ob_start();
     </div>
 </div>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css">
-<script src="<?= BASE_URL ?>/assets/js/editor.js"></script>
+<!-- Модальное окно: основы PEP 8 -->
+<div id="pep8-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="pep8-title" onclick="if(event.target===this)closePep8Help()">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 id="pep8-title" style="margin:0;">Основы PEP 8</h3>
+            <button type="button" class="modal-close" onclick="closePep8Help()" aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-top:0;">Основные правила оформления кода Python, которые проверяются при отправке решения:</p>
+            <ul>
+                <li><strong>Отступы</strong> — 4 пробела, без табуляций.</li>
+                <li><strong>Пробелы вокруг операторов</strong> — <code>a + b</code>, <code>n % 2 == 0</code>, <code>total = 0</code>, а не <code>a+b</code>.</li>
+                <li><strong>Пробел после запятой</strong> — <code>add(a, b)</code>, <code>print(a, b)</code>, а не <code>add(a,b)</code>.</li>
+                <li><strong>Без лишних пробелов в скобках</strong> — <code>(a, b)</code>, а не <code>( a, b )</code>.</li>
+                <li><strong>Пустые строки</strong> — 2 пустые строки после определения функции, 1 — между логическими блоками.</li>
+                <li><strong>Имена функций и переменных</strong> — нижний регистр с подчёркиванием: <code>max_of_two</code>, <code>my_abs</code>.</li>
+                <li><strong>Комментарии</strong> — пробел после <code>#</code>.</li>
+                <li><strong>Длина строки</strong> — не более 79 символов.</li>
+                <li><strong>Конец файла</strong> — обязателен перевод строки, без пробелов в конце строк и пустых строк в конце файла.</li>
+                <li><strong>Импорты</strong> — по одному в строке, в начале файла.</li>
+            </ul>
+            <p class="modal-note">Оформление проверяется автоматически — при ошибках стиля решение не засчитывается.</p>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=6">
+<script src="<?= BASE_URL ?>/assets/js/editor.js?v=6"></script>
 <script>
 // Передаём taskId и contestId из PHP в JS
 window.TASK_ID = <?= $taskId ?>;

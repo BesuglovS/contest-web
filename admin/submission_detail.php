@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Просмотр решения';
 $db = Database::getInstance();
 
@@ -50,15 +56,6 @@ $nextSubmission->execute([$submission['user_id'], $submission['task_id'], $submi
 $nextSubmission = $nextSubmission->fetch();
 
 require_once BASE_PATH . '/includes/labels.php';
-
-$resultStatusLabels = [
-    'accepted' => 'Пройден',
-    'wrong_answer' => 'Неверный ответ',
-    'runtime_error' => 'Ошибка выполнения',
-    'time_limit' => 'Превышен лимит времени',
-    'memory_limit' => 'Превышен лимит памяти',
-    'pending' => 'Ожидает',
-];
 
 ob_start();
 ?>
@@ -280,8 +277,8 @@ if (!empty($submission['lint_errors'])) {
 }
 </style>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css">
-<script src="<?= BASE_URL ?>/assets/js/editor.js"></script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=6">
+<script src="<?= BASE_URL ?>/assets/js/editor.js?v=6"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var codeBlock = document.querySelector('.code-block code');

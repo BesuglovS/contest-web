@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Главная';
 $db = Database::getInstance();
 
@@ -23,13 +29,20 @@ $stmt = $db->prepare("SELECT COUNT(DISTINCT t.id) FROM tasks t
 $stmt->execute(array_merge([$userId], $userGroupIds));
 $totalTasks = $stmt->fetchColumn();
 
-// Ближайшие контесты
-$stmt = $db->prepare("SELECT DISTINCT c.* FROM contests c
-    LEFT JOIN contest_access ca ON c.id = ca.contest_id
-    WHERE (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
+// Ближайшие контесты (с количеством задач и решённых — одним запросом)
+$stmt = $db->prepare("SELECT c.*,
+    (SELECT COUNT(*) FROM contest_tasks ct WHERE ct.contest_id = c.id) AS task_count,
+    (SELECT COUNT(DISTINCT s.task_id) FROM submissions s
+        INNER JOIN contest_tasks cts ON s.task_id = cts.task_id
+        WHERE s.user_id = ? AND cts.contest_id = c.id AND s.status = 'accepted') AS solved_count
+    FROM contests c
+    WHERE EXISTS (
+        SELECT 1 FROM contest_access ca
+        WHERE ca.contest_id = c.id AND (ca.user_id = ? OR ca.group_id IN ($groupPlaceholders))
+    )
     AND (c.end_time IS NULL OR c.end_time > datetime('now'))
-    ORDER BY c.start_time DESC");
-$stmt->execute(array_merge([$userId], $userGroupIds));
+    ORDER BY c.start_time ASC");
+$stmt->execute(array_merge([$userId, $userId], $userGroupIds));
 $contests = $stmt->fetchAll() ?: [];
 
 ob_start();
@@ -56,24 +69,17 @@ ob_start();
 <h2>Доступные контесты</h2>
 <div style="display: grid; gap: 12px;">
     <?php foreach ($contests as $c):
-        // Количество задач в контесте
-        $stmt2 = $db->prepare("SELECT COUNT(*) FROM contest_tasks WHERE contest_id = ?");
-        $stmt2->execute([$c['id']]);
-        $taskCount = (int) $stmt2->fetchColumn();
+        $taskCount = (int) $c['task_count'];
+        $contestSolvedCount = (int) $c['solved_count'];
 
-        // Количество решённых пользователем
-        $stmt3 = $db->prepare("SELECT COUNT(DISTINCT s.task_id) FROM submissions s INNER JOIN contest_tasks ct ON s.task_id = ct.task_id WHERE s.user_id = ? AND ct.contest_id = ? AND s.status = 'accepted'");
-        $stmt3->execute([$userId, $c['id']]);
-        $solvedCount = (int) $stmt3->fetchColumn();
-
-        $pct = $taskCount > 0 ? round($solvedCount / $taskCount * 100) : 0;
+        $pct = $taskCount > 0 ? round($contestSolvedCount / $taskCount * 100) : 0;
     ?>
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:start;">
             <h3><a href="?page=contest&id=<?= $c['id'] ?>"><?= htmlspecialchars($c['title']) ?></a></h3>
             <?php if ($taskCount > 0): ?>
                 <div style="font-size:0.9em; color:var(--text-muted); text-align:right;">
-                    Решено: <?= $solvedCount ?>/<?= $taskCount ?>
+                    Решено: <?= $contestSolvedCount ?>/<?= $taskCount ?>
                 </div>
             <?php endif; ?>
         </div>

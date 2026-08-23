@@ -1,4 +1,10 @@
 <?php
+// Защита от прямого доступа к файлу — только через фронт-контроллер (index.php)
+if (!defined('BASE_PATH')) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $pageTitle = 'Управление задачами';
 $db = Database::getInstance();
 $message = '';
@@ -8,6 +14,12 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // CSRF-защита обязательна для всех POST-действий
+    if (!validateCsrf()) {
+        $error = 'Недействительный CSRF-токен. Обновите страницу и повторите действие.';
+        $action = null;
+    }
+
     if ($action === 'create') {
         $title = trim($_POST['title']);
         $given = $_POST['given'] ?? '';
@@ -15,10 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $outputFormat = $_POST['output_format'] ?? '';
         $timeLimit = (float) ($_POST['time_limit'] ?? 2.0);
         $memoryLimit = (int) ($_POST['memory_limit'] ?? 128);
+        $checkMode = ($_POST['check_mode'] ?? 'program') === 'function' ? 'function' : 'program';
+        $functionName = $checkMode === 'function' ? trim($_POST['function_name'] ?? '') : '';
 
         if ($title) {
-            $stmt = $db->prepare("INSERT INTO tasks (title, given, input_format, output_format, time_limit, memory_limit) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$title, $given, $inputFormat, $outputFormat, $timeLimit, $memoryLimit]);
+            $stmt = $db->prepare("INSERT INTO tasks (title, given, input_format, output_format, time_limit, memory_limit, check_mode, function_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$title, $given, $inputFormat, $outputFormat, $timeLimit, $memoryLimit, $checkMode, $functionName]);
             $taskId = $db->lastInsertId();
 
             // Сохраняем тесты
@@ -47,22 +61,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $outputFormat = $_POST['output_format'] ?? '';
         $timeLimit = (float) ($_POST['time_limit'] ?? 2.0);
         $memoryLimit = (int) ($_POST['memory_limit'] ?? 128);
+        $checkMode = ($_POST['check_mode'] ?? 'program') === 'function' ? 'function' : 'program';
+        $functionName = $checkMode === 'function' ? trim($_POST['function_name'] ?? '') : '';
 
-        $stmt = $db->prepare("UPDATE tasks SET title=?, given=?, input_format=?, output_format=?, time_limit=?, memory_limit=? WHERE id=?");
-        $stmt->execute([$title, $given, $inputFormat, $outputFormat, $timeLimit, $memoryLimit, $id]);
+        $stmt = $db->prepare("UPDATE tasks SET title=?, given=?, input_format=?, output_format=?, time_limit=?, memory_limit=?, check_mode=?, function_name=? WHERE id=?");
+        $stmt->execute([$title, $given, $inputFormat, $outputFormat, $timeLimit, $memoryLimit, $checkMode, $functionName, $id]);
 
-        // Удаляем старые тесты и вставляем новые
-        $db->prepare("DELETE FROM tests WHERE task_id=?")->execute([$id]);
+        // Сохраняем тесты, по возможности не пересоздавая записи: UPDATE для
+        // существующих (по позиции), INSERT для новых. Так ID тестов остаются
+        // стабильными, и исторические результаты посылок остаются осмысленными.
+        // Удаляются только реально лишние хвостовые тесты.
+        $stmt = $db->prepare("SELECT * FROM tests WHERE task_id=? ORDER BY test_number");
+        $stmt->execute([$id]);
+        $existingTests = $stmt->fetchAll();
+
+        $updateStmt = $db->prepare("UPDATE tests SET input = ?, expected_output = ?, is_public = ? WHERE id = ?");
+        $insertStmt = $db->prepare("INSERT INTO tests (task_id, test_number, input, expected_output, is_public) VALUES (?, ?, ?, ?, ?)");
 
         $testInputs = $_POST['test_input'] ?? [];
         $testOutputs = $_POST['test_output'] ?? [];
         $testPublic = $_POST['test_is_public'] ?? [];
 
+        $keptIds = [];
         foreach ($testInputs as $idx => $input) {
             $output = $testOutputs[$idx] ?? '';
             $isPublic = in_array((string) $idx, $testPublic) ? 1 : 0;
-            $stmt = $db->prepare("INSERT INTO tests (task_id, test_number, input, expected_output, is_public) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$id, $idx + 1, $input, $output, $isPublic]);
+
+            if (isset($existingTests[$idx])) {
+                $updateStmt->execute([$input, $output, $isPublic, $existingTests[$idx]['id']]);
+                $keptIds[] = (int) $existingTests[$idx]['id'];
+            } else {
+                $insertStmt->execute([$id, $idx + 1, $input, $output, $isPublic]);
+            }
+        }
+
+        if (!empty($keptIds)) {
+            $placeholders = implode(',', array_fill(0, count($keptIds), '?'));
+            $db->prepare("DELETE FROM tests WHERE task_id = ? AND id NOT IN ($placeholders)")
+               ->execute(array_merge([$id], $keptIds));
+        } else {
+            $db->prepare("DELETE FROM tests WHERE task_id=?")->execute([$id]);
         }
 
         $message = 'Задача обновлена';
@@ -133,7 +171,7 @@ ob_start();
                 <td><?= $task['memory_limit'] ?> МБ</td>
                 <td>
                     <a href="?page=admin-tasks&edit=<?= $task['id'] ?>" class="btn btn-sm">Ред.</a>
-                    <form method="POST" style="display:inline" onsubmit="return confirm('Удалить задачу?')">
+                    <form method="POST" style="display:inline" onsubmit="return confirm('Удалить задачу вместе со ВСЕМИ решениями учеников по ней? Действие необратимо.')">
                         <?= csrfField() ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= $task['id'] ?>">
@@ -183,8 +221,37 @@ ob_start();
             </div>
         </div>
 
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+                <label for="check_mode">Тип проверки</label>
+                <select id="check_mode" name="check_mode" onchange="toggleFunctionName()">
+                    <option value="program" <?= ($editTask['check_mode'] ?? 'program') === 'program' ? 'selected' : '' ?>>Программа (ввод/вывод)</option>
+                    <option value="function" <?= ($editTask['check_mode'] ?? 'program') === 'function' ? 'selected' : '' ?>>Функция (прямой вызов)</option>
+                </select>
+                <p style="color: var(--text-muted); font-size: 0.85em; margin-top:4px;">
+                    «Функция» — тест извлекает функцию из кода, вызывает её с аргументами и сравнивает возвращаемое значение.
+                </p>
+            </div>
+            <div class="form-group" id="function-name-group" <?= ($editTask['check_mode'] ?? 'program') === 'function' ? '' : 'style="display:none;"' ?>>
+                <label for="function_name">Имя функции</label>
+                <input type="text" id="function_name" name="function_name" value="<?= htmlspecialchars($editTask['function_name'] ?? '') ?>" placeholder="например, greet">
+                <p style="color: var(--text-muted); font-size: 0.85em; margin-top:4px;">Функция должна быть определена в коде на верхнем уровне.</p>
+            </div>
+        </div>
+
         <h3 class="mt-20">Тесты</h3>
         <p style="color: var(--text-muted); font-size: 0.9em;">Добавьте тесты. Отметьте галочкой публичные тесты (первые 3 будут видны пользователям).</p>
+
+        <?php
+        $isFunctionMode = ($editTask['check_mode'] ?? 'program') === 'function';
+        $testInputLabel = $isFunctionMode ? 'Аргументы функции' : 'Входные данные';
+        $testOutputLabel = $isFunctionMode ? 'Ожидаемый результат' : 'Ожидаемый вывод';
+        ?>
+        <p style="color: var(--text-muted); font-size: 0.85em;">
+            <?= $isFunctionMode
+                ? 'Аргументы — Python-литералы через запятую (например, <code>5, 3</code> или <code>Анна</code>). Ожидаемый результат — значение (например, <code>8</code>, <code>Привет, Анна!</code>, <code>True</code>). Строки можно писать без кавычек.'
+                : 'Для режима «Программа» задаются входные и ожидаемые выходные данные.' ?>
+        </p>
 
         <div id="tests-container">
             <?php
@@ -201,11 +268,11 @@ ob_start();
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div>
-                        <label style="display:block; font-weight:600; margin-bottom:4px;">Входные данные</label>
+                        <label style="display:block; font-weight:600; margin-bottom:4px;"><?= $testInputLabel ?></label>
                         <textarea name="test_input[]" style="min-height:80px;"><?= htmlspecialchars($test['input'] ?? '') ?></textarea>
                     </div>
                     <div>
-                        <label style="display:block; font-weight:600; margin-bottom:4px;">Ожидаемый вывод</label>
+                        <label style="display:block; font-weight:600; margin-bottom:4px;"><?= $testOutputLabel ?></label>
                         <textarea name="test_output[]" style="min-height:80px;"><?= htmlspecialchars($test['expected_output'] ?? '') ?></textarea>
                     </div>
                 </div>
@@ -223,11 +290,26 @@ ob_start();
 
     <script>
     let testCount = <?= count($existingTests) ?>;
+    let checkMode = '<?= ($editTask['check_mode'] ?? 'program') === 'function' ? 'function' : 'program' ?>';
+    function toggleFunctionName() {
+        const mode = document.getElementById('check_mode').value;
+        checkMode = mode;
+        document.getElementById('function-name-group').style.display = mode === 'function' ? '' : 'none';
+        document.querySelectorAll('#tests-container .test-entry').forEach(function(entry, i) {
+            const labels = entry.querySelectorAll('label');
+            if (labels.length >= 2) {
+                labels[0].textContent = mode === 'function' ? 'Аргументы функции' : 'Входные данные';
+                labels[1].textContent = mode === 'function' ? 'Ожидаемый результат' : 'Ожидаемый вывод';
+            }
+        });
+    }
     function addTest() {
         const container = document.getElementById('tests-container');
         const div = document.createElement('div');
         div.className = 'test-entry card';
         div.style.cssText = 'margin-bottom:12px; padding:16px;';
+        const inputLabel = checkMode === 'function' ? 'Аргументы функции' : 'Входные данные';
+        const outputLabel = checkMode === 'function' ? 'Ожидаемый результат' : 'Ожидаемый вывод';
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <strong>Тест #${testCount + 1}</strong>
@@ -238,11 +320,11 @@ ob_start();
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div>
-                    <label style="display:block; font-weight:600; margin-bottom:4px;">Входные данные</label>
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">${inputLabel}</label>
                     <textarea name="test_input[]" style="min-height:80px;"></textarea>
                 </div>
                 <div>
-                    <label style="display:block; font-weight:600; margin-bottom:4px;">Ожидаемый вывод</label>
+                    <label style="display:block; font-weight:600; margin-bottom:4px;">${outputLabel}</label>
                     <textarea name="test_output[]" style="min-height:80px;"></textarea>
                 </div>
             </div>
