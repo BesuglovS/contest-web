@@ -33,7 +33,7 @@ class Router
 
         // OPTIONS-префлайт для кросс-доменных API-запросов (не требует авторизации)
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            header('Access-Control-Allow-Origin: https://python.nayanovaacademy.ru');
+            header('Access-Control-Allow-Origin: ' . CORS_ALLOWED_ORIGIN);
             header('Access-Control-Allow-Credentials: true');
             header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
             header('Access-Control-Allow-Headers: Content-Type, X-CSRF-TOKEN');

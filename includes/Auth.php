@@ -31,7 +31,24 @@ class Auth
 
     public static function requireLogin(): void
     {
-        if (!self::isLoggedIn()) {
+        $status = AuthClient::checkStatus();
+
+        if ($status['status'] === 'unavailable') {
+            // auth-web недоступен — это НЕ «не авторизован»: не выкидываем на логин,
+            // а честно показываем 503 (кэш сессии сглаживает краткие сбои).
+            http_response_code(503);
+            header('Content-Type: text/html; charset=utf-8');
+            header('Retry-After: 60');
+            echo '<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>Сервис временно недоступен</title></head>'
+                . '<body style="font-family:sans-serif;max-width:32rem;margin:4rem auto;text-align:center">'
+                . '<h1>503 — Сервис авторизации временно недоступен</h1>'
+                . '<p>Попробуйте обновить страницу через минуту.</p>'
+                . '<p><a href="' . htmlspecialchars(BASE_URL . '/index.php') . '">Обновить</a></p>'
+                . '</body></html>';
+            exit;
+        }
+
+        if ($status['user'] === null) {
             header('Location: ' . AuthClient::getLoginUrl(BASE_URL . '/index.php'));
             exit;
         }

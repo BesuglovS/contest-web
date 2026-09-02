@@ -18,6 +18,10 @@ define('MAX_OUTPUT_SIZE', 65536);
 // Запрещённые модули Python
 define('FORBIDDEN_MODULES', ['os', 'subprocess', 'sys', 'shutil', 'ctypes', 'signal', 'multiprocessing', 'threading', 'socket']);
 
+// Origin, которому разрешён кросс-доменный доступ к API контестов
+// (python-web читает contest_progress.php). Один источник вместо хардкода.
+define('CORS_ALLOWED_ORIGIN', 'https://python.nayanovaacademy.ru');
+
 // Отключаем вывод ошибок в браузер (на проде — логировать в файл)
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);

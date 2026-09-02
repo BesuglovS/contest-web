@@ -8,6 +8,12 @@
  *
  * Проверяет авторизацию по общей куке auth_session на .nayanovaacademy.ru
  * через auth.nayanovaacademy.ru/api/*. Результат кэшируется в PHP-сессии.
+ *
+ * checkStatus() различает три состояния:
+ *   - authenticated — пользователь авторизован;
+ *   - anonymous     — auth-web ответил «не авторизован»;
+ *   - unavailable   — auth-web недоступен (сеть/5xx/таймаут).
+ * Это позволяет потребителям не выкидывать пользователя на логин при сбое сервиса.
  */
 
 if (!function_exists('nayanova_auth_url')) {
@@ -23,7 +29,45 @@ if (!function_exists('nayanova_auth_url')) {
 if (!class_exists('AuthClient')) {
     class AuthClient
     {
-        private static int $cacheTtl = 300; // 5 минут кэш в сессии
+        private static int $cacheTtl = 300;   // 5 минут кэш положительного результата
+        private static int $negativeTtl = 30; // короткий кэш «не авторизован/недоступен»
+
+        /**
+         * Проверить авторизацию через auth-web API с различением состояний.
+         * @return array{status:string, user:array{id:int,login:string,display_name:string,is_admin:bool}|null}
+         *         status: 'authenticated' | 'anonymous' | 'unavailable'
+         */
+        public static function checkStatus(): array
+        {
+            $cached = self::getCachedUser();
+            if ($cached !== null) {
+                return ['status' => 'authenticated', 'user' => $cached];
+            }
+
+            // Отрицательный результат тоже привязан к куке: сменилась кука — перепроверяем.
+            $negative = self::getNegativeCache();
+            if ($negative !== null) {
+                return ['status' => $negative, 'user' => null];
+            }
+
+            $response = self::apiGet('/api/check.php');
+
+            if ($response === null) {
+                // Транспортная ошибка или не-200: сервис недоступен, это НЕ «гость».
+                self::setNegativeCache('unavailable');
+                return ['status' => 'unavailable', 'user' => null];
+            }
+
+            $user = $response['user'] ?? null;
+            if (empty($response['authenticated']) || !is_array($user)) {
+                self::clearUserCache();
+                self::setNegativeCache('anonymous');
+                return ['status' => 'anonymous', 'user' => null];
+            }
+
+            self::setCachedUser($user);
+            return ['status' => 'authenticated', 'user' => $user];
+        }
 
         /**
          * Проверить авторизацию через auth-web API.
@@ -31,25 +75,7 @@ if (!class_exists('AuthClient')) {
          */
         public static function check(): ?array
         {
-            $cached = self::getCachedUser();
-            if ($cached !== null) {
-                return $cached;
-            }
-
-            $response = self::apiGet('/api/check.php');
-            if ($response === null || empty($response['authenticated'])) {
-                self::clearCache();
-                return null;
-            }
-
-            $user = $response['user'] ?? null;
-            if (!is_array($user)) {
-                self::clearCache();
-                return null;
-            }
-
-            self::setCachedUser($user);
-            return $user;
+            return self::checkStatus()['user'];
         }
 
         /** Проверка авторизации как boolean */
@@ -156,11 +182,16 @@ if (!class_exists('AuthClient')) {
             return nayanova_auth_url() . '/api/logout.php?redirect=' . urlencode($returnUrl);
         }
 
-        /** Очистить кэш сессии */
+        /** Очистить весь кэш сессии (включая негативный) */
         public static function clearCache(): void
         {
-            foreach (['user', 'user_at', 'users', 'users_at', 'groups', 'groups_at', 'memberships', 'memberships_at', 'cookie_hash'] as $key) {
+            foreach (['data_users', 'data_groups', 'data_memberships', 'neg'] as $key) {
                 unset($_SESSION['nayanova_auth_' . $key]);
+            }
+            self::clearUserCache();
+            // Легаси-ключи старых версий — подчистим, если остались.
+            foreach (['users', 'users_at', 'groups', 'groups_at', 'memberships', 'memberships_at'] as $legacy) {
+                unset($_SESSION['nayanova_auth_' . $legacy]);
             }
         }
 
@@ -170,26 +201,35 @@ if (!class_exists('AuthClient')) {
 
             $cookieHeader = '';
             if (!empty($_COOKIE['auth_session'])) {
-                $cookieHeader = 'auth_session=' . $_COOKIE['auth_session'];
+                // Значение куки идёт в HTTP-заголовок — оставляем только допустимые символы.
+                $safeValue = preg_replace('/[^A-Za-z0-9,_\-]/', '', (string)$_COOKIE['auth_session']);
+                if ($safeValue !== '') {
+                    $cookieHeader = 'auth_session=' . $safeValue;
+                }
             }
 
-            $ch = curl_init($url);
-            $opts = [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 5,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_FOLLOWLOCATION => false,
-            ];
-            if ($cookieHeader !== '') {
-                $opts[CURLOPT_COOKIE] = $cookieHeader;
-            }
-            curl_setopt_array($ch, $opts);
+            try {
+                $ch = curl_init($url);
+                $opts = [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 5,
+                    CURLOPT_CONNECTTIMEOUT => 2,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_FOLLOWLOCATION => false,
+                ];
+                if ($cookieHeader !== '') {
+                    $opts[CURLOPT_COOKIE] = $cookieHeader;
+                }
+                curl_setopt_array($ch, $opts);
 
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+                $response = curl_exec($ch);
+                $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
 
-            if ($response === false || $httpCode !== 200) {
+                if ($response === false || $httpCode !== 200) {
+                    return null;
+                }
+            } catch (Throwable $e) {
                 return null;
             }
 
@@ -199,42 +239,95 @@ if (!class_exists('AuthClient')) {
 
         private static function getCachedUser(): ?array
         {
-            if (empty($_SESSION['nayanova_auth_user'])) {
+            $envelope = $_SESSION['nayanova_auth_user'] ?? null;
+            if (!is_array($envelope) || !isset($envelope['data'])) {
+                // Легаси-формат (до введения конвертов).
+                if (!empty($_SESSION['nayanova_auth_user']) && is_array($_SESSION['nayanova_auth_user'])
+                    && isset($_SESSION['nayanova_auth_user_at'])) {
+                    if (time() - (int)$_SESSION['nayanova_auth_user_at'] <= self::$cacheTtl
+                        && ($_SESSION['nayanova_auth_cookie_hash'] ?? '') === self::getCookieHash()) {
+                        return $_SESSION['nayanova_auth_user'];
+                    }
+                }
                 return null;
             }
-            $cachedAt = $_SESSION['nayanova_auth_user_at'] ?? 0;
-            if (time() - $cachedAt > self::$cacheTtl) {
+            if (time() - (int)($envelope['at'] ?? 0) > self::$cacheTtl) {
                 return null;
             }
-            if (($_SESSION['nayanova_auth_cookie_hash'] ?? '') !== self::getCookieHash()) {
+            if (($envelope['hash'] ?? '') !== self::getCookieHash()) {
                 return null;
             }
-            return $_SESSION['nayanova_auth_user'];
+            return is_array($envelope['data']) ? $envelope['data'] : null;
         }
 
         private static function setCachedUser(array $user): void
         {
-            $_SESSION['nayanova_auth_user'] = $user;
-            $_SESSION['nayanova_auth_user_at'] = time();
-            $_SESSION['nayanova_auth_cookie_hash'] = self::getCookieHash();
+            $_SESSION['nayanova_auth_user'] = [
+                'data' => $user,
+                'at' => time(),
+                'hash' => self::getCookieHash(),
+            ];
+            unset($_SESSION['nayanova_auth_neg']);
+        }
+
+        private static function clearUserCache(): void
+        {
+            unset($_SESSION['nayanova_auth_user'], $_SESSION['nayanova_auth_user_at'], $_SESSION['nayanova_auth_cookie_hash']);
+        }
+
+        /**
+         * Негативный кэш ('anonymous'|'unavailable'), привязанный к значению куки:
+         * после входа/выхода он мгновенно перестаёт действовать.
+         */
+        private static function getNegativeCache(): ?string
+        {
+            $envelope = $_SESSION['nayanova_auth_neg'] ?? null;
+            if (!is_array($envelope)) {
+                return null;
+            }
+            if (($envelope['hash'] ?? '') !== self::getCookieHash()) {
+                return null;
+            }
+            if (time() - (int)($envelope['at'] ?? 0) > self::$negativeTtl) {
+                return null;
+            }
+            $status = $envelope['status'] ?? '';
+            return in_array($status, ['anonymous', 'unavailable'], true) ? $status : null;
+        }
+
+        private static function setNegativeCache(string $status): void
+        {
+            $_SESSION['nayanova_auth_neg'] = [
+                'status' => $status,
+                'at' => time(),
+                'hash' => self::getCookieHash(),
+            ];
         }
 
         private static function getCached(string $kind): ?array
         {
-            if (empty($_SESSION['nayanova_auth_' . $kind])) {
+            $envelope = $_SESSION['nayanova_auth_data_' . $kind] ?? null;
+            if (!is_array($envelope) || !isset($envelope['data'])) {
                 return null;
             }
-            $cachedAt = $_SESSION['nayanova_auth_' . $kind . '_at'] ?? 0;
-            if (time() - $cachedAt > self::$cacheTtl) {
+            if (time() - (int)($envelope['at'] ?? 0) > self::$cacheTtl) {
                 return null;
             }
-            return $_SESSION['nayanova_auth_' . $kind];
+            // Справочники тоже привязаны к куке: другой пользователь в той же
+            // PHP-сессии не должен читать чужой кэш.
+            if (($envelope['hash'] ?? '') !== self::getCookieHash()) {
+                return null;
+            }
+            return is_array($envelope['data']) ? $envelope['data'] : null;
         }
 
         private static function setCached(string $kind, array $value): void
         {
-            $_SESSION['nayanova_auth_' . $kind] = $value;
-            $_SESSION['nayanova_auth_' . $kind . '_at'] = time();
+            $_SESSION['nayanova_auth_data_' . $kind] = [
+                'data' => $value,
+                'at' => time(),
+                'hash' => self::getCookieHash(),
+            ];
         }
 
         private static function getCookieHash(): string
