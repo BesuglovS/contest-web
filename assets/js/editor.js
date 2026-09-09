@@ -154,6 +154,9 @@ function scheduleDraftSave() {
     draftSaveTimer = setTimeout(function() {
         try {
             localStorage.setItem('last_code_' + window.TASK_ID, document.getElementById('code-editor').value);
+            // Метка времени черновика — чтобы при загрузке страницы сравнить
+            // его с последней посылкой и показать более новое
+            localStorage.setItem('last_code_time_' + window.TASK_ID, String(Date.now()));
         } catch (e) { /* localStorage недоступен — не критично */ }
     }, 400);
 }
@@ -207,7 +210,11 @@ async function submitSolution() {
         // Сохраняем код в localStorage
         try {
             localStorage.setItem('last_code_' + taskId, code);
+            localStorage.setItem('last_code_time_' + taskId, String(Date.now()));
         } catch(e) {}
+
+        // Обновляем список попыток под задачей
+        addAttemptRow(data);
 
         // Отображаем результаты
         showResults(data);
@@ -322,6 +329,48 @@ function showResults(data) {
 
     // Прокрутка к результатам
     container.scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Добавляет строку с новой попыткой в список «Мои попытки» под задачей
+ * (без перезагрузки страницы). Данные берутся из ответа submit-API:
+ * submission_id, status, total_time.
+ */
+function addAttemptRow(data) {
+    if (!data || !data.submission_id) return;
+    const tbody = document.getElementById('attempts-tbody');
+    if (!tbody) return;
+
+    // Убираем заглушку «Попыток ещё не было», если она есть
+    const emptyRow = document.getElementById('attempts-empty-row');
+    if (emptyRow) emptyRow.remove();
+
+    const labels = window.STATUS_LABELS || {};
+    const status = data.status || 'pending';
+    const label = labels[status] || status;
+    const contestTitle = window.CONTEST_TITLE || '';
+    const time = (typeof data.total_time === 'number' && isFinite(data.total_time))
+        ? data.total_time.toFixed(3)
+        : '0.000';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td>' + data.submission_id + '</td>' +
+        '<td>' + escapeHtml(contestTitle) + '</td>' +
+        '<td><span class="submission-status status-' + escapeHtml(status) + '">' + escapeHtml(label) + '</span></td>' +
+        '<td>' + time + '</td>' +
+        '<td>только что</td>' +
+        '<td><a href="?page=submission-detail&id=' + data.submission_id + '" class="btn btn-small">Просмотр</a></td>';
+
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    // Обновляем бедж статуса у заголовка задачи
+    const badge = document.getElementById('last-status-badge');
+    if (badge) {
+        badge.className = 'submission-status status-' + escapeHtml(status);
+        badge.textContent = label;
+        badge.style.display = '';
+    }
 }
 
 function escapeHtml(text) {

@@ -95,6 +95,39 @@ $stmt = $db->prepare("SELECT * FROM tests WHERE task_id = ? AND is_public = 1 OR
 $stmt->execute([$taskId]);
 $publicTests = $stmt->fetchAll() ?: [];
 
+// Последняя посылка пользователя по этой задаче — предзаполняем редактор её кодом
+$stmt = $db->prepare("SELECT id, code, status, executed_at FROM submissions
+    WHERE user_id = ? AND task_id = ?
+    ORDER BY id DESC LIMIT 1");
+$stmt->execute([$userId, $taskId]);
+$lastSubmission = $stmt->fetch() ?: null;
+
+// Время последней посылки как Unix-время в миллисекундах (UTC) —
+// для сравнения с меткой времени черновика в localStorage
+$lastSubmitTs = null;
+if ($lastSubmission && !empty($lastSubmission['executed_at'])) {
+    $dt = DateTime::createFromFormat('Y-m-d H:i:s', $lastSubmission['executed_at'], new DateTimeZone('UTC'));
+    if ($dt !== false) {
+        $lastSubmitTs = $dt->getTimestamp() * 1000;
+    }
+}
+
+// Список попыток пользователя по этой задаче (все контесты)
+$stmt = $db->prepare("SELECT s.id, s.status, s.execution_time, s.executed_at, c.title AS contest_title
+    FROM submissions s
+    LEFT JOIN contests c ON s.contest_id = c.id
+    WHERE s.user_id = ? AND s.task_id = ?
+    ORDER BY s.id DESC");
+$stmt->execute([$userId, $taskId]);
+$taskAttempts = $stmt->fetchAll() ?: [];
+
+// Заголовок текущего контеста — для строки попытки, добавляемой без перезагрузки
+$stmt = $db->prepare("SELECT title FROM contests WHERE id = ?");
+$stmt->execute([$contestId]);
+$contestTitle = (string)($stmt->fetchColumn() ?: '');
+
+require_once BASE_PATH . '/includes/labels.php';
+
 $pageTitle = $task['title']; // layout сам экранирует title
 
 // Условия задач могут содержать LaTeX — подключаем KaTeX
@@ -104,7 +137,11 @@ ob_start();
 ?>
 
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1><?= htmlspecialchars($task['title']) ?></h1>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <h1><?= htmlspecialchars($task['title']) ?></h1>
+        <!-- Бедж статуса последней посылки; обновляется без перезагрузки после отправки -->
+        <span id="last-status-badge" class="submission-status<?php if ($lastSubmission): ?> status-<?= $lastSubmission['status'] ?><?php endif; ?>"<?php if (!$lastSubmission): ?> style="display:none;"<?php endif; ?>><?= $lastSubmission ? ($statusLabels[$lastSubmission['status']] ?? $lastSubmission['status']) : '' ?></span>
+    </div>
     <div>
         <span style="color: var(--text-muted); font-size: 0.9em;">
             Лимит времени: <?= $task['time_limit'] ?> сек |
@@ -197,7 +234,7 @@ ob_start();
                     <div class="editor-line-numbers" id="line-numbers">1</div>
                     <div class="editor-overlay-wrapper">
                         <div class="editor-highlight-layer" id="highlight-layer"></div>
-                        <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+                        <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"><?= htmlspecialchars($lastSubmission['code'] ?? '') ?></textarea>
                     </div>
                 </div>
                 <div class="editor-statusbar">
@@ -224,6 +261,50 @@ ob_start();
             <div id="results-detail"></div>
         </div>
     </div>
+</div>
+
+<!-- Мои попытки по этой задаче -->
+<div class="card mt-20">
+    <h3>Мои попытки</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Контест</th>
+                <th>Статус</th>
+                <th>Время (сек)</th>
+                <th>Дата</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody id="attempts-tbody">
+            <?php if (empty($taskAttempts)): ?>
+            <tr id="attempts-empty-row">
+                <td colspan="6" style="color:var(--text-muted); text-align:center; padding:16px;">
+                    Попыток ещё не было. Отправьте первое решение.
+                </td>
+            </tr>
+            <?php else: ?>
+            <?php foreach ($taskAttempts as $a): ?>
+            <tr>
+                <td><?= $a['id'] ?></td>
+                <td><?= $a['contest_title'] !== null ? htmlspecialchars($a['contest_title']) : '—' ?></td>
+                <td>
+                    <span class="submission-status status-<?= $a['status'] ?>">
+                        <?= $statusLabels[$a['status']] ?? $a['status'] ?>
+                    </span>
+                </td>
+                <td><?= number_format((float)($a['execution_time'] ?? 0), 3) ?></td>
+                <td><?= htmlspecialchars(toDisplayTime($a['executed_at'] ?? '')) ?></td>
+                <td><a href="?page=submission-detail&id=<?= $a['id'] ?>" class="btn btn-small">Просмотр</a></td>
+            </tr>
+            <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+    <p style="margin-top:12px;">
+        <a href="?page=submissions&task_id=<?= $taskId ?>">Все мои решения →</a>
+    </p>
 </div>
 
 <!-- Модальное окно: основы PEP 8 -->
@@ -253,19 +334,34 @@ ob_start();
 </div>
 
 <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=6">
-<script src="<?= BASE_URL ?>/assets/js/editor.js?v=6"></script>
+<script src="<?= BASE_URL ?>/assets/js/editor.js?v=8"></script>
 <script>
 // Передаём taskId и contestId из PHP в JS
 window.TASK_ID = <?= $taskId ?>;
 window.CONTEST_ID = <?= $contestId ?? 'null' ?>;
+// JSON_HEX_TAG — защита от «</script>» внутри строк при выводе в inline-скрипт
+window.CONTEST_TITLE = <?= json_encode($contestTitle, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+// Время последней посылки (мс с эпохи, UTC) — для сравнения с меткой черновика
+window.LAST_SUBMIT_TS = <?= $lastSubmitTs !== null ? (int)$lastSubmitTs : 'null' ?>;
+// Канонические метки статусов (includes/labels.php)
+window.STATUS_LABELS = <?= json_encode($statusLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 </script>
 <script>
-// Восстановление кода из localStorage и инициализация редактора
+// Восстановление кода: побеждает более новое — черновик из localStorage
+// или последняя посылка (её код уже подставлен в textarea на сервере)
 (function() {
-    var saved = localStorage.getItem('last_code_<?= $taskId ?>');
-    if (saved) {
-        var ta = document.getElementById('code-editor');
-        if (ta) ta.value = saved;
+    var ta = document.getElementById('code-editor');
+    if (ta) {
+        var draft = null, draftTs = 0;
+        try {
+            draft = localStorage.getItem('last_code_<?= $taskId ?>');
+            draftTs = parseInt(localStorage.getItem('last_code_time_<?= $taskId ?>'), 10) || 0;
+        } catch (e) { /* localStorage недоступен — не критично */ }
+
+        var lastSubmitTs = window.LAST_SUBMIT_TS || 0;
+        if (draft && draftTs > lastSubmitTs) {
+            ta.value = draft;
+        }
     }
     // Инициализация редактора после загрузки DOM
     if (document.readyState === 'loading') {
