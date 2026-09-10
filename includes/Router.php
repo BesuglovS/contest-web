@@ -102,6 +102,9 @@ class Router
             require BASE_PATH . '/api/status.php';
         } elseif ($endpoint === 'contest_progress') {
             require BASE_PATH . '/api/contest_progress.php';
+        } elseif ($endpoint === 'admin_class_progress') {
+            // Сводка прогресса класса (группы) — доступ охраняет сам файл
+            require BASE_PATH . '/api/class_progress.php';
         } else {
             http_response_code(404);
             echo json_encode(['error' => 'Unknown endpoint'], JSON_UNESCAPED_UNICODE);
