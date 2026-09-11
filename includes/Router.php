@@ -102,6 +102,8 @@ class Router
             require BASE_PATH . '/api/status.php';
         } elseif ($endpoint === 'contest_progress') {
             require BASE_PATH . '/api/contest_progress.php';
+        } elseif ($endpoint === 'my_progress') {
+            require BASE_PATH . '/api/my_progress.php';
         } elseif ($endpoint === 'admin_class_progress') {
             // Сводка прогресса класса (группы) — доступ охраняет сам файл
             require BASE_PATH . '/api/class_progress.php';
