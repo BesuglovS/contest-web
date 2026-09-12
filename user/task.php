@@ -334,10 +334,12 @@ ob_start();
 </div>
 
 <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=6">
-<script src="<?= BASE_URL ?>/assets/js/editor.js?v=8"></script>
+<script src="<?= BASE_URL ?>/assets/js/editor.js?v=9"></script>
 <script>
 // Передаём taskId и contestId из PHP в JS
 window.TASK_ID = <?= $taskId ?>;
+// Текущий пользователь — для изоляции черновиков в localStorage между учениками
+window.USER_ID = <?= (int)Auth::getUserId() ?>;
 window.CONTEST_ID = <?= $contestId ?? 'null' ?>;
 // JSON_HEX_TAG — защита от «</script>» внутри строк при выводе в inline-скрипт
 window.CONTEST_TITLE = <?= json_encode($contestTitle, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
@@ -348,14 +350,16 @@ window.STATUS_LABELS = <?= json_encode($statusLabels, JSON_UNESCAPED_UNICODE | J
 </script>
 <script>
 // Восстановление кода: побеждает более новое — черновик из localStorage
-// или последняя посылка (её код уже подставлен в textarea на сервере)
+// или последняя посылка (её код уже подставлен в textarea на сервере).
+// Ключи черновика привязаны к user_id — чтобы на одном компьютере
+// второй ученик не увидел черновик первого (_legacy-ключи игнорируются).
 (function() {
     var ta = document.getElementById('code-editor');
     if (ta) {
         var draft = null, draftTs = 0;
         try {
-            draft = localStorage.getItem('last_code_<?= $taskId ?>');
-            draftTs = parseInt(localStorage.getItem('last_code_time_<?= $taskId ?>'), 10) || 0;
+            draft = localStorage.getItem('last_code_' + window.USER_ID + '_<?= $taskId ?>');
+            draftTs = parseInt(localStorage.getItem('last_code_time_' + window.USER_ID + '_<?= $taskId ?>'), 10) || 0;
         } catch (e) { /* localStorage недоступен — не критично */ }
 
         var lastSubmitTs = window.LAST_SUBMIT_TS || 0;

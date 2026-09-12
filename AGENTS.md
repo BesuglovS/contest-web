@@ -70,7 +70,7 @@ contest.nayanovaacademy.ru  # nginx-конфиг
   `register_shutdown_function` + `set_error_handler` → `ErrorException` → `sendJsonError()` с очисткой буфера.
 - **Шаблоны**: `$pageTitle`, `ob_start()`, `$content = ob_get_clean(); require BASE_PATH . '/templates/layout.php';`
 - **JS**: IIFE-модули; `window.fetch` обёрнут для инъекции `X-CSRF-TOKEN`; редактор читает
-  `window.TASK_ID`/`window.CONTEST_ID`; код в `localStorage['last_code_<taskId>']`.
+  `window.TASK_ID`/`window.CONTEST_ID`; код в `localStorage['last_code_<userId>_<taskId>']` (ключи черновика изолированы по пользователю).
 - **CSS**: CSS-переменные (`--primary`, `--text-muted`), `:focus-visible`, классы `.card/.btn/.alert/.submission-status`.
 
 ## 🔍 Семантика проверки (не сломать)

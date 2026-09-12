@@ -147,16 +147,28 @@ let isRunning = false;
 
 // Отложенное сохранение черновика кода в localStorage — чтобы ввод не терялся
 // при ошибке сети, rate-limit или случайном закрытии вкладки
+// Ключи черновика привязаны к пользователю (window.USER_ID) — на одном
+// компьютере ученики не видят черновики друг друга
+function draftKeys() {
+    if (!window.USER_ID) return null;
+    return {
+        code: 'last_code_' + window.USER_ID + '_' + window.TASK_ID,
+        time: 'last_code_time_' + window.USER_ID + '_' + window.TASK_ID
+    };
+}
+
 let draftSaveTimer = null;
 function scheduleDraftSave() {
     if (!window.TASK_ID) return;
+    var keys = draftKeys();
+    if (!keys) return;
     clearTimeout(draftSaveTimer);
     draftSaveTimer = setTimeout(function() {
         try {
-            localStorage.setItem('last_code_' + window.TASK_ID, document.getElementById('code-editor').value);
+            localStorage.setItem(keys.code, document.getElementById('code-editor').value);
             // Метка времени черновика — чтобы при загрузке страницы сравнить
             // его с последней посылкой и показать более новое
-            localStorage.setItem('last_code_time_' + window.TASK_ID, String(Date.now()));
+            localStorage.setItem(keys.time, String(Date.now()));
         } catch (e) { /* localStorage недоступен — не критично */ }
     }, 400);
 }
@@ -207,10 +219,13 @@ async function submitSolution() {
             return;
         }
 
-        // Сохраняем код в localStorage
+        // Сохраняем код в localStorage под ключом текущего пользователя
         try {
-            localStorage.setItem('last_code_' + taskId, code);
-            localStorage.setItem('last_code_time_' + taskId, String(Date.now()));
+            var keys = draftKeys();
+            if (keys) {
+                localStorage.setItem(keys.code, code);
+                localStorage.setItem(keys.time, String(Date.now()));
+            }
         } catch(e) {}
 
         // Обновляем список попыток под задачей
