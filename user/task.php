@@ -168,6 +168,10 @@ ob_start();
         <?php else: ?>
             <span class="btn btn-secondary" style="font-size: 0.9em; opacity: 0.4; cursor: not-allowed;">Следующая →</span>
         <?php endif; ?>
+
+        <span style="color: var(--text-muted); font-size: 0.9em; white-space: nowrap;">
+            Задача <?= $currentIndex + 1 ?> из <?= count($contestTasks) ?>
+        </span>
     </div>
     <div>
         <a href="?page=contest&id=<?= $contestId ?>" class="btn btn-primary" style="font-size: 0.9em;">
