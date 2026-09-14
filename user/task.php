@@ -345,7 +345,7 @@ window.TASK_ID = <?= $taskId ?>;
 // Текущий пользователь — для изоляции черновиков в localStorage между учениками
 window.USER_ID = <?= (int)Auth::getUserId() ?>;
 window.CONTEST_ID = <?= $contestId ?? 'null' ?>;
-// JSON_HEX_TAG — защита от «</script>» внутри строк при выводе в inline-скрипт
+// JSON_HEX_TAG — защита от преждевременного закрытия тега script внутри строк
 window.CONTEST_TITLE = <?= json_encode($contestTitle, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 // Время последней посылки (мс с эпохи, UTC) — для сравнения с меткой черновика
 window.LAST_SUBMIT_TS = <?= $lastSubmitTs !== null ? (int)$lastSubmitTs : 'null' ?>;
