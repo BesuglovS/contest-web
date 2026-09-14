@@ -44,6 +44,19 @@ if (!$contestId) {
 }
 
 $userId = Auth::getUserId();
+
+// Опциональный user_id: прогресс можно запросить и по другому ученику,
+// но только админу (используется серверными интеграциями курса, напр. python-web).
+$requestedUserId = isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
+if ($requestedUserId > 0) {
+    if (!Auth::isAdmin()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Параметр user_id доступен только администратору'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $userId = $requestedUserId;
+}
+
 $db = Database::getInstance();
 $userGroupIds = Auth::getUserGroupIds($userId);
 $groupPlaceholders = Auth::groupPlaceholders($userGroupIds);
