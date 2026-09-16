@@ -479,6 +479,51 @@ function insertIndent(textarea) {
     scheduleDraftSave();
 }
 
+// Дублирование строки (или выделенного блока строк) — Ctrl+D
+function duplicateLine(textarea) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    if (start === end) {
+        // Без выделения — копируем строку под курсором целиком
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', start);
+        const line = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
+        // Копия вставляется строкой ниже — после перевода строки
+        // (если строка последняя и без \n — добавляем \n перед копией)
+        const insertPos = lineEnd === -1 ? value.length : lineEnd + 1;
+        const insertText = lineEnd === -1 ? '\n' + line : line + '\n';
+        textarea.value = value.substring(0, insertPos) + insertText + value.substring(insertPos);
+        // Курсор — на копию строки (та же колонка)
+        const column = start - lineStart;
+        const copyStart = insertPos + 1;
+        textarea.selectionStart = textarea.selectionEnd = copyStart + column;
+    } else {
+        // С выделением — копируем затронутые строки целиком и вставляем копию ниже
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        // Блок — все строки, затронутые выделением:
+        // если выделение заканчивается на \n, граница уже на начале строки,
+        // иначе расширяем до конца строки, содержащей конец выделения
+        let blockEnd = end;
+        if (value[end - 1] !== '\n') {
+            const nl = value.indexOf('\n', end - 1);
+            blockEnd = nl === -1 ? value.length : nl + 1;
+        }
+        const block = value.substring(lineStart, blockEnd);
+        const insertPos = blockEnd;
+        // Если блок — последняя строка без \n, копию отделяем добавленным \n
+        const insertText = block.endsWith('\n') ? block : '\n' + block;
+        textarea.value = value.substring(0, insertPos) + insertText + value.substring(insertPos);
+        textarea.selectionStart = blockEnd + insertText.length;
+        textarea.selectionEnd = blockEnd + insertText.length;
+    }
+    updateLineNumbers();
+    updateCursorPosition();
+    SyntaxHighlight.update();
+    scheduleDraftSave();
+}
+
 // Модальное окно со справкой по PEP 8
 function showPep8Help() {
     const modal = document.getElementById('pep8-modal');
@@ -525,11 +570,17 @@ function initEditor() {
     textarea.addEventListener('click', updateCursorPosition);
     textarea.addEventListener('keyup', updateCursorPosition);
 
-    // Ctrl+Enter → отправка решения; Tab → отступ 4 пробела (PEP 8)
+    // Ctrl+Enter → отправка решения; Ctrl+D → дублирование строки;
+    // Tab → отступ 4 пробела (PEP 8)
     textarea.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
             submitSolution();
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D') && !e.altKey) {
+            e.preventDefault();
+            duplicateLine(textarea);
             return;
         }
         if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
