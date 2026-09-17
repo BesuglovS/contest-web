@@ -140,12 +140,14 @@ $filterTask = $_GET['task_id'] ?? '';
 $filterUser = $_GET['user_id'] ?? '';
 $filterStatus = $_GET['status'] ?? '';
 $filterContest = $_GET['contest_id'] ?? '';
+$filterGroup = $_GET['group_id'] ?? '';
 
 $filterParams = [];
 if ($filterTask !== '') $filterParams['task_id'] = (int)$filterTask;
 if ($filterUser !== '') $filterParams['user_id'] = (int)$filterUser;
 if ($filterStatus !== '') $filterParams['status'] = $filterStatus;
 if ($filterContest !== '') $filterParams['contest_id'] = (int)$filterContest;
+if ($filterGroup !== '') $filterParams['group_id'] = (int)$filterGroup;
 
 $where = [];
 $params = [];
@@ -153,6 +155,14 @@ if ($filterTask) { $where[] = "s.task_id = ?"; $params[] = (int)$filterTask; }
 if ($filterUser) { $where[] = "s.user_id = ?"; $params[] = (int)$filterUser; }
 if ($filterStatus) { $where[] = "s.status = ?"; $params[] = $filterStatus; }
 if ($filterContest) { $where[] = "s.contest_id = ?"; $params[] = (int)$filterContest; }
+if ($filterGroup) {
+    // Фильтр по классу: через membership из auth-web
+    $groupUserIds = Auth::getGroupUsersByGroupIds([(int)$filterGroup]);
+    $where[] = "s.user_id IN (" . Auth::groupPlaceholders($groupUserIds) . ")";
+    foreach ($groupUserIds as $uid) {
+        $params[] = $uid;
+    }
+}
 
 // Пагинация
 $perPage = 20;
@@ -189,6 +199,7 @@ foreach ($users as $u) {
     $userNames[(int)$u['id']] = $u['display_name'] ?: $u['login'];
 }
 $contests = $db->query("SELECT id, title FROM contests ORDER BY title")->fetchAll();
+$allGroups = Auth::getAllGroups();
 
 ob_start();
 ?>
@@ -282,6 +293,15 @@ ob_start();
                 <?php endforeach; ?>
             </select>
         </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Класс</label>
+            <select name="group_id">
+                <option value="">Все</option>
+                <?php foreach ($allGroups as $g): ?>
+                <option value="<?= $g['id'] ?>" <?= $filterGroup == $g['id'] ? 'selected' : '' ?>><?= htmlspecialchars($g['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <button type="submit" class="btn btn-primary">Фильтр</button>
     </form>
 </div>
@@ -313,6 +333,13 @@ if ($filterContest !== '') {
         if ((string)$c['id'] === $filterContest) { $contestName = htmlspecialchars($c['title']); break; }
     }
     $activeFilters[] = ['label' => $contestName, 'params' => array_diff_key($filterParams, ['contest_id' => 1])];
+}
+if ($filterGroup !== '') {
+    $groupName = 'Класс #' . $filterGroup;
+    foreach ($allGroups as $g) {
+        if ((string)$g['id'] === $filterGroup) { $groupName = htmlspecialchars($g['name']); break; }
+    }
+    $activeFilters[] = ['label' => $groupName, 'params' => array_diff_key($filterParams, ['group_id' => 1])];
 }
 ?>
 <?php if (!empty($activeFilters)): ?>

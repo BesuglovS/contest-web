@@ -327,6 +327,36 @@ tr:hover td {
     border: 1px solid #f5c6cb;
 }
 
+/* === Filter Bar (панель фильтров в карточках) === */
+.filter-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.filter-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+.filter-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.filter-group select {
+    width: auto;
+    padding: 4px 8px;
+    font-size: 13px;
+    border-radius: 4px;
+    background: var(--surface);
+}
+
 /* === Filter Icons === */
 .filter-icon {
     display: inline-flex;

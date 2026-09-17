@@ -14,7 +14,7 @@
     <link rel="icon" type="image/png" sizes="256x256" href="/assets/favicon-256x256.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180x180.png">
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=6">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=7">
     <?php if (!empty($useKaTeX)): ?>
     <!-- KaTeX для LaTeX-рендеринга (грузим только на страницах с формулами) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
