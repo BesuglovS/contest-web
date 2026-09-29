@@ -14,6 +14,37 @@ class Sandbox
     private $pythonCmd;
     private $tempDir;
 
+    /**
+     * Путь к изолирующему root-хелперу (scripts/sandbox-python.run из python-web)
+     * или null, если он недоступен (локальная разработка / Windows).
+     *
+     * Режимы через env:
+     *   SANDBOX_ISOLATION=1  — требовать хелпер (для лога, не критично);
+     *   SANDBOX_ISOLATION=0  — отключить изоляцию (dev/CI);
+     *   не задан             — авто: использовать хелпер, если установлен.
+     */
+    private static function isolationHelper(): ?string
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return null;
+        }
+        $mode = getenv('SANDBOX_ISOLATION');
+        if ($mode === '0') {
+            return null;
+        }
+        $helper = getenv('SANDBOX_RUN_HELPER');
+        if ($helper === false || $helper === '') {
+            $helper = '/usr/local/sbin/sandbox-python.run';
+        }
+        if (!is_file($helper) || !is_executable($helper)) {
+            if ($mode === '1') {
+                error_log('[sandbox] SANDBOX_ISOLATION=1, но изолирующий хелпер недоступен: ' . $helper);
+            }
+            return null;
+        }
+        return $helper;
+    }
+
     public function __construct()
     {
         // Используем python3 или python (путь ищется один раз за процесс)
@@ -25,6 +56,61 @@ class Sandbox
         if (!is_dir($this->tempDir)) {
             mkdir($this->tempDir, 0755, true);
         }
+    }
+
+    /**
+     * AST-валидация кода (модель python-web): отдельный процесс
+     * sandbox/ast_validator.py читает код из stdin и печатает JSON
+     * {ok, error?}. Список разрешённых импортов задаётся argv.
+     *
+     * @return ?string null — код безопасен; строка — сообщение об ошибке.
+     *         Сбой запуска валидатора вернёт null (не блокируем проверку —
+     *         работают PHP-фильтры и фильтры обёртки).
+     */
+    public function validateCode(string $code): ?string
+    {
+        $validatorPath = BASE_PATH . '/sandbox/ast_validator.py';
+        if (!is_file($validatorPath)) {
+            return null;
+        }
+        $allowedImports = [
+            'math', 'random', 'datetime', 'itertools', 'collections',
+            'functools', 'json', 're', 'string', 'statistics',
+            'decimal', 'fractions', 'copy', 'pprint', 'operator', 'csv',
+        ];
+        $importsJson = json_encode($allowedImports);
+        $descriptorspec = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+        $process = proc_open(
+            [$this->pythonCmd, '-I', '-S', '-B', $validatorPath, $importsJson],
+            $descriptorspec,
+            $pipes,
+            null,
+            null,
+            ['bypass_shell' => true]
+        );
+        if (!is_resource($process)) {
+            error_log('[sandbox] AST validator: не удалось запустить процесс');
+            return null;
+        }
+        fwrite($pipes[0], $code);
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+        $result = json_decode(trim((string)$stdout), true);
+        if (!is_array($result)) {
+            error_log('[sandbox] AST validator: неверный формат результата');
+            return null;
+        }
+        if (!empty($result['ok'])) {
+            return null;
+        }
+        return (string)($result['error'] ?? 'Unknown AST error');
     }
 
     /**
@@ -73,7 +159,7 @@ class Sandbox
      * а вердикт memory_limit выставляется по измеренному пику RSS против
      * настроенного лимита задачи. На Windows изоляции по памяти нет (мягкий режим).
      */
-    private function buildWrapperCode(float $timeLimit, int $memoryLimit): string
+    private function buildWrapperCode(float $timeLimit, int $memoryLimit, string $codeFile, string $stdinBase64, string $sentinel): string
     {
         // Nowdoc: PHP не интерполирует содержимое, Python-код остаётся как есть
         $template = <<<'PYWRAPPER'
@@ -81,6 +167,7 @@ import sys
 import subprocess
 import time
 import os
+import base64
 
 try:
     import resource
@@ -90,10 +177,26 @@ except ImportError:
 time_limit = __TIME_LIMIT__
 memory_limit = __MEMORY_LIMIT__
 
-CODE_FILE = sys.argv[1]
-INPUT_FILE = sys.argv[2]
-OUTPUT_FILE = sys.argv[3]
-ERROR_FILE = sys.argv[4]
+# Входные параметры — встроенные литералы (не через argv): обёртка
+# выполняется root-хелпером изоляции без пользовательских аргументов.
+# Код ученика — файл (создаёт PHP, читает обёртка/потомок); stdin и
+# результаты передаются через sentinel-маркеры в stdout обёртки,
+# никаких файлов вывода (пользователь sandbox не может их там создавать).
+CODE_FILE = __CODE_FILE__
+STDIN_B64 = __STDIN_B64__
+
+OUT_BEG = "%OUT_BEG%"
+OUT_END = "%OUT_END%"
+ERR_BEG = "%ERR_BEG%"
+ERR_END = "%ERR_END%"
+
+
+def meta_line(**kv):
+    parts = ["##META##"]
+    for k, v in kv.items():
+        parts.append(k + "=" + str(v))
+    print("##META beg##" + "\n".join(parts) + "##META end##")
+
 
 # Запас сверх лимита задачи для RLIMIT_AS (виртуальная память > RSS)
 RLIMIT_SLACK = 64 * 1024 * 1024
@@ -121,21 +224,17 @@ def apply_limits():
         pass
 
 
-def write_meta(status=None, exit_code=None, elapsed=None, memory_bytes=None):
-    with open(OUTPUT_FILE + '.meta', 'w') as f:
-        if status is not None:
-            f.write("status=" + str(status) + "\n")
-        if exit_code is not None:
-            f.write("exit_code=" + str(exit_code) + "\n")
-        if elapsed is not None:
-            f.write("time={:.3f}\n".format(elapsed))
-        if memory_bytes is not None:
-            f.write("memory={:d}\n".format(int(memory_bytes)))
+def emit(stdout_b, stderr_b, **meta):
+    out_text = stdout_b.decode('utf-8', errors='replace')
+    err_text = stderr_b.decode('utf-8', errors='replace')
+    sys.stdout.write(OUT_BEG + out_text + OUT_END)
+    sys.stdout.write(ERR_BEG + err_text + ERR_END)
+    sys.stdout.flush()
+    meta_line(**meta)
 
 
 try:
-    with open(INPUT_FILE, 'r') as f:
-        stdin_data = f.read()
+    stdin_data = base64.b64decode(STDIN_B64).decode('utf-8', errors='replace')
     if stdin_data == '':
         stdin_data = '\n'
 
@@ -155,14 +254,6 @@ try:
             timeout=time_limit
         )
         elapsed = time.time() - start_time
-
-        with open(OUTPUT_FILE, 'wb') as f:
-            f.write(stdout_data)
-
-        with open(ERROR_FILE, 'w') as f:
-            if stderr_data:
-                f.write(stderr_data.decode('utf-8', errors='replace'))
-
         exit_code = proc.returncode
         mem_peak = peak_rss_bytes()
 
@@ -173,9 +264,9 @@ try:
             exit_code != 0 and stderr_data is not None and b'MemoryError' in stderr_data
         )
         if hit_memory:
-            write_meta(status='memory_limit', elapsed=elapsed, memory_bytes=mem_peak)
+            emit(stdout_data, stderr_data, status='memory_limit', elapsed="{:.3f}".format(elapsed), memory=int(mem_peak or 0))
         else:
-            write_meta(exit_code=exit_code, elapsed=elapsed, memory_bytes=mem_peak)
+            emit(stdout_data, stderr_data, exit_code=exit_code, elapsed="{:.3f}".format(elapsed), memory=int(mem_peak or 0))
 
     except subprocess.TimeoutExpired:
         proc.kill()
@@ -184,24 +275,18 @@ try:
         except Exception:
             pass
         elapsed = time.time() - start_time
-        with open(ERROR_FILE, 'w') as f:
-            f.write("Time Limit Exceeded")
-        write_meta(status='time_limit', elapsed=elapsed, memory_bytes=peak_rss_bytes())
+        emit(b"", b"Time Limit Exceeded", status='time_limit', elapsed="{:.3f}".format(elapsed), memory=int(peak_rss_bytes() or 0))
 
 except MemoryError:
-    with open(ERROR_FILE, 'w') as f:
-        f.write("Memory Limit Exceeded")
-    write_meta(status='memory_limit', memory_bytes=peak_rss_bytes())
+    emit(b"", b"Memory Limit Exceeded", status='memory_limit', memory=int(peak_rss_bytes() or 0))
 
 except Exception as e:
-    with open(ERROR_FILE, 'w') as f:
-        f.write(f"System Error: {str(e)}")
-    write_meta(status='error')
+    emit(b"", f"System Error: {str(e)}".encode('utf-8', errors='replace'), status='error')
 PYWRAPPER;
 
         return str_replace(
-            ['__TIME_LIMIT__', '__MEMORY_LIMIT__'],
-            [var_export($timeLimit, true), var_export($memoryLimit, true)],
+            ['__TIME_LIMIT__', '__MEMORY_LIMIT__', '__CODE_FILE__', '__STDIN_B64__'],
+            [var_export($timeLimit, true), var_export($memoryLimit, true), var_export($codeFile, true), var_export($stdinBase64, true)],
             $template
         );
     }
@@ -217,37 +302,70 @@ PYWRAPPER;
      */
     public function run(string $code, string $input, float $timeLimit = 2.0, int $memoryLimit = 128): array
     {
-        // Создаём уникальные временные файлы
+        // Создаём уникальный временный файл с кодом. При изолированном
+        // запуске (root-хелпер) файл лежит в /tmp: обёртка и потомок
+        // (пользователь sandbox) читают его оттуда. stdin и все результаты
+        // передаются через sentinel-маркеры (см. buildWrapperCode), файлов
+        // вывода не существует вовсе — пользователю sandbox нечего портить.
+        $workspace = (PHP_OS_FAMILY !== 'Windows' && self::isolationHelper() !== null)
+            ? sys_get_temp_dir()
+            : $this->tempDir;
         $id = uniqid('run_', true);
-        $codeFile = $this->tempDir . '/' . $id . '.py';
-        $inputFile = $this->tempDir . '/' . $id . '.in';
-        $outputFile = $this->tempDir . '/' . $id . '.out';
-        $errorFile = $this->tempDir . '/' . $id . '.err';
+        $codeFile = $workspace . '/' . $id . '.py';
 
-        // Записываем код и входные данные
+        // Записываем код
         file_put_contents($codeFile, $code);
-        file_put_contents($inputFile, $input);
 
-        // Генерируем обёртку
-        $wrapperCode = $this->buildWrapperCode($timeLimit, $memoryLimit);
-        $wrapperFile = $this->tempDir . '/' . $id . '_wrapper.py';
+        // Генерируем обёртку. При изолированном запуске хелпер принимает скрипт
+        // только из /tmp|/var/tmp|/var/lib/python-sandbox — пишем обёртку в
+        // системный tmp; при legacy-запуске (без хелпера) остаётся SANDBOX_DIR.
+        $sentinel = uniqid('sbx_', true);
+        $stdinBase64 = base64_encode($input);
+        $wrapperCode = $this->buildWrapperCode($timeLimit, $memoryLimit, $codeFile, $stdinBase64, $sentinel);
+        if (PHP_OS_FAMILY !== 'Windows' && self::isolationHelper() !== null) {
+            $wrapperTmp = tempnam(sys_get_temp_dir(), 'sandbox_wrapper_');
+            if ($wrapperTmp === false) {
+                $wrapperTmp = $this->tempDir . '/' . $id . '_wrapper.py';
+            }
+            $wrapperFile = $wrapperTmp;
+        } else {
+            $wrapperFile = $this->tempDir . '/' . $id . '_wrapper.py';
+        }
         file_put_contents($wrapperFile, $wrapperCode);
 
-        // Запускаем Python-обёртку через proc_open (без shell)
+        // Запускаем Python-обёртку через proc_open (без shell).
+        // Если установлен изолирующий root-хелпер /usr/local/sbin/sandbox-python.run
+        // (вызывной сценарий auth-web/python-web), обёртка выполняется в
+        // отдельном net/pid namespace от непривилегированного пользователя
+        // sandbox: процесс не может ни выйти в сеть, ни писать в webroot,
+        // ни читать секреты сайта даже при обходе фильтров обёртки.
         $descriptorspec = [
             0 => ['pipe', 'r'],  // stdin
             1 => ['pipe', 'w'],  // stdout
             2 => ['pipe', 'w'],  // stderr
         ];
 
-        $cmd = [
-            $this->pythonCmd,
-            $wrapperFile,
-            $codeFile,
-            $inputFile,
-            $outputFile,
-            $errorFile,
-        ];
+        $helper = self::isolationHelper();
+        if ($helper !== null) {
+            // RLIMIT хелпер распространяется на родителя и каждого потомка
+            // отдельно, поэтому даём запас вдвое (обёртка + код ученика).
+            // Запас CPU/времени: +3 сек на старт интерпретатора обёртки —
+            // внутренний таймаут кода ученика (в обёртке) не изменяется.
+            $cmd = [
+                '/usr/bin/sudo', '-n', '--', $helper,
+                $wrapperFile,
+                (string) ($memoryLimit * 2),
+                (string) ((int) ceil($timeLimit) + 3),
+                $this->pythonCmd,
+            ];
+            // Скрипт создаёт www-data (0600); хелпер читает его от sandbox-пользователя.
+            @chmod($wrapperFile, 0644);
+        } else {
+            $cmd = [
+                $this->pythonCmd,
+                $wrapperFile,
+            ];
+        }
 
         $startTime = microtime(true);
         $process = proc_open(
@@ -275,13 +393,26 @@ PYWRAPPER;
             $exitCode = proc_close($process);
         } else {
             // proc_open не удался — используем shell_exec как fallback
+            // (только в legacy-режиме без хелпера: с хелпером путь shell-запуска отключён)
+            if ($helper !== null) {
+                $result = [
+                    'output' => '',
+                    'error' => 'Sandbox execution failure',
+                    'status' => 'error',
+                    'time' => $wallTime,
+                    'memory' => 0,
+                ];
+                foreach ([$codeFile, $wrapperFile] as $file) {
+                    if (file_exists($file)) {
+                        @unlink($file);
+                    }
+                }
+                return $result;
+            }
             $escWrapper = escapeshellarg($wrapperFile);
             $escCode = escapeshellarg($codeFile);
-            $escInput = escapeshellarg($inputFile);
-            $escOutput = escapeshellarg($outputFile);
-            $escError = escapeshellarg($errorFile);
 
-            $shellCmd = "\"{$this->pythonCmd}\" {$escWrapper} {$escCode} {$escInput} {$escOutput} {$escError} 2>&1";
+            $shellCmd = "\"{$this->pythonCmd}\" {$escWrapper} {$escCode} 2>&1";
             $wrapperStdout = shell_exec($shellCmd) ?? '';
             $wrapperStderr = '';
         }
@@ -307,10 +438,28 @@ PYWRAPPER;
                 : substr($s, 0, MAX_OUTPUT_SIZE);
         };
 
-        // Читаем вывод (ограничиваем размер, чтобы гигантский stdout не раздул БД)
-        if (file_exists($outputFile)) {
-            $result['output'] = $truncateUtf8((string) file_get_contents($outputFile));
-        }
+        // ─── Разбор sentinel-канала обёртки (out/err + ##META##) ───
+        // Первый arg = sentinel этого запуска, чтобы не путать вывод,
+        // случайно похожий на маркеры, с реальными границами.
+        $outBeg = "%OUT_BEG%";
+        $outEnd = "%OUT_END%";
+        $errBeg = "%ERR_BEG%";
+        $errEnd = "%ERR_END%";
+
+        $p1 = strpos($wrapperStdout, $outBeg);
+        $p2 = strpos($wrapperStdout, $outEnd);
+        $p3 = strpos($wrapperStdout, $errBeg);
+        $p4 = strpos($wrapperStdout, $errEnd);
+
+        $stdoutData = ($p1 !== false && $p2 !== false && $p1 < $p2)
+            ? substr($wrapperStdout, $p1 + strlen($outBeg), $p2 - $p1 - strlen($outBeg))
+            : '';
+        $stderrData = ($p3 !== false && $p4 !== false && $p3 < $p4)
+            ? substr($wrapperStdout, $p3 + strlen($errBeg), $p4 - $p3 - strlen($errBeg))
+            : '';
+
+        $result['output'] = $truncateUtf8($stdoutData);
+        $result['error'] = $stderrData;
 
         // Вспомогательная функция для очистки Python traceback от имён файлов (номер строки сохраняем)
         $cleanPyTraceback = function (string $text): string {
@@ -328,56 +477,45 @@ PYWRAPPER;
             return trim(implode("\n", $filtered));
         };
 
-        // Читаем ошибки (также ограничиваем размер)
-        if (file_exists($errorFile)) {
-            $errorText = $truncateUtf8((string) file_get_contents($errorFile));
-            $result['error'] = $cleanPyTraceback($errorText);
-        }
-
-        // Если файлы не созданы — используем stdout/stderr обёртки
-        if (empty($result['error']) && !empty($wrapperStderr)) {
+        // Если sentinel-канал пуст — обёртка упала до emit(): диагностика из stderr/stdout
+        if ($stdoutData === '' && $stderrData === '' && !empty($wrapperStderr)) {
             $result['error'] = $cleanPyTraceback($wrapperStderr);
-        }
-        if (empty($result['output']) && empty($result['error']) && !empty($wrapperStdout)) {
-            // Возможно, обёртка упала до записи файлов; используем stdout для диагностики
-            $result['error'] = $cleanPyTraceback('Wrapper stderr: ' . $wrapperStderr . '; stdout: ' . $wrapperStdout);
+        } elseif ($stdoutData === '' && !empty($wrapperStdout)) {
+            // stdout без sentinels и stderr пуст: суррогатный вывод как диагностика
+            $result['error'] = $cleanPyTraceback('Wrapper stdout: ' . $wrapperStdout);
         }
 
-        // Читаем метаинформацию
-        $metaFile = $outputFile . '.meta';
-        if (file_exists($metaFile)) {
-            $meta = str_replace("\r\n", "\n", file_get_contents($metaFile));
-            $meta = str_replace("\r", "\n", $meta);
-            foreach (explode("\n", $meta) as $line) {
+        // ─── Разбор ##META## из stdout (рекомандации по elapsed/time/memory/status) ───
+        if (preg_match('/##META beg##(.*?)##META end##/s', $wrapperStdout, $mm)) {
+            $metaBlock = $mm[1];
+            foreach (explode("\n", $metaBlock) as $line) {
                 $line = trim($line);
-                if ($line === '') continue;
-                if (strpos($line, '=') !== false) {
-                    [$key, $value] = explode('=', $line, 2);
-                    $key = trim($key);
-                    $value = trim($value);
-                    if ($key === 'exit_code') {
-                        $exitCode = (int) $value;
-                        if ($exitCode === 0) {
-                            $result['status'] = empty($result['error']) ? 'accepted' : 'runtime_error';
-                        } else {
-                            $result['status'] = 'runtime_error';
-                        }
+                if ($line === '##META##' || $line === '' || strpos($line, '=') === false) continue;
+                [$key, $value] = explode('=', $line, 2);
+                $key = trim($key);
+                $value = trim($value);
+                if ($key === 'exit_code') {
+                    $metaExitCode = (int) $value;
+                    if ($metaExitCode === 0) {
+                        $result['status'] = empty($result['error']) ? 'accepted' : 'runtime_error';
+                    } else {
+                        $result['status'] = 'runtime_error';
                     }
-                    if ($key === 'time') {
-                        $result['time'] = (float) $value;
-                    }
-                    if ($key === 'memory') {
-                        $result['memory'] = (int) $value;
-                    }
-                    if ($key === 'status') {
-                        $result['status'] = $value;
-                    }
+                }
+                if ($key === 'elapsed') {
+                    $result['time'] = (float) $value;
+                }
+                if ($key === 'memory') {
+                    $result['memory'] = (int) $value;
+                }
+                if ($key === 'status') {
+                    $result['status'] = $value;
                 }
             }
         }
 
         // Очистка временных файлов
-        foreach ([$codeFile, $inputFile, $outputFile, $errorFile, $wrapperFile, $metaFile] as $file) {
+        foreach ([$codeFile, $wrapperFile] as $file) {
             if (file_exists($file)) {
                 @unlink($file);
             }

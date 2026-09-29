@@ -7,6 +7,20 @@
 class TestingEngine
 {
     /**
+     * AST-валидация кода ученика (модель python-web). Возвращает строку
+     * с сообщением об ошибке или null, если код прошёл проверку.
+     */
+    private static function runAstValidation(Sandbox $sandbox, string $code): ?string
+    {
+        try {
+            return $sandbox->validateCode($code);
+        } catch (Throwable $e) {
+            error_log('[tests] AST validation crashed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Запускает тесты для кода задачи.
      * @param string $code Код решения
      * @param int $taskId ID задачи
@@ -40,6 +54,30 @@ class TestingEngine
 
         require_once __DIR__ . '/Sandbox.php';
         $sandbox = new Sandbox();
+
+        // AST-валидация (модель python-web): белый список импортов + запрет
+        // опасных конструкций/имен/дандер-атрибутов. Ошибки оформляются как
+        // lint_errors. Процесс-валидатор — отдельный python со stdin; сбой
+        // самого валидатора не блокирует проверку (fallback: PHP-фильтры ниже).
+        $astError = self::runAstValidation($sandbox, $code);
+        if ($astError !== null) {
+            $astLintErrors = [
+                [
+                    'line' => 0,
+                    'column' => 0,
+                    'code' => 'AST',
+                    'message' => mb_substr($astError, 0, 300),
+                ],
+            ];
+            return [
+                'lint_errors' => true,
+                'lint_errors_json' => json_encode($astLintErrors, JSON_UNESCAPED_UNICODE),
+                'lint_errors_array' => $astLintErrors,
+                'overall_status' => 'lint_error',
+                'total_time' => 0,
+                'test_results' => [],
+            ];
+        }
 
         // Проверка запрещённых модулей (os, subprocess, socket, ...) —
         // до запуска кода; оформляется как ошибки линтинга

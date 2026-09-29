@@ -95,12 +95,23 @@ contest.nayanovaacademy.ru  # nginx-конфиг
 
 ## 🔒 Безопасность (не ломать)
 
+- **Изоляция песочницы (сентябрь 2026, модель python-web):** код ученика запускается
+  через root-хелпер `/usr/local/sbin/sandbox-python.run` (`SANDBOX_ISOLATION`,
+  `SANDBOX_RUN_HELPER` в `includes/Sandbox.php`): unshare net/pid namespace, непривилегированный
+  пользователь `sandbox`, prlimit. Wrapper — с усечёнными builtins и sentinel-каналом
+  (stdin/вывод — через base64/маркеры в stdout wrapper'а, никаких файлов вывода).
+  AST-валидация — `sandbox/ast_validator.py` (копия python-web), вызов —
+  `TestingEngine::runAstValidation()` → `Sandbox::validateCode()`.
+- **Деплой без root (deploy-пользователь, sudoers deploy-nginx):** `.env` деплой-проекта
+  использует `DEPLOY_SSH_USER=deploy` и ключ `../ssh-deploy.key`; установка nginx-конфига —
+  через `sudo -n /usr/local/sbin/deploy-nginx.sh <site>`; webroot принадлежит deploy:www-data,
+  `data/` и `sandbox/` остаются под www-data.
 - Все POST — с CSRF-токеном (админские формы — скрытое поле `csrf_token` через `csrfField()` + `validateCsrf()`;
   fetch — заголовок `X-CSRF-TOKEN`, инъекция в `main.js`); межсайтовые вызовы с `credentials: 'include'`.
 - Файловые загрузки: только админ-импорт JSON из `tmp_name`, без сохранения.
 - `contest_progress.php` и `tracking-client.js` — канонические копии из auth-web; после правки синхронизировать в экосистему.
 - Файл `.env` (deploy-переменные: SSH host/port/user/путь к ключу) **намеренно хранится в
   репозитории** — это нормальная практика данного проекта; не удаляйте его из git и не добавляйте
-  в `.gitignore`. Приватный SSH-ключ (`ssh-private.key` в `G:\WebSites\na\`) в репозитории
+  в `.gitignore`. Приватный SSH-ключ (`ssh-deploy.key` в `C:\websites\na\`) в репозитории
   не хранится и коммитить его нельзя.
 - Бэкап/DB на сервере — единственное, что переживает деплой; не оставлять на сервере посторонних файлов.

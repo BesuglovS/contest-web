@@ -101,11 +101,12 @@ $tarCmd = "tar czf - $excludeArgs -C `"$srcPath`" ."
 # при отсутствии sqlite3 на сервере — fallback на копирование файлов.
 $backupCmd = "mkdir -p /tmp/contest-backup; if command -v sqlite3 >/dev/null 2>&1 && [ -f ${remotePath}/data/contest.db ]; then sqlite3 ${remotePath}/data/contest.db '.backup /tmp/contest-backup/contest.db'; else cp -f ${remotePath}/data/contest.db ${remotePath}/data/contest.db-wal ${remotePath}/data/contest.db-shm /tmp/contest-backup/ 2>/dev/null || true; fi"
 
-# Атомарный своп: распаковка в <path>.new, затем mv — даунтайм ~миллисекунды
-# вместо find -delete до распаковки (которое оставляло сайт лежать при сбое).
+# Атомарный своп: распаковка в <path>.new (внутри каталога проекта — deploy
+# имеет права только там), затем mv. Даунтайм ~миллисекунды, и всё цепочкой
+# выполняется от deploy-пользователя без root.
 $swapCmd = "rm -rf ${remotePath}.new ${remotePath}.old; mkdir -p ${remotePath}.new; tar -xzf - -C ${remotePath}.new; mv ${remotePath} ${remotePath}.old; mv ${remotePath}.new ${remotePath}"
 
-$postDeployCmd = "mkdir -p ${remotePath}/data ${remotePath}/sandbox; cp -f /tmp/contest-backup/contest.db ${remotePath}/data/ 2>/dev/null || true; chown -R ${webUser}:${webUser} ${remotePath}/data ${remotePath}/sandbox; chmod -R 775 ${remotePath}/data ${remotePath}/sandbox; find ${remotePath}/data -type f -name '*.db' -exec chmod 664 {} \; ; find ${remotePath}/sandbox -type f -exec chmod 664 {} \; ; rm -rf ${remotePath}.old /tmp/contest-backup"
+$postDeployCmd = "mkdir -p ${remotePath}/data ${remotePath}/sandbox; cp -f /tmp/contest-backup/contest.db ${remotePath}/data/ 2>/dev/null || true; chmod 775 ${remotePath}/data ${remotePath}/sandbox 2>/dev/null || true; find ${remotePath}/data -type f -name '*.db' -exec chmod 664 {} \; ; find ${remotePath}/sandbox -type f -exec chmod 664 {} \; ; rm -rf ${remotePath}.old /tmp/contest-backup"
 $sshCmd = "ssh $portArg $identityArg $remote `"${backupCmd}; ${swapCmd}; ${postDeployCmd}`""
 
 Write-Host "`n==> Deploying to ${remote}:${remotePath} ..." -ForegroundColor Cyan
@@ -133,7 +134,7 @@ if ($DryRun) {
 } elseif (Test-Path $nginxLocal) {
   Write-Host "`n==> Deploying nginx config ($nginxSite) ..." -ForegroundColor Cyan
   $scpCmd = "scp $portArg $identityArg `"$nginxLocal`" ${remote}:/tmp/nginx-$nginxSite"
-  $sshNginxCmd = "ssh $portArg $identityArg $remote `"cp /tmp/nginx-$nginxSite $nginxRemote && nginx -t && systemctl reload nginx && rm -f /tmp/nginx-$nginxSite`""
+  $sshNginxCmd = "ssh $portArg $identityArg $remote `"sudo -n /usr/local/sbin/deploy-nginx.sh $nginxSite`""
   cmd /c $scpCmd
   if ($LASTEXITCODE -ne 0) { Write-Host "  Nginx config scp failed" -ForegroundColor Red; exit 1 }
   cmd /c $sshNginxCmd
