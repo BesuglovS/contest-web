@@ -49,9 +49,13 @@ try {
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
 
-// Превращаем обычные ошибки в исключения (уважаем оператор @)
+// Превращаем обычные ошибки в исключения (уважаем оператор @).
+// PHP 8: при @ error_reporting() НЕ равен нулю, а возвращает усечённую
+// маску (4437 — только фатальные ошибки), поэтому подавленность проверяем
+// по битам маски, а не по нулю.
 set_error_handler(function ($severity, $message, $file, $line) {
-    if (error_reporting() === 0) {
+    $level = error_reporting();
+    if ($level === 0 || ($severity & $level) === 0) {
         return false;
     }
     throw new ErrorException($message, 0, $severity, $file, $line);

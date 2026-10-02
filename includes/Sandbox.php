@@ -159,7 +159,7 @@ class Sandbox
      * а вердикт memory_limit выставляется по измеренному пику RSS против
      * настроенного лимита задачи. На Windows изоляции по памяти нет (мягкий режим).
      */
-    private function buildWrapperCode(float $timeLimit, int $memoryLimit, string $codeFile, string $stdinBase64, string $sentinel): string
+    private function buildWrapperCode(float $timeLimit, int $memoryLimit, string $codeBase64, string $stdinBase64, string $sentinel): string
     {
         // Nowdoc: PHP не интерполирует содержимое, Python-код остаётся как есть
         $template = <<<'PYWRAPPER'
@@ -179,10 +179,12 @@ memory_limit = __MEMORY_LIMIT__
 
 # Входные параметры — встроенные литералы (не через argv): обёртка
 # выполняется root-хелпером изоляции без пользовательских аргументов.
-# Код ученика — файл (создаёт PHP, читает обёртка/потомок); stdin и
-# результаты передаются через sentinel-маркеры в stdout обёртки,
-# никаких файлов вывода (пользователь sandbox не может их там создавать).
-CODE_FILE = __CODE_FILE__
+# Код ученика приходит в обёртку в base64 (bwrap изолирует /tmp — файл
+# кода в хостовом tmp из песочницы недостижим) и исполняется через
+# `python -I -S -c`, это же работает и в legacy-режиме без хелпера.
+# stdin и результаты передаются через sentinel-маркеры в stdout обёртки,
+# файлов вывода не существует вовсе.
+CODE_B64 = __CODE_B64__
 STDIN_B64 = __STDIN_B64__
 
 OUT_BEG = "%OUT_BEG%"
@@ -234,6 +236,7 @@ def emit(stdout_b, stderr_b, **meta):
 
 
 try:
+    student_code = base64.b64decode(CODE_B64).decode('utf-8', errors='replace')
     stdin_data = base64.b64decode(STDIN_B64).decode('utf-8', errors='replace')
     if stdin_data == '':
         stdin_data = '\n'
@@ -241,7 +244,7 @@ try:
     start_time = time.time()
 
     proc = subprocess.Popen(
-        [sys.executable, CODE_FILE],
+        [sys.executable, '-I', '-S', '-c', student_code],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -285,8 +288,8 @@ except Exception as e:
 PYWRAPPER;
 
         return str_replace(
-            ['__TIME_LIMIT__', '__MEMORY_LIMIT__', '__CODE_FILE__', '__STDIN_B64__'],
-            [var_export($timeLimit, true), var_export($memoryLimit, true), var_export($codeFile, true), var_export($stdinBase64, true)],
+            ['__TIME_LIMIT__', '__MEMORY_LIMIT__', '__CODE_B64__', '__STDIN_B64__'],
+            [var_export($timeLimit, true), var_export($memoryLimit, true), var_export($codeBase64, true), var_export($stdinBase64, true)],
             $template
         );
     }
@@ -302,36 +305,33 @@ PYWRAPPER;
      */
     public function run(string $code, string $input, float $timeLimit = 2.0, int $memoryLimit = 128): array
     {
-        // Создаём уникальный временный файл с кодом. При изолированном
-        // запуске (root-хелпер) файл лежит в /tmp: обёртка и потомок
-        // (пользователь sandbox) читают его оттуда. stdin и все результаты
-        // передаются через sentinel-маркеры (см. buildWrapperCode), файлов
-        // вывода не существует вовсе — пользователю sandbox нечего портить.
-        $workspace = (PHP_OS_FAMILY !== 'Windows' && self::isolationHelper() !== null)
-            ? sys_get_temp_dir()
-            : $this->tempDir;
+        // Код ученика передаётся в обёртку через base64 (см. buildWrapperCode) —
+        // отдельный файл кода не создаётся. Единственный временный файл — сама
+        // обёртка: при изолированном запуске (root-хелпер) она обязана лежать
+        // в /tmp|/var/tmp|/var/lib/python-sandbox, при legacy-запуске остаётся
+        // SANDBOX_DIR. stdin и все результаты передаются через sentinel-маркеры.
+        $helper = (PHP_OS_FAMILY !== 'Windows') ? self::isolationHelper() : null;
+        if ($helper !== null) {
+            $workspace = sys_get_temp_dir();
+        } else {
+            $workspace = is_writable($this->tempDir) ? $this->tempDir : sys_get_temp_dir();
+        }
         $id = uniqid('run_', true);
-        $codeFile = $workspace . '/' . $id . '.py';
+        $wrapperFile = $workspace . '/' . $id . '_wrapper.py';
 
-        // Записываем код
-        file_put_contents($codeFile, $code);
-
-        // Генерируем обёртку. При изолированном запуске хелпер принимает скрипт
-        // только из /tmp|/var/tmp|/var/lib/python-sandbox — пишем обёртку в
-        // системный tmp; при legacy-запуске (без хелпера) остаётся SANDBOX_DIR.
+        // Генерируем обёртку (код ученика встроен base64) и записываем её.
         $sentinel = uniqid('sbx_', true);
         $stdinBase64 = base64_encode($input);
-        $wrapperCode = $this->buildWrapperCode($timeLimit, $memoryLimit, $codeFile, $stdinBase64, $sentinel);
-        if (PHP_OS_FAMILY !== 'Windows' && self::isolationHelper() !== null) {
-            $wrapperTmp = tempnam(sys_get_temp_dir(), 'sandbox_wrapper_');
-            if ($wrapperTmp === false) {
-                $wrapperTmp = $this->tempDir . '/' . $id . '_wrapper.py';
-            }
-            $wrapperFile = $wrapperTmp;
-        } else {
-            $wrapperFile = $this->tempDir . '/' . $id . '_wrapper.py';
+        $wrapperCode = $this->buildWrapperCode($timeLimit, $memoryLimit, base64_encode($code), $stdinBase64, $sentinel);
+        if (@file_put_contents($wrapperFile, $wrapperCode) === false) {
+            return [
+                'output' => '',
+                'error' => 'Не удалось создать временный файл песочницы (' . $workspace . ' не writable)',
+                'status' => 'error',
+                'time' => 0.0,
+                'memory' => 0,
+            ];
         }
-        file_put_contents($wrapperFile, $wrapperCode);
 
         // Запускаем Python-обёртку через proc_open (без shell).
         // Если установлен изолирующий root-хелпер /usr/local/sbin/sandbox-python.run
@@ -399,20 +399,17 @@ PYWRAPPER;
                     'output' => '',
                     'error' => 'Sandbox execution failure',
                     'status' => 'error',
-                    'time' => $wallTime,
+                    'time' => microtime(true) - $startTime,
                     'memory' => 0,
                 ];
-                foreach ([$codeFile, $wrapperFile] as $file) {
-                    if (file_exists($file)) {
-                        @unlink($file);
-                    }
+                if (file_exists($wrapperFile)) {
+                    @unlink($wrapperFile);
                 }
                 return $result;
             }
             $escWrapper = escapeshellarg($wrapperFile);
-            $escCode = escapeshellarg($codeFile);
 
-            $shellCmd = "\"{$this->pythonCmd}\" {$escWrapper} {$escCode} 2>&1";
+            $shellCmd = "\"{$this->pythonCmd}\" {$escWrapper} 2>&1";
             $wrapperStdout = shell_exec($shellCmd) ?? '';
             $wrapperStderr = '';
         }
@@ -514,11 +511,9 @@ PYWRAPPER;
             }
         }
 
-        // Очистка временных файлов
-        foreach ([$codeFile, $wrapperFile] as $file) {
-            if (file_exists($file)) {
-                @unlink($file);
-            }
+        // Очистка временных файлов (остаётся только обёртка)
+        if (file_exists($wrapperFile)) {
+            @unlink($wrapperFile);
         }
 
         return $result;
@@ -681,19 +676,43 @@ PYWRAPPER;
      */
     public function lint(string $code, string $extraOptions = ''): array
     {
-        // Сохраняем код во временный файл
-        $id = uniqid('lint_', true);
-        $codeFile = $this->tempDir . '/' . $id . '.py';
-        file_put_contents($codeFile, $code);
-
-        // Определяем команду pycodestyle
-        // Пробуем разные варианты: pycodestyle, python3 -m pycodestyle, python -m pycodestyle
-        $lintCmd = $this->findLintCommand();
-
         $result = [
             'has_errors' => false,
             'errors' => [],
         ];
+
+        // SANDBOX_DIR лежит внутри webroot, который после хардненинга не writable
+        // для www-data (записываемые каталоги — вне webroot). Временный файл
+        // пишем в первый доступный каталог: SANDBOX_DIR (legacy/dev), затем
+        // системный tmp; линтер (pycodestyle) выполняется от пользователя PHP
+        // и читает файл без проблем. Выбор каталога — по is_writable, а не
+        // по факту записи: в submit.php handler ошибок в исключения может
+        // не уважать оператор @, а попытка записи в read-only dir даёт warning.
+        $id = uniqid('lint_', true);
+        $dirs = [$this->tempDir, sys_get_temp_dir()];
+        clearstatcache(true, $this->tempDir);
+        foreach ($dirs as $dir) {
+            $candidate = rtrim($dir, '/') . '/' . $id . '.py';
+            if (is_writable($dir) && @file_put_contents($candidate, $code) !== false) {
+                $codeFile = $candidate;
+                break;
+            }
+        }
+        if ($codeFile === null) {
+            // Fail-closed: нельзя пропустить линт — отдаём системную ошибку оформления
+            $result['has_errors'] = true;
+            $result['errors'][] = [
+                'line' => 0,
+                'column' => 0,
+                'code' => 'SYSTEM',
+                'message' => 'Не удалось записать временный файл линтера (нет writable-каталога на сервере)',
+            ];
+            return $result;
+        }
+
+        // Определяем команду pycodestyle
+        // Пробуем разные варианты: pycodestyle, python3 -m pycodestyle, python -m pycodestyle
+        $lintCmd = $this->findLintCommand();
 
         if ($lintCmd === null) {
             // pycodestyle не установлен — возвращаем ошибку, чтобы проверка не пропускалась
