@@ -85,9 +85,12 @@ contest.nayanovaacademy.ru  # nginx-конфиг
 1. `.env` → SSH-переменные (`DEPLOY_SSH_*`, `DEPLOY_WEB_USER`); `icacls` ключа.
 2. `tar` репо (без `.git`, БД, `sandbox`-темпов, логов, `.env`, `deploy.ps1`, nginx-конфига,
    `tasks/` — скрытые тесты, node_modules).
-3. Удалённо: `sqlite3 .backup` БД в `/tmp/contest-backup` (fallback — копирование файлов) →
-   распаковка в `<remote>.new` → **атомарный mv-своп** каталогов → восстановление БД →
-   `chown/chmod 775` на `data/` и `sandbox/` → удаление `.old`.
+3. Удалённо: содержимое webroot (кроме `data/`) стирается и заново
+   распаковывается от deploy-пользователя. `data/` с SQLite остаётся
+   хозяйской (www-data) и переживает деплой. Схема `sqlite3 .backup` +
+   mv-своп + `rm -rf .old` НЕ используется: sqlite3 под deploy не читает
+   `contest.db` (600 www-data после hardening), бэкап молча пропускался
+   и своп уничтожал БД (инцидент 02.10.2026).
 4. Опционально: деплой nginx-конфига + `nginx -t && systemctl reload nginx`.
 5. `-DryRun` печатает команды без выполнения.
 

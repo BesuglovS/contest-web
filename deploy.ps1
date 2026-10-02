@@ -74,11 +74,12 @@ $excludeArgs = @(
   '--exclude=Thumbs.db',
   '--exclude=.DS_Store',
   '--exclude=Desktop.ini',
-  '--exclude=data/contest.db',
-  '--exclude=data/contest.db-wal',
-  '--exclude=data/contest.db-shm',
-  '--exclude=data/.cache',
-  '--exclude=sandbox/*.py',
+  '--exclude=Data',
+  '--exclude=data',
+  '--exclude=sandbox/lint_*',
+  '--exclude=sandbox/run_*',
+  '--exclude=sandbox/sbx_*',
+  '--exclude=sandbox/*_wrapper.py',
   '--exclude=sandbox/*.txt',
   # Dev-скрипты ручного тестирования песочницы на проде не нужны
   '--exclude=sandbox/test_*.php',
@@ -97,17 +98,19 @@ $excludeArgs = @(
 
 $tarCmd = "tar czf - $excludeArgs -C `"$srcPath`" ."
 
-# Консистентный бэкап БД: sqlite3 .backup (безопасен при активной записи),
-# при отсутствии sqlite3 на сервере — fallback на копирование файлов.
-$backupCmd = "mkdir -p /tmp/contest-backup; if command -v sqlite3 >/dev/null 2>&1 && [ -f ${remotePath}/data/contest.db ]; then sqlite3 ${remotePath}/data/contest.db '.backup /tmp/contest-backup/contest.db'; else cp -f ${remotePath}/data/contest.db ${remotePath}/data/contest.db-wal ${remotePath}/data/contest.db-shm /tmp/contest-backup/ 2>/dev/null || true; fi"
-
-# Атомарный своп: распаковка в <path>.new (внутри каталога проекта — deploy
-# имеет права только там), затем mv. Даунтайм ~миллисекунды, и всё цепочкой
-# выполняется от deploy-пользователя без root.
-$swapCmd = "rm -rf ${remotePath}.new ${remotePath}.old; mkdir -p ${remotePath}.new; tar -xzf - -C ${remotePath}.new; mv ${remotePath} ${remotePath}.old; mv ${remotePath}.new ${remotePath}"
-
-$postDeployCmd = "mkdir -p ${remotePath}/data ${remotePath}/sandbox; cp -f /tmp/contest-backup/contest.db ${remotePath}/data/ 2>/dev/null || true; chmod 775 ${remotePath}/data ${remotePath}/sandbox 2>/dev/null || true; find ${remotePath}/data -type f -name '*.db' -exec chmod 664 {} \; ; find ${remotePath}/sandbox -type f -exec chmod 664 {} \; ; rm -rf ${remotePath}.old /tmp/contest-backup"
-$sshCmd = "ssh $portArg $identityArg $remote `"${backupCmd}; ${swapCmd}; ${postDeployCmd}`""
+# ─── Раскладка как в python-web (сентябрь 2026): data/ не стирается и не
+# восстанавливается — каталог и SQLite переживают деплой под www-data.
+# Webroot очищается и распаковывается от deploy-пользователя (его основная
+# группа — www-data, файлы каталогов tar читаются other-битами).
+# Предыдущая схема (sqlite3 .backup + mv-своп + rm .old) опасна: слив
+# нечитаемого для deploy contest.db (600 www-data после hardening) оставлял
+# Предыдущая схема (sqlite3 .backup + mv-своп + rm -rf .old) была опасна:
+# sqlite3 не читал contest.db под правами 600 www-data, бэкап молча
+# пропускался, после чего своп и удаление .old уничтожали оригинал БД.
+$remoteScript = "find \`"$remotePath\`" -mindepth 1 -maxdepth 1 ! -name 'data' -exec rm -rf {} + 2>/dev/null; " +
+  "mkdir -p \`"$remotePath/data\`" 2>/dev/null; " +
+  "tar -xzf - --skip-old-files -C \`"$remotePath\`""
+$sshCmd = "ssh $portArg $identityArg $remote `"$remoteScript`""
 
 Write-Host "`n==> Deploying to ${remote}:${remotePath} ..." -ForegroundColor Cyan
 
