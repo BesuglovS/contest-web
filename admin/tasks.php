@@ -43,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($testInputs as $idx => $input) {
                 $output = $testOutputs[$idx] ?? '';
                 $isPublic = in_array((string) $idx, $testPublic) ? 1 : 0;
+                // Нормализуем переводы строк: textarea присылает CRLF
+                $input = normalizeNewlines((string) $input);
+                $output = normalizeNewlines((string) $output);
                 $stmt = $db->prepare("INSERT INTO tests (task_id, test_number, input, expected_output, is_public) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$taskId, $idx + 1, $input, $output, $isPublic]);
             }
@@ -86,6 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($testInputs as $idx => $input) {
             $output = $testOutputs[$idx] ?? '';
             $isPublic = in_array((string) $idx, $testPublic) ? 1 : 0;
+            // Нормализуем переводы строк: textarea присылает CRLF
+            $input = normalizeNewlines((string) $input);
+            $output = normalizeNewlines((string) $output);
 
             if (isset($existingTests[$idx])) {
                 $updateStmt->execute([$input, $output, $isPublic, $existingTests[$idx]['id']]);

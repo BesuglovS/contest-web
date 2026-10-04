@@ -305,6 +305,11 @@ PYWRAPPER;
      */
     public function run(string $code, string $input, float $timeLimit = 2.0, int $memoryLimit = 128): array
     {
+        // Нормализуем переводы строк во входных данных: legacy/импортированные
+        // тесты могут содержать CRLF, а Python input() не срезает хвостовой \r,
+        // из-за чего верные решения получают wrong_answer.
+        $input = function_exists('normalizeNewlines') ? normalizeNewlines($input) : str_replace(["\r\n", "\r"], "\n", $input);
+
         // Код ученика передаётся в обёртку через base64 (см. buildWrapperCode) —
         // отдельный файл кода не создаётся. Единственный временный файл — сама
         // обёртка: при изолированном запуске (root-хелпер) она обязана лежать

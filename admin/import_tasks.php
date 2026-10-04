@@ -83,8 +83,9 @@ function validateTask(array $task, int $index): array
                 $testPublic = 0;
             }
             $validatedTests[] = [
-                'input'     => (string) $testInput,
-                'output'    => (string) $testOutput,
+                // Нормализуем переводы строк (JSON может содержать CRLF)
+                'input'     => normalizeNewlines((string) $testInput),
+                'output'    => normalizeNewlines((string) $testOutput),
                 'is_public' => $testPublic,
             ];
         }

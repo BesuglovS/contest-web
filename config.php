@@ -127,11 +127,23 @@ function validateCsrf(): bool {
     }
     return $valid;
 }
+/**
+ * Нормализует переводы строк к LF: \r\n и одиночный \r → \n.
+ *
+ * Нужно для тестов: браузерные textarea присылают CRLF, PHP \r не срезает,
+ * а Python input() не убирает хвостовой \r — из-за этого корректные решения
+ * падают (input() возвращает 'admin\r' вместо 'admin').
+ */
+function normalizeNewlines(string $value): string
+{
+    return str_replace(["\r\n", "\r"], "\n", $value);
+}
 
 /**
  * Санитизация строки: удаление NULL-байтов и приведение к UTF-8
  */
-function sanitizeString(?string $value): string {
+function sanitizeString(?string $value): string
+{
     if ($value === null) return '';
     // Удаляем NULL-байты
     $value = str_replace("\0", '', $value);
