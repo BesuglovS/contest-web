@@ -30,13 +30,26 @@ require_once BASE_PATH . '/includes/Auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (!Auth::isLoggedIn()) {
+// Сервер-к-сервер чтение прогресса конкретного ученика (j-web — карточка
+// ребёнка у родителя): допустимо только для GET без Origin с доверенных IP.
+$serverUserId = null;
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && ($_SERVER['HTTP_ORIGIN'] ?? '') === ''
+    && isset($_GET['user_id'])
+    && in_array($_SERVER['REMOTE_ADDR'] ?? '', ALLOWED_SERVER_IPS, true)) {
+    $uid = (int) $_GET['user_id'];
+    if ($uid > 0) {
+        $serverUserId = $uid;
+    }
+}
+
+if ($serverUserId === null && !Auth::isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['error' => 'Требуется авторизация'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$userId = Auth::getUserId();
+$userId = $serverUserId ?? Auth::getUserId();
 $db = Database::getInstance();
 
 $stmt = $db->prepare("

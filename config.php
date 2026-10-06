@@ -22,6 +22,17 @@ define('FORBIDDEN_MODULES', ['os', 'subprocess', 'sys', 'shutil', 'ctypes', 'sig
 // (python-web читает contest_progress.php). Один источник вместо хардкода.
 define('CORS_ALLOWED_ORIGIN', 'https://python.nayanovaacademy.ru');
 
+// Доверенные IP для сервер-к-сервер чтения прогресса конкретного ученика
+// (j-web — карточка ребёнка у родителя). Override user_id в my_progress.php
+// разрешён только без Origin (не из браузера) и с этих адресов.
+$contestServerIps = ['79.143.31.184'];
+$contestHostEarly = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+if ($contestHostEarly === '' || preg_match('/^(localhost|127\.0\.0\.1)(:\d+)?$/', $contestHostEarly)) {
+    $contestServerIps[] = '127.0.0.1';
+    $contestServerIps[] = '::1';
+}
+define('ALLOWED_SERVER_IPS', $contestServerIps);
+
 // Отключаем вывод ошибок в браузер (на проде — логировать в файл)
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);

@@ -26,18 +26,32 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
-if (!Auth::isLoggedIn()) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Не авторизован'], JSON_UNESCAPED_UNICODE);
-    exit;
+// Сервер-к-сервер сводка по классу (j-web — кабинет тьютора): допустимо
+// только для GET без Origin с доверенных IP (ALLOWED_SERVER_IPS). Иначе —
+// как раньше: нужна сессия auth-web с правами администратора.
+$serverClassGroupId = null;
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && ($_SERVER['HTTP_ORIGIN'] ?? '') === ''
+    && in_array($_SERVER['REMOTE_ADDR'] ?? '', ALLOWED_SERVER_IPS, true)) {
+    $gid = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
+    if ($gid > 0) {
+        $serverClassGroupId = $gid;
+    }
 }
-if (!Auth::isAdmin()) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Доступ только для администратора'], JSON_UNESCAPED_UNICODE);
-    exit;
+if ($serverClassGroupId === null) {
+    if (!Auth::isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Не авторизован'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (!Auth::isAdmin()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Доступ только для администратора'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 }
 
-$groupId = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
+$groupId = $serverClassGroupId ?? (isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0);
 if ($groupId <= 0) {
     http_response_code(400);
     echo json_encode(['error' => 'Не указан group_id'], JSON_UNESCAPED_UNICODE);
