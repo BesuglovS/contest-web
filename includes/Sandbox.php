@@ -479,12 +479,18 @@ PYWRAPPER;
             return trim(implode("\n", $filtered));
         };
 
-        // Если sentinel-канал пуст — обёртка упала до emit(): диагностика из stderr/stdout
-        if ($stdoutData === '' && $stderrData === '' && !empty($wrapperStderr)) {
-            $result['error'] = $cleanPyTraceback($wrapperStderr);
-        } elseif ($stdoutData === '' && !empty($wrapperStdout)) {
-            // stdout без sentinels и stderr пуст: суррогатный вывод как диагностика
-            $result['error'] = $cleanPyTraceback('Wrapper stdout: ' . $wrapperStdout);
+        // Диагностика только если sentinel-маркеров НЕТ — значит, обёртка упала
+        // до emit(). Проверять именно наличие маркеров, а не пустоту их
+        // содержимого: корректная программа может легально ничего не вывести
+        // (тест с пустым ожидаемым ответом, например «0\n0»), и это не сбой.
+        $sentinelsFound = ($p1 !== false && $p2 !== false && $p3 !== false && $p4 !== false);
+        if (!$sentinelsFound) {
+            if (!empty($wrapperStderr)) {
+                $result['error'] = $cleanPyTraceback($wrapperStderr);
+            } elseif (!empty($wrapperStdout)) {
+                // stdout без sentinels и stderr пуст: суррогатный вывод как диагностика
+                $result['error'] = $cleanPyTraceback('Wrapper stdout: ' . $wrapperStdout);
+            }
         }
 
         // ─── Разбор ##META## из stdout (рекомандации по elapsed/time/memory/status) ───
