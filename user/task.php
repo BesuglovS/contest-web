@@ -136,8 +136,8 @@ $useKaTeX = true;
 ob_start();
 ?>
 
-<div style="display: flex; justify-content: space-between; align-items: center;">
-    <div style="display: flex; align-items: center; gap: 12px;">
+<div class="task-titlebar">
+    <div class="task-titlebar-main">
         <h1><?= htmlspecialchars($task['title']) ?></h1>
         <!-- Бедж статуса последней посылки; обновляется без перезагрузки после отправки -->
         <span id="last-status-badge" class="submission-status<?php if ($lastSubmission): ?> status-<?= $lastSubmission['status'] ?><?php endif; ?>"<?php if (!$lastSubmission): ?> style="display:none;"<?php endif; ?>><?= $lastSubmission ? ($statusLabels[$lastSubmission['status']] ?? $lastSubmission['status']) : '' ?></span>
@@ -151,8 +151,8 @@ ob_start();
 </div>
 
 <!-- Навигация по задачам контеста -->
-<div class="card mb-20" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
-    <div style="display: flex; gap: 16px; align-items: center;">
+<div class="card mb-20 task-navbar">
+    <div class="task-navbar-buttons">
         <?php if ($prevTask): ?>
             <a href="?page=task&id=<?= $prevTask['task_id'] ?>&contest=<?= $contestId ?>" class="btn btn-secondary" style="font-size: 0.9em;">
                 ← <?= htmlspecialchars($prevTask['title']) ?>
@@ -180,7 +180,8 @@ ob_start();
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px;">
+<!-- На узком экране (в т.ч. при увеличении масштаба) .task-page-grid схлопывается в один столбец -->
+<div class="task-page-grid">
     <!-- Левая колонка: условие -->
     <div>
         <div class="card">
@@ -210,7 +211,7 @@ ob_start();
             <?php foreach ($publicTests as $idx => $test): ?>
                 <div style="margin-bottom: 16px;">
                     <strong>Пример <?= $idx + 1 ?></strong>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                    <div class="task-example-grid">
                         <div class="copy-block-wrapper">
                             <div style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 4px;">Входные данные</div>
                             <button class="copy-btn" onclick="copyToClipboard(this, '<?= $idx ?>')" title="Скопировать">📋</button>
