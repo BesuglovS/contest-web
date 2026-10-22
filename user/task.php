@@ -236,13 +236,20 @@ ob_start();
 
             <div class="form-group">
                 <div class="editor-container">
-                    <div class="editor-line-numbers" id="line-numbers">1</div>
                     <div class="editor-overlay-wrapper">
-                        <div class="editor-highlight-layer" id="highlight-layer"></div>
-                        <textarea id="code-editor" class="code-editor" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"><?= htmlspecialchars($lastSubmission['code'] ?? '') ?></textarea>
+                        <div class="editor-highlight-layer" id="highlight-layer" aria-hidden="true"></div>
+                        <textarea id="code-editor" class="code-editor" aria-label="Код решения на Python" placeholder="print('Hello, World!')" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"><?= htmlspecialchars($lastSubmission['code'] ?? '') ?></textarea>
                     </div>
                 </div>
                 <div class="editor-statusbar">
+                    <span class="editor-note" id="draft-note"></span>
+                    <span class="editor-pep8" id="pep8-warning"></span>
+                    <span class="editor-hint">
+                        <span class="editor-hint-item">Esc — выйти</span>
+                        <span class="editor-hint-item">Tab/Shift+Tab — отступ</span>
+                        <span class="editor-hint-item">Ctrl+/ — комментарий</span>
+                        <span class="editor-hint-item">Ctrl+D — дублировать</span>
+                    </span>
                     <span class="cursor-position" id="cursor-position">1:1</span>
                 </div>
             </div>
@@ -253,7 +260,7 @@ ob_start();
                         ▶ Отправить
                     </button>
                     <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-                    <span id="submit-status" style="display:flex; align-items:center; gap:8px; color:var(--text-muted);"></span>
+                    <span id="submit-status" role="status" aria-live="polite" style="display:flex; align-items:center; gap:8px; color:var(--text-muted);"></span>
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="showPep8Help()">PEP 8</button>
             </div>
@@ -262,7 +269,7 @@ ob_start();
         <!-- Результаты тестов -->
         <div id="results-container" class="card mt-20" style="display:none;">
             <h3>Результаты проверки</h3>
-            <div id="results-summary" style="margin-bottom: 16px;"></div>
+            <div id="results-summary" class="results-summary" aria-live="polite"></div>
             <div id="results-detail"></div>
         </div>
     </div>
@@ -334,12 +341,14 @@ ob_start();
                 <li><strong>Импорты</strong> — по одному в строке, в начале файла.</li>
             </ul>
             <p class="modal-note">Оформление проверяется автоматически — при ошибках стиля решение не засчитывается.</p>
+            <p class="modal-note"><strong>Горячие клавиши:</strong> Tab / Shift+Tab — отступ, Ctrl+/ — закомментировать,
+                Ctrl+D — дублировать строку, Ctrl+Enter — отправить решение, Esc — выйти из редактора.</p>
         </div>
     </div>
 </div>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=6">
-<script src="<?= BASE_URL ?>/assets/js/editor.js?v=9"></script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=10">
+<script src="<?= BASE_URL ?>/assets/js/editor.js?v=11"></script>
 <script>
 // Передаём taskId и contestId из PHP в JS
 window.TASK_ID = <?= $taskId ?>;
@@ -369,7 +378,18 @@ window.STATUS_LABELS = <?= json_encode($statusLabels, JSON_UNESCAPED_UNICODE | J
 
         var lastSubmitTs = window.LAST_SUBMIT_TS || 0;
         if (draft && draftTs > lastSubmitTs) {
+            // Черновик новее последней посылки — показываем его и продолжаем
+            // с того места, где ученик остановился
             ta.value = draft;
+            ta.selectionStart = ta.selectionEnd = draft.length;
+            ta.scrollTop = ta.scrollHeight;
+
+            var note = document.getElementById('draft-note');
+            if (note) {
+                note.textContent = 'Черновик от ' +
+                    new Date(draftTs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                note.title = 'Восстановлен черновик — он новее последней посылки';
+            }
         }
     }
     // Инициализация редактора после загрузки DOM

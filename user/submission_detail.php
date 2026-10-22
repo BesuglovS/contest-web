@@ -245,8 +245,8 @@ if (!empty($submission['lint_errors'])) {
 }
 </style>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=6">
-<script src="<?= BASE_URL ?>/assets/js/editor.js?v=8"></script>
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editor.css?v=10">
+<script src="<?= BASE_URL ?>/assets/js/editor.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var codeBlock = document.querySelector('.code-block code');

@@ -1,7 +1,49 @@
 /**
- * Подсветка синтаксиса Python для редактора кода.
- * Использует технику overlay: прозрачная textarea поверх div с подсвеченным кодом.
+ * Редактор кода Python для задач: подсветка синтаксиса, номера строк,
+ * отступы, подсказки по PEP 8 и отправка решения.
+ *
+ * Подсветка — overlay: прозрачная textarea поверх div с подсвеченным кодом.
+ * Перенос длинных строк в слое и в textarea обязан совпадать пиксель в пиксель
+ * (см. SyntaxHighlight.update), иначе каретка «уезжает» от текста.
  */
+
+const INDENT = '    ';          // шаг отступа Python (PEP 8)
+const MAX_LINE_LENGTH = 79;     // предел длины строки (PEP 8)
+const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+const CLOSERS = new Set([')', ']', '}', '"', "'"]);
+
+/**
+ * Проблемы оформления строки, видимые сразу (те же, что ловит pycodestyle):
+ * табуляция, пробелы в конце строки, длина больше 79 символов.
+ */
+function lineIssues(text) {
+    return {
+        tab: text.indexOf('\t') !== -1,
+        trailing: /[ \t]+$/.test(text),
+        long: text.length > MAX_LINE_LENGTH
+    };
+}
+
+// Единое регулярное выражение токенов Python — собирается один раз.
+// Порядок альтернатив важен: длинные совпадения идут раньше коротких.
+const PY_TOKEN_RE = new RegExp([
+    // строки в тройных кавычках (с префиксом r/b/u/f и их комбинациями)
+    '(?:[rRbBuUfF]{0,2}"""[\\s\\S]*?""")',
+    "(?:[rRbBuUfF]{0,2}'''[\\s\\S]*?''')",
+    // обычные строки; \\[\s\S] — экранированный символ, в том числе перенос строки
+    '(?:[rRbBuUfF]{0,2}"[^"\\\\]*(?:\\\\[\\s\\S][^"\\\\]*)*")',
+    "(?:[rRbBuUfF]{0,2}'[^'\\\\]*(?:\\\\[\\s\\S][^'\\\\]*)*')",
+    // комментарии
+    '(?:#[^\\n]*)',
+    // декораторы
+    '(?:@[a-zA-Z_][a-zA-Z0-9_.]*)',
+    // числа: 0x1F, 1_000, 3.5, .5, 1., 1e-3, 2j
+    '(?:0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|' +
+        '(?:\\d[\\d_]*(?:\\.[\\d_]*)?|\\.[\\d_]+)(?:[eE][+-]?[\\d_]+)?[jJ]?)',
+    // идентификаторы
+    '(?:[a-zA-Z_][a-zA-Z0-9_]*)'
+].join('|'), 'g');
+
 const SyntaxHighlight = {
     // Ключевые слова Python
     keywords: new Set([
@@ -26,127 +68,143 @@ const SyntaxHighlight = {
     ]),
 
     /**
-     * Основная функция подсветки кода Python.
-     * Возвращает HTML с цветовыми span-ами.
+     * CSS-класс токена (пустая строка — обычный текст).
      */
-    highlight: function(code) {
-        if (!code) return '';
+    tokenClass: function(token) {
+        // Строка: необязательный префикс r/b/u/f и кавычки
+        const stringMatch = /^([rRbBuUfF]{0,2})(["'])/.exec(token);
+        if (stringMatch) {
+            const prefix = stringMatch[1];
+            const quote = stringMatch[2];
+            const isF = /[fF]/.test(prefix);
+            if (token.indexOf(quote + quote + quote) === prefix.length) {
+                return 'hl-string hl-multiline' + (isF ? ' hl-fstring' : '');
+            }
+            return isF ? 'hl-string hl-fstring' : 'hl-string';
+        }
+        if (token.charAt(0) === '#') return 'hl-comment';
+        if (token.charAt(0) === '@') return 'hl-decorator';
+        if (/^[0-9.]/.test(token)) return 'hl-number';
+        if (/^[a-zA-Z_]/.test(token)) {
+            if (this.keywords.has(token)) return 'hl-keyword';
+            if (this.builtins.has(token)) return 'hl-builtin';
+        }
+        // Обычный идентификатор — без класса
+        return '';
+    },
+
+    /**
+     * Подсветка кода Python с разбивкой по логическим строкам.
+     * Возвращает массив HTML-фрагментов (по одному на строку): номер строки
+     * рисуется внутри своей строки и не «съезжает» при переносе длинной строки.
+     */
+    highlightLines: function(code) {
+        const lines = [];
+        let current = '';
+
+        // Добавляет экранированный фрагмент в текущую строку; переводы строк
+        // внутри токена (многострочные строки) закрывают текущую строку
+        const append = function(fragment, cssClass) {
+            const parts = fragment.split('\n');
+            for (let i = 0; i < parts.length; i++) {
+                if (i > 0) {
+                    lines.push(current);
+                    current = '';
+                }
+                if (!parts[i]) continue;
+                current += cssClass
+                    ? '<span class="' + cssClass + '">' + parts[i] + '</span>'
+                    : parts[i];
+            }
+        };
+
+        if (!code) return [''];
 
         // Экранируем HTML
-        let amp = String.fromCharCode(38);
-        let escaped = code
+        const amp = String.fromCharCode(38);
+        const escaped = code
             .replace(/&/g, amp + 'amp;')
             .replace(/</g, amp + 'lt;')
             .replace(/>/g, amp + 'gt;');
 
-        // Подсветка: применяем токены последовательно
-        // Используем одну строку с регулярными выражениями для производительности
-        let result = '';
+        PY_TOKEN_RE.lastIndex = 0;
+
         let pos = 0;
-
-        // Составляем единое регулярное выражение для всех токенов
-        const tokenRegex = new RegExp([
-            // Строки: тройные кавычки (самые длинные — в начале)
-            '(?:\"\"\"[\\s\\S]*?\"\"\")',
-            '(?:\'\'\'[\\s\\S]*?\'\'\')',
-            '(?:f\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\")',
-            '(?:f\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*\')',
-            '(?:\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\")',
-            '(?:\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*\')',
-            // Комментарии
-            '(?:#[^\\n]*)',
-            // Декораторы
-            '(?:@[a-zA-Z_][a-zA-Z0-9_.]*)',
-            // Числа
-            '(?:\\b(?:0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+|\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?(?:j|J)?)\\b)',
-            // Идентификаторы (слова)
-            '(?:[a-zA-Z_][a-zA-Z0-9_]*)'
-        ].join('|'), 'g');
-
-        // Сохраняем последний match для контекстной подсветки
-        let lastMatch = null;
-
-        // Разбиваем код на токены
         let match;
-        tokenRegex.lastIndex = 0;
 
-        // Сбрасываем lastIndex
-        const re = new RegExp(tokenRegex.source, 'g');
-
-        while ((match = re.exec(escaped)) !== null) {
+        while ((match = PY_TOKEN_RE.exec(escaped)) !== null) {
             const matchStart = match.index;
-            const matchEnd = re.lastIndex;
             const token = match[0];
 
             // Добавляем текст до токена
             if (matchStart > pos) {
-                result += escaped.substring(pos, matchStart);
+                append(escaped.substring(pos, matchStart), '');
             }
 
-            // Определяем тип токена
-            let tokenClass = '';
-
-            // Проверяем тип
-            if (/^"""[\s\S]*"""$/.test(token) || /^'''[\s\S]*'''$/.test(token)) {
-                tokenClass = 'hl-string hl-multiline';
-            } else if (/^f["']/.test(token)) {
-                tokenClass = 'hl-string hl-fstring';
-            } else if (/^["']/.test(token)) {
-                tokenClass = 'hl-string';
-            } else if (/^#/.test(token)) {
-                tokenClass = 'hl-comment';
-            } else if (/^@/.test(token)) {
-                tokenClass = 'hl-decorator';
-            } else if (/^\d/.test(token) || /^0[xXoObB]/.test(token)) {
-                tokenClass = 'hl-number';
-            } else if (/^[a-zA-Z_]/.test(token)) {
-                if (this.keywords.has(token)) {
-                    tokenClass = 'hl-keyword';
-                } else if (this.builtins.has(token)) {
-                    tokenClass = 'hl-builtin';
-                }
-                // else: обычный идентификатор — без класса
-            }
-
-            if (tokenClass) {
-                result += '<span class="' + tokenClass + '">' + token + '</span>';
-            } else {
-                result += token;
-            }
-
-            pos = matchEnd;
-            lastMatch = match;
+            append(token, this.tokenClass(token));
+            pos = PY_TOKEN_RE.lastIndex;
         }
 
         // Добавляем оставшийся текст
         if (pos < escaped.length) {
-            result += escaped.substring(pos);
+            append(escaped.substring(pos), '');
         }
 
-        return result;
+        // Завершаем последнюю строку (пустой код — одна пустая строка)
+        lines.push(current);
+        return lines;
     },
 
     /**
-     * Обновляет подсветку в слое highlight-layer
+     * Подсветка кода одним HTML-блоком (просмотр посылки целиком,
+     * без номеров строк и без оверлея редактора).
+     */
+    highlight: function(code) {
+        return this.highlightLines(code).join('\n');
+    },
+
+    /**
+     * Обновляет слой подсветки и номера строк.
      */
     update: function() {
         const textarea = document.getElementById('code-editor');
         const layer = document.getElementById('highlight-layer');
         if (!textarea || !layer) return;
 
-        const code = textarea.value;
-        const highlighted = this.highlight(code);
+        // Размер слоя повторяет клиентскую область textarea: полоса прокрутки
+        // отнимает у textarea несколько пикселей ширины, и без синхронизации
+        // переносы длинных строк в слое и в textarea не совпадают
+        layer.style.width = textarea.clientWidth + 'px';
+        layer.style.height = textarea.clientHeight + 'px';
 
-        // Добавляем trailing newline для позиционирования курсора на пустой строке
-        const html = highlighted + (code.endsWith('\n') ? '\n' : '');
+        const code = textarea.value;
+        const rawLines = code.split('\n');
+        const htmlLines = this.highlightLines(code);
+
+        let html = '';
+        for (let i = 0; i < htmlLines.length; i++) {
+            const issues = lineIssues(rawLines[i] || '');
+            let lineClass = 'editor-line';
+            if (issues.tab) lineClass += ' editor-line--tab';
+            if (issues.trailing) lineClass += ' editor-line--space';
+            if (issues.long) lineClass += ' editor-line--long';
+
+            html += '<div class="' + lineClass + '">' +
+                '<span class="editor-line-num">' + (i + 1) + '</span>' +
+                htmlLines[i] + '</div>';
+        }
         layer.innerHTML = html;
+
+        // После перерисовки возвращаем прокрутку на место
+        layer.scrollTop = textarea.scrollTop;
+        layer.scrollLeft = textarea.scrollLeft;
     }
 };
 
 let isRunning = false;
 
 // Отложенное сохранение черновика кода в localStorage — чтобы ввод не терялся
-// при ошибке сети, rate-limit или случайном закрытии вкладки
+// при ошибке сети, rate-limit или случайном закрытии вкладки.
 // Ключи черновика привязаны к пользователю (window.USER_ID) — на одном
 // компьютере ученики не видят черновики друг друга
 function draftKeys() {
@@ -158,43 +216,343 @@ function draftKeys() {
 }
 
 let draftSaveTimer = null;
-function scheduleDraftSave() {
-    if (!window.TASK_ID) return;
-    var keys = draftKeys();
-    if (!keys) return;
+
+// Немедленная запись черновика (перед закрытием вкладки или отправкой)
+function saveDraftNow() {
+    const keys = draftKeys();
+    const textarea = document.getElementById('code-editor');
+    if (!keys || !textarea) return;
     clearTimeout(draftSaveTimer);
-    draftSaveTimer = setTimeout(function() {
-        try {
-            localStorage.setItem(keys.code, document.getElementById('code-editor').value);
-            // Метка времени черновика — чтобы при загрузке страницы сравнить
-            // его с последней посылкой и показать более новое
-            localStorage.setItem(keys.time, String(Date.now()));
-        } catch (e) { /* localStorage недоступен — не критично */ }
-    }, 400);
+    draftSaveTimer = null;
+    try {
+        localStorage.setItem(keys.code, textarea.value);
+        // Метка времени черновика — чтобы при загрузке страницы сравнить
+        // его с последней посылкой и показать более новое
+        localStorage.setItem(keys.time, String(Date.now()));
+    } catch (e) { /* localStorage недоступен — не критично */ }
+}
+
+function scheduleDraftSave() {
+    if (!window.TASK_ID || !draftKeys()) return;
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(saveDraftNow, 400);
+}
+
+// Перерисовка подсветки не чаще одного кадра: ввод не «дёргает» layout
+let highlightFrame = 0;
+function scheduleHighlight() {
+    if (highlightFrame) return;
+    highlightFrame = requestAnimationFrame(function() {
+        highlightFrame = 0;
+        SyntaxHighlight.update();
+    });
+}
+
+/**
+ * Заменяет диапазон [from, to) текстом text с сохранением нативного undo.
+ * execCommand('insertText'/'delete') выполняется как пользовательский ввод
+ * и сам порождает событие input — подсветка и черновик обновятся штатно.
+ * Если браузер команду не поддерживает — обычная запись value (undo теряется).
+ */
+function replaceRange(textarea, from, to, text) {
+    const value = textarea.value;
+    if (from === to && text === '') return;
+
+    textarea.focus();
+    textarea.setSelectionRange(from, to);
+
+    let done = false;
+    try {
+        if (text === '') {
+            done = document.execCommand('delete');
+        } else {
+            done = document.execCommand('insertText', false, text);
+        }
+    } catch (err) {
+        done = false;
+    }
+    if (done) {
+        // Событие input обычно уже пришло, но в части браузеров его может
+        // не быть — обновление идемпотентно, дублируем на всякий случай
+        scheduleHighlight();
+        scheduleDraftSave();
+        return;
+    }
+
+    textarea.value = value.substring(0, from) + text + value.substring(to);
+    const caret = from + text.length;
+    textarea.setSelectionRange(caret, caret);
+    // Событие input браузер не создаст — обновляем состояние вручную
+    updateCursorPosition();
+    scheduleHighlight();
+    scheduleDraftSave();
+}
+
+/**
+ * Сдвиг отступа строк, затронутых выделением: +1 — добавить шаг,
+ * -1 — убрать (до 4 пробелов или один табулятор). Пустые строки не трогаем,
+ * чтобы не получать от pycodestyle W293 («пробелы в пустой строке»).
+ */
+function shiftIndent(textarea, direction) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+
+    // Строка, на начале которой заканчивается выделение, не затрагивается
+    let blockEnd;
+    if (end > lineStart && value.charAt(end - 1) === '\n') {
+        blockEnd = end - 1;
+    } else {
+        const nl = value.indexOf('\n', end);
+        blockEnd = nl === -1 ? value.length : nl;
+    }
+    if (blockEnd <= lineStart) return;
+
+    const lines = value.substring(lineStart, blockEnd).split('\n');
+    const caretLine = value.substring(lineStart, start).split('\n').length - 1;
+    let caretShift = 0;
+    let changed = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const before = lines[i];
+        let after = before;
+
+        if (before.trim() === '') {
+            // Пустые строки не трогаем: пробелы в пустой строке — ошибка W293
+            after = before;
+        } else if (direction > 0) {
+            after = INDENT + before;
+        } else if (before.charAt(0) === '\t') {
+            after = before.substring(1);
+        } else {
+            let n = 0;
+            while (n < INDENT.length && before.charAt(n) === ' ') n++;
+            after = before.substring(n);
+        }
+
+        if (i === caretLine) caretShift = after.length - before.length;
+        lines[i] = after;
+        if (after !== before) changed = true;
+    }
+
+    if (!changed) return;
+
+    const newBlock = lines.join('\n');
+    replaceRange(textarea, lineStart, blockEnd, newBlock);
+
+    if (start === end) {
+        const caret = Math.max(lineStart, start + caretShift);
+        textarea.setSelectionRange(caret, caret);
+    } else {
+        textarea.setSelectionRange(lineStart, lineStart + newBlock.length);
+    }
+    updateCursorPosition();
+}
+
+// Tab: отступ до ближайшей позиции табуляции, на выделении — сдвиг блока
+function insertIndent(textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    if (start !== end) {
+        shiftIndent(textarea, 1);
+        return;
+    }
+
+    const value = textarea.value;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const spaces = INDENT.length - ((start - lineStart) % INDENT.length);
+    replaceRange(textarea, start, start, ' '.repeat(spaces));
+    updateCursorPosition();
+}
+
+// Ctrl+/ — закомментировать или раскомментировать выделенные строки
+function toggleComment(textarea) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+
+    let blockEnd;
+    if (end > lineStart && value.charAt(end - 1) === '\n') {
+        blockEnd = end - 1;
+    } else {
+        const nl = value.indexOf('\n', end);
+        blockEnd = nl === -1 ? value.length : nl;
+    }
+    if (blockEnd <= lineStart) return;
+
+    const block = value.substring(lineStart, blockEnd);
+    const lines = block.split('\n');
+    const nonEmpty = lines.filter(function(line) { return line.trim() !== ''; });
+    if (nonEmpty.length === 0) return;
+
+    const allCommented = nonEmpty.every(function(line) { return /^\s*#/.test(line); });
+    const result = lines.map(function(line) {
+        if (line.trim() === '') return line;
+        return allCommented
+            ? line.replace(/^(\s*)#[ \t]?/, '$1')
+            : line.replace(/^(\s*)/, '$1# ');
+    }).join('\n');
+
+    if (result === block) return;
+
+    replaceRange(textarea, lineStart, blockEnd, result);
+    textarea.setSelectionRange(lineStart, lineStart + result.length);
+    updateCursorPosition();
+}
+
+// Enter: сохраняем отступ строки, после «:» — плюс один шаг (начало блока)
+function autoIndentNewline(textarea, e) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const beforeCaret = value.substring(lineStart, start);
+
+    const indent = /^[ \t]*/.exec(beforeCaret)[0];
+    let insert = '\n' + indent;
+    // «:» в конце строки (возможно с комментарием) открывает блок
+    if (/:\s*(#.*)?$/.test(beforeCaret)) insert += INDENT;
+
+    e.preventDefault();
+    replaceRange(textarea, start, end, insert);
+    updateCursorPosition();
+}
+
+// Можно ли открыть кавычку в этой позиции (эвристика как в редакторах)
+function canOpenQuote(value, pos) {
+    const prev = value.charAt(pos - 1);
+    if (!prev) return true;
+    if (!/[\w"')\]]/.test(prev)) return true;
+    // исключение — префикс строки: f" rb" b" r" u"
+    return /[rRbBuUfF]/.test(prev) && !/\w/.test(value.charAt(pos - 2));
+}
+
+/**
+ * Автозакрытие скобок и кавычек: () [] {} "" ''. На выделении — обёртка.
+ * Возвращает true, если клавиша обработана.
+ */
+function handleAutoPair(textarea, e) {
+    const ch = e.key;
+    if (ch.length !== 1) return false;
+
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const isQuote = ch === '"' || ch === "'";
+
+    // 1) Закрывающий символ уже стоит за кареткой — «перешагиваем» его
+    if (start === end && CLOSERS.has(ch) && value.charAt(start) === ch) {
+        e.preventDefault();
+        textarea.setSelectionRange(start + 1, start + 1);
+        updateCursorPosition();
+        return true;
+    }
+
+    if (!PAIRS[ch]) return false;
+
+    // 2) Кавычку не открываем внутри слова (апостроф в «don't»)
+    if (isQuote && !canOpenQuote(value, start)) return false;
+
+    e.preventDefault();
+    if (start !== end) {
+        // выделение оборачиваем в пару, оставляя его выделенным
+        const selected = value.substring(start, end);
+        replaceRange(textarea, start, end, ch + selected + PAIRS[ch]);
+        textarea.setSelectionRange(start + 1, end + 1);
+    } else {
+        replaceRange(textarea, start, start, ch + PAIRS[ch]);
+        textarea.setSelectionRange(start + 1, start + 1);
+    }
+    updateCursorPosition();
+    return true;
+}
+
+// Backspace между парой () [] {} "" '' удаляет обе половины
+function handlePairBackspace(textarea, e) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start !== end || start === 0) return false;
+
+    const value = textarea.value;
+    const before = value.charAt(start - 1);
+    const after = value.charAt(start);
+    if (!PAIRS[before] || PAIRS[before] !== after) return false;
+
+    e.preventDefault();
+    replaceRange(textarea, start - 1, start + 1, '');
+    textarea.setSelectionRange(start - 1, start - 1);
+    updateCursorPosition();
+    return true;
+}
+
+// Дублирование строки (или выделенного блока строк) — Ctrl+D
+function duplicateLine(textarea) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    if (start === end) {
+        // Без выделения — копируем строку под курсором целиком
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', start);
+        const line = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
+        // Копия вставляется строкой ниже — после перевода строки
+        // (если строка последняя и без \n — добавляем \n перед копией)
+        const insertPos = lineEnd === -1 ? value.length : lineEnd + 1;
+        const insertText = lineEnd === -1 ? '\n' + line : line + '\n';
+        replaceRange(textarea, insertPos, insertPos, insertText);
+        // Курсор — на копию строки (та же колонка); если перевод строки
+        // добавлялся перед копией, копия начинается на символ позже
+        const column = start - lineStart;
+        const copyStart = insertPos + (insertText.charAt(0) === '\n' ? 1 : 0);
+        textarea.setSelectionRange(copyStart + column, copyStart + column);
+    } else {
+        // С выделением — копируем затронутые строки целиком и вставляем копию ниже
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        // Блок — все строки, затронутые выделением:
+        // если выделение заканчивается на \n, граница уже на начале строки,
+        // иначе расширяем до конца строки, содержащей конец выделения
+        let blockEnd = end;
+        if (value[end - 1] !== '\n') {
+            const nl = value.indexOf('\n', end - 1);
+            blockEnd = nl === -1 ? value.length : nl + 1;
+        }
+        const block = value.substring(lineStart, blockEnd);
+        const insertPos = blockEnd;
+        // Если блок — последняя строка без \n, копию отделяем добавленным \n
+        const insertText = block.endsWith('\n') ? block : '\n' + block;
+        replaceRange(textarea, insertPos, insertPos, insertText);
+        textarea.setSelectionRange(blockEnd + insertText.length, blockEnd + insertText.length);
+    }
+    updateCursorPosition();
 }
 
 async function submitSolution() {
     if (isRunning) return;
 
-    const code = document.getElementById('code-editor').value;
+    const textarea = document.getElementById('code-editor');
+    const code = textarea ? textarea.value : '';
     if (!code.trim()) {
         alert('Введите код решения');
         return;
     }
 
-    isRunning = true;
     const btn = document.getElementById('submit-btn');
     const status = document.getElementById('submit-status');
     const resultsContainer = document.getElementById('results-container');
 
-    btn.disabled = true;
-    btn.textContent = '⏳ Проверка...';
-    status.innerHTML = '<span class="spinner"></span> Выполняется...';
-    resultsContainer.style.display = 'none';
-
-    // Значения taskId и contestId передаются через data-атрибуты или глобальные переменные
-    const taskId = window.TASK_ID;
-    const contestId = window.CONTEST_ID;
+    isRunning = true;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Проверка...';
+    }
+    if (status) {
+        status.innerHTML = '<span class="spinner" aria-hidden="true"></span> Выполняется...';
+    }
+    if (resultsContainer) resultsContainer.style.display = 'none';
 
     try {
         const response = await fetch('index.php?page=api&endpoint=submit', {
@@ -203,147 +561,167 @@ async function submitSolution() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                task_id: taskId,
+                task_id: window.TASK_ID,
                 code: code,
-                contest_id: contestId
+                contest_id: window.CONTEST_ID
             })
         });
 
-        const data = await response.json();
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            data = null;
+        }
 
+        if (!response.ok || !data) {
+            showSubmitError(data && data.error ? data.error : httpErrorMessage(response.status));
+            return;
+        }
         if (data.error) {
-            status.innerHTML = '<span style="color:red;">Ошибка: ' + escapeHtml(data.error) + '</span>';
-            btn.disabled = false;
-            btn.textContent = '▶ Отправить';
-            isRunning = false;
+            showSubmitError(data.error);
             return;
         }
 
-        // Сохраняем код в localStorage под ключом текущего пользователя
-        try {
-            var keys = draftKeys();
-            if (keys) {
-                localStorage.setItem(keys.code, code);
-                localStorage.setItem(keys.time, String(Date.now()));
-            }
-        } catch(e) {}
+        // Код отправлен — черновик совпадает с последней посылкой
+        saveDraftNow();
 
-        // Обновляем список попыток под задачей
+        // Обновляем список попыток под задачей и показываем результаты
         addAttemptRow(data);
-
-        // Отображаем результаты
         showResults(data);
-        status.innerHTML = '';
-        btn.textContent = '▶ Отправить ещё раз';
+        if (status) status.innerHTML = '';
+        if (btn) btn.textContent = '▶ Отправить ещё раз';
 
     } catch (err) {
-        status.innerHTML = '<span style="color:red;">Ошибка соединения: ' + escapeHtml(err.message) + '</span>';
+        showSubmitError('Не удалось связаться с сервером' +
+            (err && err.message ? ': ' + err.message : ''));
+    } finally {
+        if (btn) btn.disabled = false;
+        isRunning = false;
     }
+}
 
-    btn.disabled = false;
-    isRunning = false;
+// Понятное сообщение вместо «Unexpected token» при не-JSON ответе
+function httpErrorMessage(status) {
+    if (status === 429) return 'Слишком много посылок подряд — подождите немного и попробуйте снова.';
+    if (status === 401 || status === 403) return 'Сессия истекла — обновите страницу и войдите заново.';
+    if (status >= 500) return 'Ошибка на сервере (HTTP ' + status + '). Попробуйте позже.';
+    if (!status) return 'Сервер вернул некорректный ответ. Обновите страницу и попробуйте снова.';
+    return 'Сервер отклонил запрос (HTTP ' + status + ').';
+}
+
+function showSubmitError(message) {
+    const status = document.getElementById('submit-status');
+    const btn = document.getElementById('submit-btn');
+    if (status) {
+        status.innerHTML = '<span style="color:red;">Ошибка: ' + escapeHtml(message) + '</span>';
+    }
+    if (btn) btn.textContent = '▶ Отправить';
 }
 
 function showResults(data) {
     const container = document.getElementById('results-container');
     const summary = document.getElementById('results-summary');
     const detail = document.getElementById('results-detail');
+    if (!container || !summary || !detail) return;
 
+    // Канонические метки статусов приходят из includes/labels.php
+    const labels = window.STATUS_LABELS || {};
     container.style.display = 'block';
 
     // Обработка ошибок линтинга
-    if (data.lint_errors && data.lint_errors.length > 0) {
-        summary.innerHTML = '<div class="alert alert-error" style="font-size:1.1em;">⚠ Ошибки оформления кода (PEP8)</div>';
-        let detailHtml = '<h4>Ошибки оформления:</h4>';
-        detailHtml += '<table><thead><tr><th>Строка</th><th>Столбец</th><th>Код</th><th>Описание</th></tr></thead><tbody>';
+    if (Array.isArray(data.lint_errors) && data.lint_errors.length > 0) {
+        summary.innerHTML = '<div class="alert alert-error results-summary-alert">⚠ Ошибки оформления кода (PEP 8)</div>';
+
+        let detailHtml = '<h4>Ошибки оформления:</h4><div class="results-table-wrap">' +
+            '<table><thead><tr><th>Строка</th><th>Столбец</th><th>Код</th><th>Описание</th></tr></thead><tbody>';
+
         data.lint_errors.forEach(function(err) {
-            detailHtml += '<tr>';
-            detailHtml += '<td>' + (err.line || 0) + '</td>';
-            detailHtml += '<td>' + (err.column || 0) + '</td>';
-            detailHtml += '<td><code style="font-family:Consolas,monospace;">' + escapeHtml(err.code || '') + '</code></td>';
-            detailHtml += '<td>' + escapeHtml(err.message || '') + '</td>';
-            detailHtml += '</tr>';
+            detailHtml += '<tr>' +
+                '<td>' + (parseInt(err && err.line, 10) || 0) + '</td>' +
+                '<td>' + (parseInt(err && err.column, 10) || 0) + '</td>' +
+                '<td><code class="lint-code">' + escapeHtml(err && err.code) + '</code></td>' +
+                '<td>' + escapeHtml(err && err.message) + '</td>' +
+                '</tr>';
         });
-        detailHtml += '</tbody></table>';
+
+        detailHtml += '</tbody></table></div>';
         detail.innerHTML = detailHtml;
         container.scrollIntoView({ behavior: 'smooth' });
         return;
     }
 
     // Сводка
-    let summaryHtml = '';
+    const passed = parseInt(data.passed, 10) || 0;
+    const total = parseInt(data.total, 10) || 0;
+    const totalTime = Number(data.total_time) || 0;
+
+    let summaryHtml;
     if (data.all_passed) {
-        summaryHtml = '<div class="alert alert-success" style="font-size:1.1em;">✓ Все тесты пройдены (' + data.passed + '/' + data.total + ') за ' + data.total_time + ' сек</div>';
+        summaryHtml = '<div class="alert alert-success results-summary-alert">✓ Все тесты пройдены (' +
+            passed + '/' + total + ') за ' + totalTime + ' сек</div>';
     } else if (data.status === 'no_function') {
-        summaryHtml = '<div class="alert alert-error">⚠ В решении не найдена функция, которую требовалось написать. Проверьте, что функция определена на верхнем уровне кода и названа точно так, как в условии задачи.</div>';
+        summaryHtml = '<div class="alert alert-error">⚠ В решении не найдена функция, которую требовалось ' +
+            'написать. Проверьте, что функция определена на верхнем уровне кода и названа точно так, как в условии задачи.</div>';
     } else {
-        const statusLabels = {
-            'accepted': '✓ Принято',
-            'wrong_answer': '✗ Неверный ответ',
-            'runtime_error': '⚠ Ошибка выполнения',
-            'time_limit': '⏱ Превышен лимит времени',
-            'memory_limit': '📦 Превышен лимит памяти',
-            'no_function': 'Функция не найдена'
-        };
-        const statusLabel = statusLabels[data.status] || data.status;
-        summaryHtml = '<div class="alert alert-error">' + statusLabel + ' — пройдено ' + data.passed + '/' + data.total + ' тестов за ' + data.total_time + ' сек</div>';
+        const label = labels[data.status] || data.status || 'Ошибка';
+        summaryHtml = '<div class="alert alert-error">' + escapeHtml(label) +
+            ' — пройдено ' + passed + '/' + total + ' тестов за ' + totalTime + ' сек</div>';
     }
     summary.innerHTML = summaryHtml;
 
     // Детали по публичным тестам
+    const publicResults = Array.isArray(data.public_results) ? data.public_results : [];
     let detailHtml = '<h4>Публичные тесты:</h4>';
-    const publicResults = data.public_results || [];
 
     if (publicResults.length === 0) {
-        detailHtml += '<p style="color:var(--text-muted);">Нет публичных тестов для отображения.</p>';
+        detailHtml += '<p class="results-empty">Нет публичных тестов для отображения.</p>';
     }
 
-    publicResults.forEach(function(test, idx) {
-        const statusClass = 'status-' + test.status;
-        const statusLabels = {
-            'accepted': '✓ Пройден',
-            'wrong_answer': '✗ Неверный ответ',
-            'runtime_error': '⚠ Ошибка выполнения',
-            'time_limit': '⏱ Превышен лимит времени',
-            'memory_limit': '📦 Превышен лимит памяти',
-            'no_function': 'Функция не найдена'
-        };
-        const label = statusLabels[test.status] || test.status;
+    publicResults.forEach(function(test) {
+        const testNumber = parseInt(test && test.test_number, 10) || 0;
+        const testStatus = (test && test.status) || '';
+        const label = labels[testStatus] || testStatus;
+        // Пустой вывод тоже показываем — иначе «неверный ответ» без объяснения
+        const hasOutput = test && test.output !== undefined && test.output !== null;
+        const outputText = hasOutput && String(test.output) === ''
+            ? '<span class="test-empty">(пусто)</span>'
+            : escapeHtml(hasOutput ? test.output : '');
 
-        detailHtml += `
-            <div class="test-result" style="margin-bottom:16px; padding:12px; border:1px solid var(--border); border-radius:8px;">
-                <div class="test-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <strong>Тест #${test.test_number}</strong>
-                    <span class="submission-status ${statusClass}">${label}</span>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div>
-                        <div style="font-size:0.85em; color:var(--text-muted);">Входные данные</div>
-                        <pre class="test-block">${escapeHtml(test.input)}</pre>
-                    </div>
-                    <div>
-                        <div style="font-size:0.85em; color:var(--text-muted);">Ожидаемый вывод</div>
-                        <pre class="test-block">${escapeHtml(test.expected)}</pre>
-                    </div>
-                </div>
-                ${test.output ? `
-                <div style="margin-top:8px;">
-                    <div style="font-size:0.85em; color:var(--text-muted);">Ваш вывод</div>
-                    <pre class="test-block">${escapeHtml(test.output)}</pre>
-                </div>` : ''}
-                ${test.error ? `
-                <div style="margin-top:8px;">
-                    <div style="font-size:0.85em; color:var(--error);">Ошибка</div>
-                    <pre class="test-block error-block">${escapeHtml(test.error)}</pre>
-                </div>` : ''}
-            </div>
-        `;
+        detailHtml += '<div class="test-result test-result-card">' +
+            '<div class="test-header">' +
+                '<strong>Тест #' + testNumber + '</strong>' +
+                '<span class="submission-status ' + statusModifier(testStatus) + '">' +
+                    escapeHtml(label) + '</span>' +
+            '</div>' +
+            '<div class="test-columns">' +
+                '<div>' +
+                    '<div class="test-label">Входные данные</div>' +
+                    '<pre class="test-block">' + escapeHtml(test && test.input) + '</pre>' +
+                '</div>' +
+                '<div>' +
+                    '<div class="test-label">Ожидаемый вывод</div>' +
+                    '<pre class="test-block">' + escapeHtml(test && test.expected) + '</pre>' +
+                '</div>' +
+            '</div>' +
+            (hasOutput
+                ? '<div class="test-extra"><div class="test-label">Ваш вывод</div>' +
+                  '<pre class="test-block">' + outputText + '</pre></div>'
+                : '') +
+            (test && test.error
+                ? '<div class="test-extra"><div class="test-label test-label-error">Ошибка</div>' +
+                  '<pre class="test-block error-block">' + escapeHtml(test.error) + '</pre></div>'
+                : '') +
+            '</div>';
     });
 
     detail.innerHTML = detailHtml;
-
-    // Прокрутка к результатам
     container.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Класс статуса для CSS: 'status-' + безопасный идентификатор
+function statusModifier(status) {
+    return 'status-' + String(status || '').replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
 /**
@@ -356,6 +734,9 @@ function addAttemptRow(data) {
     const tbody = document.getElementById('attempts-tbody');
     if (!tbody) return;
 
+    const submissionId = parseInt(data.submission_id, 10);
+    if (!submissionId) return;
+
     // Убираем заглушку «Попыток ещё не было», если она есть
     const emptyRow = document.getElementById('attempts-empty-row');
     if (emptyRow) emptyRow.remove();
@@ -363,52 +744,50 @@ function addAttemptRow(data) {
     const labels = window.STATUS_LABELS || {};
     const status = data.status || 'pending';
     const label = labels[status] || status;
-    const contestTitle = window.CONTEST_TITLE || '';
     const time = (typeof data.total_time === 'number' && isFinite(data.total_time))
         ? data.total_time.toFixed(3)
         : '0.000';
 
     const tr = document.createElement('tr');
     tr.innerHTML =
-        '<td>' + data.submission_id + '</td>' +
-        '<td>' + escapeHtml(contestTitle) + '</td>' +
-        '<td><span class="submission-status status-' + escapeHtml(status) + '">' + escapeHtml(label) + '</span></td>' +
+        '<td>' + submissionId + '</td>' +
+        '<td>' + escapeHtml(window.CONTEST_TITLE || '') + '</td>' +
+        '<td><span class="submission-status ' + statusModifier(status) + '">' +
+            escapeHtml(label) + '</span></td>' +
         '<td>' + time + '</td>' +
         '<td>только что</td>' +
-        '<td><a href="?page=submission-detail&id=' + data.submission_id + '" class="btn btn-small">Просмотр</a></td>';
+        '<td><a href="?page=submission-detail&id=' + submissionId + '" class="btn btn-small">Просмотр</a></td>';
 
     tbody.insertBefore(tr, tbody.firstChild);
 
     // Обновляем бедж статуса у заголовка задачи
     const badge = document.getElementById('last-status-badge');
     if (badge) {
-        badge.className = 'submission-status status-' + escapeHtml(status);
+        badge.className = 'submission-status ' + statusModifier(status);
         badge.textContent = label;
         badge.style.display = '';
     }
 }
 
+// Экранирование для HTML-текста и для значений атрибутов (кавычки — тоже)
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text === undefined || text === null ? '' : text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
-// Функция обновления номеров строк
-function updateLineNumbers() {
-    const textarea = document.getElementById('code-editor');
-    const lineNumbers = document.getElementById('line-numbers');
-    if (!textarea || !lineNumbers) return;
-    const lines = textarea.value.split('\n');
-    const count = lines.length;
-    lineNumbers.textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
-}
-
-// Функция обновления позиции курсора
+/**
+ * Обновляет позицию курсора в статусбаре и предупреждения PEP 8
+ * для текущей строки (длина, табуляция, пробелы в конце).
+ */
 function updateCursorPosition() {
     const textarea = document.getElementById('code-editor');
     const cursorPos = document.getElementById('cursor-position');
     if (!textarea || !cursorPos) return;
+
     const text = textarea.value;
     const start = textarea.selectionStart;
     // Считаем строки и столбцы: до позиции курсора
@@ -417,6 +796,28 @@ function updateCursorPosition() {
     const line = lines.length;
     const column = lines[lines.length - 1].length + 1;
     cursorPos.textContent = line + ':' + column;
+
+    updatePep8Warning(text.split('\n')[line - 1] || '');
+}
+
+function updatePep8Warning(lineText) {
+    const warning = document.getElementById('pep8-warning');
+    if (!warning) return;
+
+    const issues = lineIssues(lineText);
+    const notes = [];
+    if (issues.long) {
+        notes.push('длина ' + lineText.length + ' — PEP 8: ≤' + MAX_LINE_LENGTH);
+    }
+    if (issues.tab) {
+        notes.push('табуляция — нужны пробелы');
+    }
+    if (issues.trailing) {
+        notes.push('пробелы в конце строки');
+    }
+
+    warning.textContent = notes.join(' · ');
+    warning.classList.toggle('has-warning', notes.length > 0);
 }
 
 // Копирование в буфер обмена
@@ -451,83 +852,13 @@ function copyToClipboard(btn, idx) {
     });
 }
 
-// Вставка отступа 4 пробела (или увеличение отступа выделенных строк)
-function insertIndent(textarea) {
-    const indent = '    ';
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = textarea.value;
-
-    if (start === end && value.substring(0, start).lastIndexOf('\n') !== -1) {
-        // Без выделения — просто вставляем пробелы
-        textarea.value = value.substring(0, start) + indent + value.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + indent.length;
-    } else if (start !== end) {
-        // С выделением — увеличиваем отступ каждой затронутой строки
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        const block = value.substring(lineStart, end).replace(/^/gm, indent);
-        textarea.value = value.substring(0, lineStart) + block + value.substring(end);
-        textarea.selectionStart = lineStart;
-        textarea.selectionEnd = lineStart + block.length;
-    } else {
-        textarea.value = value.substring(0, start) + indent + value.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + indent.length;
-    }
-    updateLineNumbers();
-    updateCursorPosition();
-    SyntaxHighlight.update();
-    scheduleDraftSave();
-}
-
-// Дублирование строки (или выделенного блока строк) — Ctrl+D
-function duplicateLine(textarea) {
-    const value = textarea.value;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-
-    if (start === end) {
-        // Без выделения — копируем строку под курсором целиком
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        const lineEnd = value.indexOf('\n', start);
-        const line = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
-        // Копия вставляется строкой ниже — после перевода строки
-        // (если строка последняя и без \n — добавляем \n перед копией)
-        const insertPos = lineEnd === -1 ? value.length : lineEnd + 1;
-        const insertText = lineEnd === -1 ? '\n' + line : line + '\n';
-        textarea.value = value.substring(0, insertPos) + insertText + value.substring(insertPos);
-        // Курсор — на копию строки (та же колонка)
-        const column = start - lineStart;
-        const copyStart = insertPos + 1;
-        textarea.selectionStart = textarea.selectionEnd = copyStart + column;
-    } else {
-        // С выделением — копируем затронутые строки целиком и вставляем копию ниже
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        // Блок — все строки, затронутые выделением:
-        // если выделение заканчивается на \n, граница уже на начале строки,
-        // иначе расширяем до конца строки, содержащей конец выделения
-        let blockEnd = end;
-        if (value[end - 1] !== '\n') {
-            const nl = value.indexOf('\n', end - 1);
-            blockEnd = nl === -1 ? value.length : nl + 1;
-        }
-        const block = value.substring(lineStart, blockEnd);
-        const insertPos = blockEnd;
-        // Если блок — последняя строка без \n, копию отделяем добавленным \n
-        const insertText = block.endsWith('\n') ? block : '\n' + block;
-        textarea.value = value.substring(0, insertPos) + insertText + value.substring(insertPos);
-        textarea.selectionStart = blockEnd + insertText.length;
-        textarea.selectionEnd = blockEnd + insertText.length;
-    }
-    updateLineNumbers();
-    updateCursorPosition();
-    SyntaxHighlight.update();
-    scheduleDraftSave();
-}
-
 // Модальное окно со справкой по PEP 8
+let pep8LastFocus = null;
+
 function showPep8Help() {
     const modal = document.getElementById('pep8-modal');
     if (!modal) return;
+    pep8LastFocus = document.activeElement;
     modal.style.display = 'flex';
     const closeBtn = modal.querySelector('.modal-close');
     if (closeBtn) closeBtn.focus();
@@ -537,13 +868,39 @@ function closePep8Help() {
     const modal = document.getElementById('pep8-modal');
     if (!modal) return;
     modal.style.display = 'none';
+    // Возвращаем фокус на кнопку, с которой окно открыли
+    if (pep8LastFocus && typeof pep8LastFocus.focus === 'function') {
+        pep8LastFocus.focus();
+    }
+    pep8LastFocus = null;
 }
 
+// Escape закрывает окно PEP 8, Tab не уводит фокус за его пределы
 document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Escape') return;
     const modal = document.getElementById('pep8-modal');
-    if (modal && modal.style.display !== 'none') {
+    if (!modal || modal.style.display === 'none') return;
+
+    if (e.key === 'Escape') {
+        e.preventDefault();
         closePep8Help();
+        return;
+    }
+    if (e.key !== 'Tab') return;
+
+    const focusable = Array.prototype.filter.call(
+        modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+        function(el) { return !el.disabled && el.offsetParent !== null; }
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
     }
 });
 
@@ -553,56 +910,99 @@ document.addEventListener('keydown', function(e) {
  */
 function initEditor() {
     const textarea = document.getElementById('code-editor');
-    const lineNumbers = document.getElementById('line-numbers');
     const highlightLayer = document.getElementById('highlight-layer');
 
-    if (!textarea || !lineNumbers) return;
+    if (!textarea || !highlightLayer) return;
 
-    // Обновляем номера строк и подсветку при вводе
+    // Первый рендер подсветки — до того, как спрячем текст textarea,
+    // чтобы код не мигал пустым блоком
+    SyntaxHighlight.update();
+    updateCursorPosition();
+
+    // Код в textarea делаем прозрачным только когда подсветка работает:
+    // если JS не загрузился, текст остаётся видимым обычным цветом
+    const container = textarea.closest('.editor-container');
+    if (container) container.classList.add('editor-ready');
+
+    // Подсветка (в ней же рисуются номера строк) при вводе
     textarea.addEventListener('input', function() {
-        updateLineNumbers();
         updateCursorPosition();
-        SyntaxHighlight.update();
+        scheduleHighlight();
         scheduleDraftSave();
     });
 
-    // Обновляем позицию курсора при клике, навигации с клавиатуры и изменениях выделения
+    // Позиция курсора и предупреждения PEP 8 — в том числе при выделении мышью
     textarea.addEventListener('click', updateCursorPosition);
     textarea.addEventListener('keyup', updateCursorPosition);
+    textarea.addEventListener('select', updateCursorPosition);
+    document.addEventListener('selectionchange', function() {
+        if (document.activeElement === textarea) updateCursorPosition();
+    });
 
-    // Ctrl+Enter → отправка решения; Ctrl+D → дублирование строки;
-    // Tab → отступ 4 пробела (PEP 8)
+    // Горячие клавиши редактора
     textarea.addEventListener('keydown', function(e) {
+        // Не мешаем IME-вводу
+        if (e.isComposing) return;
+
+        // Ctrl+Enter → отправка решения; Ctrl+D → дублирование строки;
+        // Ctrl+/ → комментарий
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
             submitSolution();
             return;
         }
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D') && !e.altKey) {
+        if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key === 'd' || e.key === 'D')) {
             e.preventDefault();
             duplicateLine(textarea);
             return;
         }
-        if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === '/' || e.code === 'Slash')) {
             e.preventDefault();
-            insertIndent(textarea);
+            toggleComment(textarea);
+            return;
         }
+
+        // Escape — выйти из редактора: Tab перехвачен, иначе не выбраться
+        if (e.key === 'Escape') {
+            textarea.blur();
+            return;
+        }
+
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        // Tab → отступ, Shift+Tab → снять отступ (PEP 8)
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                shiftIndent(textarea, -1);
+            } else {
+                insertIndent(textarea);
+            }
+            return;
+        }
+
+        // Enter → автоотступ (Shift+Enter — обычный перевод строки)
+        if (e.key === 'Enter' && !e.shiftKey) {
+            autoIndentNewline(textarea, e);
+            return;
+        }
+
+        if (handleAutoPair(textarea, e)) return;
+        if (e.key === 'Backspace') handlePairBackspace(textarea, e);
     });
 
-    // Синхронизируем вертикальный скролл gutter и highlight-слоя с textarea
+    // Синхронизируем прокрутку highlight-слоя с textarea
+    // (своих полос прокрутки у слоя нет, они скрыты в CSS)
     textarea.addEventListener('scroll', function() {
-        lineNumbers.scrollTop = this.scrollTop;
-        if (highlightLayer) {
-            highlightLayer.scrollTop = this.scrollTop;
-        }
+        highlightLayer.scrollTop = this.scrollTop;
+        highlightLayer.scrollLeft = this.scrollLeft;
     });
 
     // Обновляем при paste (через setTimeout, чтобы value уже обновилось)
     textarea.addEventListener('paste', function() {
         setTimeout(function() {
-            updateLineNumbers();
             updateCursorPosition();
-            SyntaxHighlight.update();
+            scheduleHighlight();
             scheduleDraftSave();
         }, 0);
     });
@@ -610,18 +1010,33 @@ function initEditor() {
     // Обновляем при cut (через setTimeout)
     textarea.addEventListener('cut', function() {
         setTimeout(function() {
-            updateLineNumbers();
             updateCursorPosition();
-            SyntaxHighlight.update();
+            scheduleHighlight();
             scheduleDraftSave();
         }, 0);
     });
 
-    // Первоначальное заполнение номеров строк, позиции курсора и подсветки
-    // Используем небольшой setTimeout, чтобы значение из localStorage уже было установлено
+    // Ширина редактора влияет на перенос строк — перерисовываем слой
+    // при изменении размеров окна и ручном resize за угол
+    if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(function() {
+            scheduleHighlight();
+        }).observe(textarea);
+    } else {
+        window.addEventListener('resize', scheduleHighlight);
+    }
+
+    // Не терять последние нажатия при закрытии вкладки
+    window.addEventListener('pagehide', saveDraftNow);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') saveDraftNow();
+    });
+
+    // Первоначальное заполнение позиции курсора и подсветки.
+    // Небольшой setTimeout — чтобы значение из localStorage уже было установлено
     setTimeout(function() {
-        updateLineNumbers();
         updateCursorPosition();
         SyntaxHighlight.update();
+        highlightLayer.scrollTop = textarea.scrollTop;
     }, 0);
 }

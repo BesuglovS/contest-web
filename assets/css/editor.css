@@ -1,10 +1,15 @@
 /* ===== Стили редактора кода ===== */
 
-/* Статус-бар редактора */
+/* Статус-бар редактора: подсказки по PEP 8, горячие клавиши, позиция курсора.
+   Две строки: сверху — черновик/предупреждение и позиция курсора,
+   снизу — полная подсказка по горячим клавишам (переносится, не обрезается) */
 .editor-statusbar {
     display: flex;
-    justify-content: flex-end;
-    padding: 4px 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 10px;
+    min-height: 26px;
+    padding: 4px 10px 3px;
     background: #141428;
     border: 2px solid var(--primary);
     border-top: none;
@@ -13,16 +18,79 @@
     font-size: 12px;
     color: #6c6c8a;
     user-select: none;
+    /* Ширина статусбара не должна зависеть от содержимого: иначе
+       предупреждение PEP 8 или подсказка растягивают редактор
+       и меняют размеры соседних блоков страницы */
+    contain: inline-size;
+}
+
+.editor-note,
+.editor-pep8 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Предупреждение PEP 8 важнее подсказки — оно не сжимается,
+   пока подсказка не ужмётся до нуля */
+.editor-pep8 {
+    order: 2;
+    flex: 0 0 auto;
+    max-width: 55%;
+    color: #6c6c8a;
+}
+
+.editor-pep8.has-warning {
+    color: #f0a35e;
+}
+
+.editor-note {
+    order: 1;
+    flex: 0 0 auto;
+    max-width: 35%;
+    color: #61afef;
+}
+
+/* Подсказка всегда занимает отдельную строку на всю ширину и переносится
+   по элементам (не по словам), поэтому видна целиком при любой ширине */
+.editor-hint {
+    order: 4;
+    flex: 1 0 100%;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 8px;
+    color: #55557a;
+    font-size: 11px;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.editor-hint-item {
+    white-space: nowrap;
+}
+
+/* Разделитель относится к предыдущему пункту, поэтому при переносе
+   строка начинается с целого пункта, а не с точки */
+.editor-hint-item:not(:last-child)::after {
+    content: '·';
+    margin-left: 6px;
+    color: #3d3d5c;
 }
 
 .cursor-position {
+    order: 3;
+    flex: none;
+    margin-left: auto;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 12px;
     color: #6c6c8a;
 }
 
-/* Контейнер редактора с line numbers */
+/* Контейнер редактора: ширина «жёлоба» с номерами задаётся переменными,
+   чтобы номера, отступы кода и фон не расходились */
 .editor-container {
+    --gutter-w: 44px;
+    --editor-pad: 12px;
     position: relative;
     border: 2px solid var(--primary);
     border-top: 2px solid var(--primary);
@@ -31,33 +99,21 @@
     overflow: hidden;
 }
 
-/* Номера строк */
-.editor-line-numbers {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 44px;
-    padding: 12px 8px 12px 12px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    color: #6c6c8a;
-    background: #141428;
-    user-select: none;
-    overflow: hidden;
-    text-align: right;
-    border-right: 1px solid #2a2a4a;
-    white-space: pre;
-    pointer-events: none;
-    box-sizing: border-box;
-    z-index: 3;
+/* Видимый фокус на всём блоке редактора (у textarea outline отключён) */
+.editor-container:focus-within {
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35);
 }
 
 /* Оверлей-обёртка для слоя подсветки + textarea */
 .editor-overlay-wrapper {
     position: relative;
     min-height: 300px;
+    /* «Жёлоб» под номера строк: номера рисует слой подсветки,
+       фон статичен и не прокручивается вместе с кодом */
+    background: linear-gradient(90deg,
+        #141428 0 var(--gutter-w),
+        #2a2a4a var(--gutter-w) calc(var(--gutter-w) + 1px),
+        #1a1a2e calc(var(--gutter-w) + 1px));
 }
 
 /* Слой с подсвеченным кодом (фон) */
@@ -67,13 +123,20 @@
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 12px 12px 12px 56px;
+    padding: 12px 12px 12px calc(var(--gutter-w) + var(--editor-pad));
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
     color: #ffffff;
+    /* Перенос строк обязан совпадать с textarea пиксель в пиксель,
+       иначе на длинных строках каретка «уезжает» от подсвеченного текста.
+       tab-size — тоже как у textarea (табуляция в коде ученика). */
     white-space: pre-wrap;
+    overflow-wrap: break-word;
     word-wrap: break-word;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    box-sizing: border-box;
     overflow: auto;
     pointer-events: none;
     background: transparent;
@@ -87,27 +150,85 @@
     display: none;
 }
 
+/* Строка кода. Номер строки живёт внутри самой строки, поэтому
+   не «съезжает» при переносе длинных строк */
+.editor-line {
+    position: relative;
+    min-height: 1.5em;
+}
+
+.editor-line-num {
+    position: absolute;
+    top: 0;
+    left: calc(-1 * (var(--gutter-w) + var(--editor-pad)) + var(--editor-pad));
+    width: calc(var(--gutter-w) - var(--editor-pad) - 2px);
+    text-align: right;
+    color: #6c6c8a;
+    user-select: none;
+}
+
+/* Маркеры проблем оформления в жёлобе: табуляция, пробелы в конце,
+   слишком длинная строка (те же ошибки, на которых останавливается pycodestyle) */
+.editor-line--tab .editor-line-num::before,
+.editor-line--space .editor-line-num::before,
+.editor-line--long .editor-line-num::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #61afef;
+}
+
+.editor-line--tab .editor-line-num::before {
+    background: #e5c07b;
+}
+
+.editor-line--long .editor-line-num::before {
+    background: #e06c75;
+}
+
 /* Textarea (прозрачный ввод) */
 .form-group textarea.code-editor,
 .form-group textarea.code-editor:focus {
     position: relative;
     z-index: 2;
     width: 100%;
+    /* Высота фиксирована: содержимое на неё не влияет (внутри — прокрутка).
+       Меняется только вручную — за угол resize или через inline height */
+    height: 300px;
     min-height: 300px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 14px;
-    padding: 12px 12px 12px 56px;
+    padding: 12px 12px 12px calc(var(--gutter-w) + var(--editor-pad));
     border: none !important;
     border-radius: 0;
     background: transparent !important;
-    color: transparent !important;
+    /* Пока подсветка не инициализирована, код виден обычным цветом
+       (страховка, если editor.js не загрузился) */
+    color: #ffffff !important;
     caret-color: #ffffff;
     resize: vertical;
     tab-size: 4;
+    -moz-tab-size: 4;
+    /* Эти два свойства должны совпадать со слоем подсветки (см. выше) */
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    /* Тёмные полосы прокрутки в тон редактору */
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a5a #141428;
     outline: none;
     line-height: 1.5;
     box-sizing: border-box;
     overflow: auto;
+}
+
+/* Подсветка работает — прячем текст textarea, чтобы не было «двоения» */
+.editor-container.editor-ready textarea.code-editor,
+.editor-container.editor-ready textarea.code-editor:focus {
+    color: transparent !important;
 }
 
 /* Плейсхолдер для textarea виден, когда нет ввода */
@@ -169,6 +290,65 @@
     background: #fff5f5;
     color: var(--error);
     border-color: var(--error);
+}
+
+.results-summary {
+    margin-bottom: 16px;
+}
+
+.results-summary-alert {
+    font-size: 1.1em;
+}
+
+.results-table-wrap {
+    overflow-x: auto;
+}
+
+.results-empty {
+    color: var(--text-muted);
+}
+
+.lint-code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.test-result-card {
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.test-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.test-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.test-label {
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+.test-label-error {
+    color: var(--error);
+}
+
+.test-extra {
+    margin-top: 8px;
+}
+
+.test-empty {
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 .task-content {
@@ -315,4 +495,27 @@
     margin-top: 14px;
     border-top: 1px solid #eee;
     padding-top: 12px;
+}
+
+/* ===== Мобильные устройства ===== */
+@media (max-width: 768px) {
+    /* 16px — иначе iOS Safari зумит страницу при фокусе на поле */
+    .form-group textarea.code-editor,
+    .editor-highlight-layer {
+        font-size: 16px;
+    }
+
+    /* Входные данные и ожидаемый вывод — в один столбец */
+    .test-columns {
+        grid-template-columns: 1fr;
+    }
+
+    /* Длинную подсказку по горячим клавишам на узком экране не показываем */
+    .editor-hint {
+        display: none;
+    }
+
+    .cursor-position {
+        margin-left: auto;
+    }
 }
