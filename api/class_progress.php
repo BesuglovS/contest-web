@@ -4,7 +4,8 @@
  * Используется j-web (электронный журнал) для страницы учёта успеваемости.
  *
  * GET ?group_id=N
- * Ответ: { students: [ { id, name, contests: { "<contest_id>": {solved, total} } } ] }
+ * GET ?group_id=N&until=YYYY-MM-DD[ HH:MM:SS] — прогресс на конец дня / момент
+ * Ответ: { students: [ { id, name, contests: { "<contest_id>": {solved, total} } } ], until }
  *
  * Аутентификация: сессия auth-web (кука auth_session, может быть проксирована
  * вызовом с другого поддомена) + права администратора.
@@ -58,6 +59,25 @@ if ($groupId <= 0) {
     exit;
 }
 
+// Оценка прогресса на дату и время: until=YYYY-MM-DD (конец дня) или
+// until=YYYY-MM-DD HH:MM:SS (точка отсчёта). В БД даты хранятся в UTC.
+$until = trim((string) ($_GET['until'] ?? ''));
+$untilEnd = null;
+if ($until !== '') {
+    $untilExact = DateTime::createFromFormat('!Y-m-d H:i:s', $until);
+    if ($untilExact && $untilExact->format('Y-m-d H:i:s') === $until) {
+        $untilEnd = $until;
+    } else {
+        $untilDate = DateTime::createFromFormat('!Y-m-d', $until);
+        if (!$untilDate || $untilDate->format('Y-m-d') !== $until) {
+            http_response_code(400);
+            echo json_encode(['error' => 'until должен быть в формате YYYY-MM-DD или YYYY-MM-DD HH:MM:SS'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $untilEnd = $until . ' 23:59:59';
+    }
+}
+
 // Участники группы из auth-web
 $memberships = AuthClient::getMemberships() ?? [];
 $userIds = [];
@@ -71,7 +91,7 @@ foreach ($memberships as $m) {
 }
 
 if (empty($userIds)) {
-    echo json_encode(['students' => []], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['students' => [], 'until' => $until !== '' ? $until : null], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -93,23 +113,36 @@ foreach ($userIds as $uid) {
 
 $db = Database::getInstance();
 
-// Общее количество задач в каждом контесте
-$tasksStmt = $db->prepare("SELECT contest_id, task_id FROM contest_tasks");
-$tasksStmt->execute();
+// Общее количество задач в каждом контесте (при until — только задачи,
+// существовавшие на конец выбранного дня)
+$tasksSql = 'SELECT ct.contest_id, ct.task_id FROM contest_tasks ct';
+$tasksParams = [];
+if ($untilEnd !== null) {
+    $tasksSql .= ' JOIN tasks t ON t.id = ct.task_id WHERE t.created_at <= ?';
+    $tasksParams[] = $untilEnd;
+}
+$tasksStmt = $db->prepare($tasksSql);
+$tasksStmt->execute($tasksParams);
 $contestTotals = [];
 foreach ($tasksStmt->fetchAll() as $row) {
     $cid = (int) $row['contest_id'];
     $contestTotals[$cid] = ($contestTotals[$cid] ?? 0) + 1;
 }
 
-// Решённые задачи участников
+// Решённые задачи участников (при until — только отправленные до конца дня)
 $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-$solvedStmt = $db->prepare("
+$solvedSql = "
     SELECT DISTINCT user_id, contest_id, task_id
     FROM submissions
     WHERE user_id IN ($placeholders) AND status = 'accepted'
-");
-$solvedStmt->execute($userIds);
+";
+$solvedParams = $userIds;
+if ($untilEnd !== null) {
+    $solvedSql .= ' AND executed_at <= ?';
+    $solvedParams[] = $untilEnd;
+}
+$solvedStmt = $db->prepare($solvedSql);
+$solvedStmt->execute($solvedParams);
 $solved = [];
 foreach ($solvedStmt->fetchAll() as $row) {
     $uid = (int) $row['user_id'];
@@ -130,5 +163,8 @@ foreach ($userIds as $uid) {
     $students[$uid]['contests'] = $contests;
 }
 
-echo json_encode(['students' => array_values($students)], JSON_UNESCAPED_UNICODE);
+echo json_encode([
+    'students' => array_values($students),
+    'until' => $until !== '' ? $until : null,
+], JSON_UNESCAPED_UNICODE);
 exit;
