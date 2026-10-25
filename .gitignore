@@ -4,7 +4,7 @@ data/contest.db-wal
 data/contest.db-shm
 
 # Sandbox temporary files
-sandbox/*.py
+sandbox/*_wrapper.py
 sandbox/*.txt
 
 # IDE and editor files
