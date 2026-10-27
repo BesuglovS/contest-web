@@ -107,6 +107,9 @@ class Router
         } elseif ($endpoint === 'admin_class_progress') {
             // Сводка прогресса класса (группы) — доступ охраняет сам файл
             require BASE_PATH . '/api/class_progress.php';
+        } elseif ($endpoint === 'admin_class_progress_batch') {
+            // Пакет срезов прогресса класса (несколько моментов) — для j-web
+            require BASE_PATH . '/api/class_progress_batch.php';
         } else {
             http_response_code(404);
             echo json_encode(['error' => 'Unknown endpoint'], JSON_UNESCAPED_UNICODE);
