@@ -158,6 +158,8 @@ foreach ($userIds as $uid) {
         $contests[(string) $cid] = [
             'solved' => $solvedCount,
             'total' => $total,
+            // Какие именно задачи решены (для ДЗ в j-web: проверка выбранных задач).
+            'solved_task_ids' => array_map('intval', array_keys($solved[$uid][$cid] ?? [])),
         ];
     }
     $students[$uid]['contests'] = $contests;

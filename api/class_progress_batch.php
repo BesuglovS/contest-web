@@ -162,6 +162,7 @@ foreach ($untils as $until) {
             $contests[(string) $cid] = [
                 'solved' => count($solved[$uid][$cid] ?? []),
                 'total' => $total,
+                'solved_task_ids' => array_map('intval', array_keys($solved[$uid][$cid] ?? [])),
             ];
         }
         $students[] = [
